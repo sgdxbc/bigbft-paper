@@ -1,3 +1,23 @@
 {
-    "latex-workshop.latex.autoBuild.run": "never"
+    "ltex.latex.commands": {
+        "\\sys": "dummy",
+        "\\query": "dummy",
+        "\\store": "dummy",
+        "\\del": "dummy",
+        "\\Procedure{}{}": "dummy",
+        "\\XXX": "dummy",
+        "\\footnote{}": "dummy",
+        "\\wh": "dummy",
+        "\\wl": "dummy",
+        "\\msg{}{}": "dummy",
+        "\\msig{}{}{}": "dummy",
+        "\\mtype{}": "dummy",
+        "\\fn{}": "dummy",
+        "\\code": "dummy",
+    },
+    "ltex.bibtex.fields": {
+        "title": false,
+        "series": false,
+        "journal": false
+    }
 }
