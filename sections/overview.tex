@@ -1,0 +1,86 @@
+\section{Incremental Refinement of System Design}
+\label{sec:overview}
+
+\paragraph{Sharding + plain replication.}
+Organize shards into Merkle tree for inclusion proof.
+Each shard is placed on $f+1$ nodes and the placement is assigned with consistent hashing.
+The load and store operations are amplified (\eg from key level) to shard level.
+
+Execution: for each shard involved in read set and write set, query $f+1$ nodes and wait for one reply with valid inclusion proof.
+Execute transaction and apply updates to the shards of write set.
+Append the updated shards (who should store locally according to the placement) into local storage, recalculate the inclusion proofs of all storing shards according to the updated shards, and bump state version.
+Note: the old version of the state, \ie the shards and their inclusion proofs, are not discarded immediately to serve future queries from other nodes.
+
+Safety: for each state version, every shard is served by $f+1$ nodes and at least $1$ of them will serve it correctly.
+All correct nodes have consistent views (\ie Merkle roots) of each version of the state, so they are able to verify remote shards, execute with correct shards, and keep going with the consistent views of the versions of the state.
+
+\paragraph{Garbage collection.}
+First, each shard is placed on $2f+1$ nodes instead of $f+1$.
+Safety is not affected by additional redundancies, obviously.
+
+Nodes broadcast when they bump state version (which can be trivially implied by querying for next version).
+A $2f+1$ bump quorum (of certain version) is a certificate to garbage collect all (meta)data below that version.
+
+Safety: if $2f+1$ nodes have bumped to a version, at least $f+1$ of them are correct.
+For each shard (of that version), the $2f+1$ nodes that serve it must intersect at least one correct node with this $f+1$ correct nodes, who will serve the shard.
+
+Liveness: as long as the upper layer consensus protocol guarantees the liveness of $2f+1$ correct nodes, quorums of increasing versions that consist only correct nodes will always be collected soon or later.
+
+\paragraph{Erasure coding.}
+The aforementioned design incurs $2f+1$ redundancy, which grows linearly to the number of nodes \ie the total storage capacity.
+The storage efficiency gets worse with more storage resource, and this is just a constant factor (\ie $\frac{2}{3}$) storage compression to the baseline.
+
+The refined design is to deploy a RS$(k+2f,k)$ erasure code, that is, for each stripe that contains $k$ shards, we generate $2f$ parities, and store them on $k+2f$ distinct nodes (which implies $k\leq{}f+1$), which forms the placement group of the stripe.
+The load and store operations are amplified to stripe level.
+To load a stripe, a node can query any $k$ nodes in the placement group and decode it.
+
+Both shards and parities are organized into the Merkle tree, so nodes can also check the validity of the received parities before decoding.
+
+Execution: for each \emph{shard stripe} involved in read set and write set, query $k+2f$ nodes and wait for $k$ replies to either directly retrieve or reconstruct the stripe shards.
+Execute transaction and apply updates to the shards of write set.
+Regenerate the parities of the updated stripes, store updated shards and parities according to the placement, recalculate the inclusion proofs of all storing shards and parities, and bump state version.
+
+Safety: for each stripe, at least $k+f$ of its shards/stripes will be served correctly, so the stripe will always be reconstructible.
+
+For garbage collection, the bump quorum still requires only $2f+1$ nodes, which includes at least $f+1$ correct nodes.
+For each stripe, the $2f+k$ nodes that serve it must intersect at least $k$ correct node with this $f+1$ correct nodes, who will serve sufficient shards/parities to reconstruct the stripe.
+
+\paragraph{Analyze redundancy.}
+The redundancy of deployed RS$(k+2f,k)$ erasure code is $\frac{k+2f}{k}$.
+With $k=1$ the redundancy is $2f+1$ and this essentially is the plain replication design.
+With $k=pf$ where $p\in(0,\frac{f+1}{f}]$, the redundancy is $\frac{p+2}{p}$ and remain constant with varying state size and total storage capacity, achieving the scalability goal.
+
+However, this also means that when $f$ increases (\ie more nodes joining), $k$ increases as well, and we have to dynamically adjust the number of shards of a stripe.
+Thanks to convertible code, we are able to merge multiple stripes into single one (with multiplied $k$) with lightweight computation by merging the parities of the original stripes, mitigate the overhead of massive transcoding.
+
+Note that even if $k$ is not adjusted according to increasing $f$, the safety is not violated, and we are just paying for additional redundancy overhead.
+On the other hand, when $f$ is decreasing, $k$ must be decreased and the stripes must be reconstructed immediately.
+Nevertheless, when $n$ is increasing, $f$ must be increased immediately but $k$ is not required to do so; while when $n$ is decreasing, $f$ is not required to be decreased immediately (except concerning liveness), and administrator can only decrease $f$ when it's a proper timing to decrease $k$.
+
+\paragraph{Amortize erasure code overhead with generational design.}
+The aforementioned design incurs frequent encoding and decoding operations.
+First, although each parity is stored on only single node, every (correct) node has to encode it to construct inclusion proofs for other shards/parities (it stores).
+Second, although RS code is systematic and nodes can skip decoding if all the stripe shards are replied, that only happen when all $k$ stripe shards are stored by correct nodes.
+Even if in the case where the $\frac{1}{3}$ faulty nodes do not use any sophisticated strategy and just withhold the shards they store, the probability of at least one parity is withheld by faulty nodes is $1-(\frac{2}{3})^k$, which is undesirably significant.
+
+To overcome this drawback, we adapt a \emph{generational} approach.
+The new state versions are created in the \emph{young} generation, whose shards are replicated on $f+1$ nodes as in plain replication design.
+Periodically, the nodes enter new \emph{epochs} and reach consensus on the \emph{epoch versions}.
+After the bump quorum is collected for a epoch version, the state of the epoch version is moved into \emph{old} generation and erasure coded.
+The (extra) copies of the shards from the young generation can be released.
+
+At first glance the young generation adds an $f+1$ extra redundancy and defeats the scalability goal.
+However, the $f+1$ shard copies are only for the shards updated in the current epoch; under many (skewed) workloads and with proper epoch interval, the portion of updated shards is tiny.
+Nevertheless, it does not fit all kinds of workloads, and faulty nodes can still perform withhold attacks at the beginning of each epoch.
+This is solved in the next design.
+
+\paragraph{Achieve constant redundancy with probabilistic (fast path) availability.}
+In this design we exploit the fact that the old generation can solely provide hard availability guarantee and relax the availability guarantee of the young generation.
+Instead of storing $f+1$ copies, the young generation preserves a fixed number of $c$ copies for each shard on uniformly random nodes regardless of $f$.
+Furthermore, the young generation preserves copies for \emph{all} active shards \ie the shards that some correct nodes are about to query, instead of just the updated ones.
+Thus, from this point we call the young and old generations the fast and rescue paths.
+
+Safety: every stripe is safe by replaying the transactions from the last epoch version, and the safety of epoch version state is as discussed in the erasure coding design.
+Additionally, the probability for each shard to be served by fast path is $1-\frac{1}{3^c}$, which is more than 99.9\% with $c=7$ and more than six-nines with $c=13$.
+The robustness of fast path increases exponentially to $c$ and is configurable by administrator.
+Note that this does not turn the upper layer BFT into speculative consensus and does not require the service state machine to support rollback: in the case that the shards are not available on the fast path, the ledger history is not lost, and the nodes just re-execute the same transaction sequence, and whatever replies have been committed on clients will not be invalidated.

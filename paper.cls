@@ -23,6 +23,7 @@
 }
 
 \DeclareOption{acm}{\acmtrue}
+\DeclareOption{apx}{\apxtrue}
 \DeclareOption{space}{\spacetrue}
 
 \DeclareOption*{
@@ -81,6 +82,9 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \fi
 \newtheorem{principle}{Principle}
+\newtheorem{defn}{Definition}[section]
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
 
 \def\Snospace~{\S{}}
 % Autoref
