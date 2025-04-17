@@ -1,0 +1,18 @@
+\ifdraft
+\newcommand{\editorial}[2]{{\color{#1}{#2}}\xspace}
+\else
+\newcommand{\editorial}[2]{}
+\fi
+\newcommand{\XXX}{\editorial{red}{XXX}}
+\newcommand{\xxx}[1]{\editorial{red}{XXX #1}}
+
+\ifdraft
+\newenvironment{outline}{\color{blue} \textbf{Outline:}}{}
+\else
+\excludecomment{outline}
+\fi
+
+\newcommand{\eg}{e.g.\@\xspace}
+\newcommand{\ie}{i.e.\@\xspace}
+
+\newcommand{\sys}{}
