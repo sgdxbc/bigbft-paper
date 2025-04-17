@@ -1,0 +1,24 @@
+\section{Related Works}
+\label{sec:relworks}
+
+\paragraph{Data center distributed storage systems deploy erasure codes.}
+Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure}.
+Morph~\cite{kim2024morph} takes a generational approach, \ie transcoding throughout data lifetime, similar to \sys.
+It can to match the ingestion performance of replication while match long term space efficiency of erasure code solutions.
+These are general storage layers that do not offer total order to the updates.
+They are not design for Byzantine faults either.
+
+\paragraph{Ethereum approach.}
+EIP-4844~\xxx{cite} introduces \emph{blobs}, designed to be utilized by rollups for publishing transactions.
+Although the blobs are not part of Ethereum's account state, and they have a limited 18-day lifetime, Ethereum guarantees their availability as same as the state (throughout their lifetime).
+The blobs are erasure coded to tolerate faults, and the nodes of the placement groups are economically incentivized to persist them.~\xxx{confirm details}
+So Ethereum does not provide theoretical availability guarantee and the blobs are read only.
+
+Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
+\emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
+
+\paragraph{Authenticated data structures.~\cite{martel2004general, tamassia2003authenticated}}
+\xxx{Introduce.}
+\textsc{Integri}DB~\cite{zhang2015integridb} supports SQL operations.
+These works enable interesting alternative approach of \sys by delegating transaction execution to the nodes storing the relevant shards and quorum verifying the to-state, instead of transferring the shards to the executing nodes.
+They are yet to support transactions across multiple shards.
