@@ -1,4 +1,4 @@
-\section{Incremental Refinement of System Design}
+\section{Iterative Refinement of System Design}
 \label{sec:overview}
 
 \paragraph{Sharding + plain replication.}
@@ -76,6 +76,7 @@ This is solved in the next design.
 
 \paragraph{Achieve constant redundancy with probabilistic (fast path) availability.}
 In this design we exploit the fact that the old generation can solely provide hard availability guarantee and relax the availability guarantee of the young generation.
+Inspired by \cite{qi2020bft} (though in their work, the availability of blocks instead of state is concerned), we repropose the young generation as a shortcut and adapt probabilistic availability.
 Instead of storing $f+1$ copies, the young generation preserves a fixed number of $c$ copies for each shard on uniformly random nodes regardless of $f$.
 Furthermore, the young generation preserves copies for \emph{all} active shards \ie the shards that some correct nodes are about to query, instead of just the updated ones.
 Thus, from this point we call the young and old generations the fast and rescue paths.
