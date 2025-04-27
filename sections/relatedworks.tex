@@ -1,32 +1,23 @@
 \section{Related Works}
 \label{sec:relworks}
 
-\paragraph{Erasure coding in (centralized) distributed storage systems.}
-Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure} deploy erasure codes.
-Morph~\cite{kim2024morph} takes a generational approach, \ie transcoding throughout data lifetime, similar to \sys.
-It can match the ingestion performance of replication while match long term space efficiency of erasure code solutions.
-These are general storage layers that do not offer total order to the updates.
-They are not design for collaboration nor tolerating Byzantine faults either.
+BlockchainDB~\cite{el2019blockchaindb}.
+FalconDB~\cite{peng2020falcondb}.
+BFT-Store~\cite{qi2020bft}.
+EIP-4844~\xxx{cite}
+Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.
+Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure}.
+Morph~\cite{kim2024morph}.
+\textsc{Integri}DB~\cite{zhang2015integridb}.
 
-\paragraph{BFT protocol approachs.}
-\cite{cachin2005asynchronous} improves efficiency of reliable broadcast protocol with erasure coding which is used in BFT protocols like \cite{miller2016honey}.
-It is used for ensuring availability of blocks but is similar to a consecutive pair of store then retrieve operations on the rescue path of \sys.
-Also, \sys uses RS$(k+2f,k)$ code instead of the RS$(n,n-2f)$ code in \cite{cachin2005asynchronous}, with lower redundancy.
-\cite{qi2020bft} \xxx{introduce}.
-
-\paragraph{Ethereum approach.}
-EIP-4844~\xxx{cite} introduces \emph{blobs}, designed to be utilized by rollups for publishing transactions.
-Although the blobs are not part of Ethereum's account state, and they have a limited 18-day lifetime, Ethereum guarantees their availability as same as the state (throughout their lifetime).
-The blobs are erasure coded to tolerate faults, and the nodes of the placement groups are economically incentivized to persist them.~\xxx{confirm details}
-So Ethereum does not provide theoretical availability guarantee and the blobs are read only.
+\paragraph{Blockchain databases.}
 
 \paragraph{Sharding in BFT protocols.}
-\xxx{Fill.}
 Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
 \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 
+\paragraph{Availability solutions for blocks.}
+
+\paragraph{(Centralized) distributed storage systems.}
+
 \paragraph{Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.}
-\xxx{Introduce.}
-\textsc{Integri}DB~\cite{zhang2015integridb} supports SQL operations.
-These works enable interesting alternative approach of \sys by delegating transaction execution to the nodes storing the relevant shards and quorum verifying the to-state, instead of transferring the shards to the executing nodes.
-They are yet to support transactions across multiple shards.
