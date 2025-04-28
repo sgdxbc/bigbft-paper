@@ -1,8 +1,26 @@
 \section{Iterative Refinement of System Design}
 \label{sec:overview}
 
-\paragraph{Sharding + plain replication.}
-Organize shards into Merkle tree for inclusion proof.
+The \sys protocol is a general state partitioning and execution solution that works with any atomic broadcast protocol.
+Its interface is single \texttt{Execute}$(txn)\rightarrow{}result$ function, which execute transactions in the order of calling and returns the result.
+\sys makes minimal assumption on the atomic broadcast protocol.
+Every correct replica should call \texttt{Execute} with the same sequence of transactions.
+The execution of the same $txn$ does not need to be aligned, and concurrent \texttt{Execute} calls can be made to \sys.
+Meanwhile, \sys guarantees that the same sequence of $result$s is outputted on every correct replica, and the overlapping parts of the state stored across correct replicas are consistent.
+
+Note that although the \sys interface is tailored for regular order-execute replication, it can be simply extended to support speculative execution, and the core idea behind \sys can also support execute-order-validate replication.
+
+\sys only makes basic assumptions on the replicated state and the executed transactions.
+The state should support sharding operation to be partitioned into large number of shards.
+The transaction should support static analysis of its \emph{read set} and \emph{write set}.
+Finally, \sys integrates a simple commitment strategy (such as Merkle tree) so that the replicas can locally verify remote shards.
+Each version of the state has a corresponding \emph{commitment}, and each shard is equipped with a proof that can prove the shard is included in the commitment.
+With the simple Merkle tree implementation, the commitment is the Merkle root of a tree whose leaf nodes are consisted by the shards, and the proof is the sibling hashes of the leaf node.
+
+In the following, we iteratively describe the overview of \sys.
+We start with a simple design I1, refine its redundancy level with I2, combine I1 and I2 together into a generational design to amortize the coding overhead in I3, and finally combine a modified version of I1 with I2 as I4 for a better usability.
+
+\paragraph{I1: Sharding + plain replication.}
 Each shard is placed on $f+1$ nodes and the placement is assigned with consistent hashing.
 The load and store operations are amplified (\eg from key level) to shard level.
 
@@ -26,8 +44,8 @@ For each shard (of that version), the $2f+1$ nodes that ought to serve it must i
 
 Liveness: as long as the upper layer consensus protocol guarantees the liveness of $2f+1$ correct nodes, quorums of increasing versions that consist only correct nodes will always form soon or later.
 
-\paragraph{Erasure coding.}
-The aforementioned design incurs $2f+1$ redundancy, which grows linearly to the number of nodes \ie the total storage capacity.
+\paragraph{I2: Erasure coding.}
+The I1 design incurs $2f+1$ redundancy, which grows linearly to the number of nodes \ie the total storage capacity.
 The storage efficiency gets worse with more storage resource, and this is just a constant factor (\ie $\frac{2}{3}$) storage compression to the baseline.
 
 The refined design is to deploy a RS$(k+2f,k)$ erasure code, that is, for each stripe that contains $k$ shards, we generate $2f$ parities, and store them on $k+2f$ distinct nodes (which implies $k\leq{}f+1$), which forms the placement group of the stripe.
@@ -57,31 +75,32 @@ Note that even if $k$ is not adjusted according to increasing $f$, the safety is
 On the other hand, when $f$ is decreasing, $k$ must be decreased and the stripes must be reconstructed immediately.
 Nevertheless, when $n$ is increasing, $f$ must be increased immediately but $k$ is not required to do so; while when $n$ is decreasing, $f$ is not required to be decreased immediately (except concerning liveness), and administrator can only decrease $f$ when it's a proper timing to decrease $k$.
 
-\paragraph{Amortize erasure code overhead with generational design.}
-The aforementioned design incurs frequent encoding and decoding operations.
+\paragraph{I3: Amortize erasure code overhead with generational design.}
+The I2 design incurs frequent encoding and decoding operations.
 First, although each parity is stored on only single node, every (correct) node has to encode it to construct inclusion proofs for other shards/parities (it stores).
 Second, although RS code is systematic and nodes can skip decoding if all the stripe shards are replied, that only happen when all $k$ stripe shards are stored by correct nodes.
 Even if in the case where the $\frac{1}{3}$ faulty nodes do not use any sophisticated strategy and just withhold the shards they store, the probability of at least one parity is withheld by faulty nodes is $1-(\frac{2}{3})^k$, which is undesirably significant.
 
 To overcome this drawback, we adapt an \emph{epoch}-based \emph{generational} approach.
-The new state versions are created in the \emph{young} generation, whose shards are replicated on $f+1$ nodes as in plain replication design.
+The new state versions are created in the \emph{young} generation, whose shards are replicated on $f+1$ nodes as in the I1 design.
 Periodically, the nodes enter new \emph{epochs} and reach consensus on the \emph{epoch versions}.
-After the bump quorum is collected for a epoch version, the state of the epoch version is moved into \emph{old} generation and erasure coded.
+After the bump quorum is collected for an epoch version, the state of the epoch version is moved into \emph{old} generation and erasure coded.
 The (extra) copies of the shards from the young generation can be released.
 
-At first glance the young generation adds an $f+1$ extra redundancy and defeats the scalability goal.
+At first glance the young generation adds an $f+1$ extra redundancy (as in I1) and defeats the scalability goal.
 However, the $f+1$ shard copies are only for the shards updated in the current epoch; under many (skewed) workloads and with proper epoch interval, the portion of updated shards is tiny.
 Nevertheless, it does not fit all kinds of workloads, and faulty nodes can still perform withhold attacks at the beginning of each epoch.
 This is solved in the next design.
 
-\paragraph{Achieve constant redundancy with probabilistic (fast path) availability.}
+\paragraph{I4: Achieve constant redundancy with probabilistic (fast path) availability.}
 In this design we exploit the fact that the old generation can solely provide hard availability guarantee and relax the availability guarantee of the young generation.
 Inspired by \cite{qi2020bft} (though in their work, the availability of blocks instead of state is concerned), we repropose the young generation as a shortcut and adapt probabilistic availability.
 Instead of storing $f+1$ copies, the young generation preserves a fixed number of $c$ copies for each shard on uniformly random nodes regardless of $f$.
-Furthermore, the young generation preserves copies for \emph{all} active shards \ie the shards that some correct nodes are about to query, instead of just the updated ones.
-Thus, from this point we call the young and old generations the fast and rescue paths.
+Furthermore, the young generation preserves copies for \emph{all} active shards \ie the most advanced version of every shard, even if it has been copied into the old generation.
+Thus, from this point we call the young and old generations the \emph{fast} and \emph{rescue} paths.
 
-Safety: every stripe is safe by replaying the transactions from the last epoch version, and the safety of epoch version state is as discussed in the erasure coding design.
+Safety: for all version, every stripe is safe by replaying the transactions from the last epoch version, and the safety of epoch version state is as discussed in the I2 design.
 Additionally, the probability for each shard to be served by fast path is $1-\frac{1}{3^c}$, which is more than 99.9\% with $c=7$ and more than six-nines with $c=13$.
 The robustness of fast path increases exponentially to $c$ and is configurable by administrator.
-Note that this does not turn the upper layer BFT into speculative consensus and does not require the service state machine to support rollback: in the rescuing case where the shards are not available on the fast path, the ledger history is not lost, and the nodes just re-execute the same transaction sequence. Whatever replies have been committed on clients will not be invalidated.
+Note that this does not turn the upper layer BFT into speculative consensus and does not require the service state machine to support rollback: in the rescuing case where the shards are not available on the fast path, the ledger history is not lost, and the nodes just re-execute the same transaction sequence.
+Whatever replies have been committed on clients will not be invalidated.
