@@ -1,42 +1,45 @@
 \section{Introduction}
 \label{sec:intro}
 
-Blockchains are getting big.
+There is a trend to build databases out of blockchains.
+\XXX.
 
-Blockchain applications demand even bigger.
+There is a dilemma between scaling out the database state and blockchain's replicated execution.
+The key of database's scalability is state sharding -- storage nodes can operate by storing only partial state \ie state shards.
+As the result, databases can perfectly scale out to more storage nodes as the state size grows.
+The storage capacity collaboratively contributed by arbitrary number of storage nodes can operate arbitrary large states without degrading performance.
+Because the whole database is managed by a single central administration, the state updates \ie transactions only need to be performed by the nodes holding the relevant shards.
+Single shard transaction can be performed locally, and for cross shard transactions, sophisticated methods are developed to minimize the overhead of ensuring ACID properties of them.
 
-Many works argue for \emph{blockchain database}.
-Are we database yet?
+On the other hand, blockchains, essentially state machine replication protocols, demanding replicated execution on a quorum of nodes.
+To tolerate Byzantine faults that deliver diverged execution results or withhold state, each correct node has to preserve a copy of the whole execution state and execute transactions individually.
+The requirement of holding the whole database poses high entry barrier.
+Indeed, the large execution states of popular blockchains have caused centralization tendency.
 
-No.
-Blockchain is state machine replication.
-Both \emph{execution} and \emph{execution state} are replicated to every (correct) node.
-The more the node, the larger computation and storage overhead per transaction.
+Previous works have studied sharded blockchain extensively, striving for better scaling out capability while preserving consistency.
+\XXX
+However, by sharding the processing of transactions, the trade-off between safety and scalability becomes fundamental.
+More nodes participating a processing shard results in poorer scalability -- more copies of the shard state reside on these nodes, while less participant nodes can tolerate fewer faults.
 
-On the other hand, databases are \emph{sharded}.
-Each state shard is only replicated (or redundantly stored) on a subset of the nodes, called \emph{placement group}.
-Each node fails independently to the others in the placement group.
-Finally, databases provide probabilistic guarantee of high availability.
+What's worse, as the blockchain scaling out to more nodes, either scalability or security must be suffered, depending on whether the number of nodes participating a shard increases with the total number of nodes.
+\xxx{Literature review to verify this argument.}
+\xxx{Distinguish performance and storage scalability?}
 
-Sharded blockchain is extensively studied.
-Some of them utilizes predetermined (assigned statically or by consistent hashing) placement groups, minimizing coordination overhead.
-These works suffer from weakened security: they can tolerate only $\frac{1}{3}$ faulty nodes within each placement group, not globally.
+Can blockchains scale out to more storage nodes like databases while deterministically tolerate $\frac{1}{3}$ Byzantine faults as BFT protocols?
+In this work, we propose a new approach that \emph{independently scales out execution state to the execution}.
+As in regular databases, the execution state is sharded and each node preserves only a subset of the shards.
+At the same time, the global consensus (\ie Byzantine atomic broadcast) and execution are retained, and the safety guarantee is \emph{decoupled} with the sharding design.
+With this approach, blockchains can persist the standard safety statement while enjoy perfect scale out feature like databases.
 
-Another line of works utilize secret placement groups (\eg by verifiable randomness).
-They still require more than $3f+1$ total nodes to ensure that sufficient correct nodes are selected with high probabilistic by random sampling.
-More importantly, the placement groups are usually ephemeral, enforce the nodes to maintain the whole state locally and frequently switch the shards to execute.
-There are some other works that propose to mask failed placement groups with other correct groups to tolerate $\frac{1}{3}$ faulty nodes.
-Again, they also require the nodes to maintain the whole state to prepare for executing on behalf of the failed groups.
+Independent scaling-out of execution state brings its unique challenges.
+The relevant state shards must be efficiently dispersed by the storing nodes to all upon execution, the other nodes must be able to verify the state shards independently, and most importantly, the state shards must be available even if Byzantine nodes participate in storing them.
+To solve these challenges, we deploy erasure code to disseminate the state shards to more than $\frac{2}{3}$ of all the nodes while keep a constant overall storage overhead of storing a state shard (\ie about 3x shard size).
+Because of the high overhead of deploying erasure code online, we propose an alternative online process path that preserves constant number of verbatim copies of state shards on uniformly random nodes, achieving tunable probabilistic availability.
+Both of the methods incurs constant overall storage overhead per state shard, same as databases.
 
-More importantly, sharding itself can at most bring down the storage overhead of nodes by a constant factor \ie \xxx{figure out the formula here}.
-To achieve \emph{bounded} redundancy level (\eg 1-3 as in data center storage), as the number of nodes increases, the storage must either deploy more shards (which results in more placement groups) or distribute each shard on to larger placement groups.
-However, both approaches are not available for sharded blockchain, as the number and the size of the placement groups affect the security guarantee fundamentally.
-Besides, flexibly adjusting the size of placement groups requires to \emph{erasure code} the state shards into parities, which is also rarely explored by blockchain systems.
+To this end, we propose \sys, a practical BFT protocol designed for scaling out the replicated state.
+\sys combines the two aforementioned methods, utilizing the verbatim copies as the \emph{active layer} and the erasure code as the \emph{archive layer}.
+The active layer possesses the latest version of the state shards and serves the online execution with high probability.
+At the same time, \sys periodically archives the state with erasure code as a fallback.
 
-In this work, we propose \sys, a novel BFT protocol designed for replicating gigantic blockchain databases.
-Unlike the previous sharded blockchains, \sys does \emph{not} perform execution sharding and makes use of (single instance of) standard Byzantine atomic broadcast protocol, and its execution provides \emph{deterministic safety guarantee}: \sys guarantees that the execution results are consistent on correct replicas, in the presence of $f$ Byzantine faulty nodes out of $3f+1$ total nodes.
-Moreover, \sys features \emph{scalable state}: the total storage occupied on the (correct) nodes is $O(state\:size)$ regardless of the number of nodes.
-In another word, with more nodes, \sys can tolerate more faulty nodes while reducing the storage demand on each node.
-We believe the scalability of \sys can scale blockchain states up to several hundreds of terabyte or even petabyte, enabling blockchain databases to handle large amount of data similar to their traditional databases counterparts.
-
-\xxx{System design.}
+\xxx{Contribution and conclusion.}
