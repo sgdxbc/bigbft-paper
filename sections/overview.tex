@@ -1,4 +1,4 @@
-\section{Iterative Refinement of System Design}
+\section{System Design: An Iterative Approach}
 \label{sec:overview}
 
 The \sys protocol is a general state partitioning and execution solution that works with any atomic broadcast protocol.
@@ -97,10 +97,10 @@ In this design we exploit the fact that the old generation can solely provide ha
 Inspired by \cite{qi2020bft} (though in their work, the availability of blocks instead of state is concerned), we repropose the young generation as a shortcut and adapt probabilistic availability.
 Instead of storing $f+1$ copies, the young generation preserves a fixed number of $c$ copies for each shard on uniformly random nodes regardless of $f$.
 Furthermore, the young generation preserves copies for \emph{all} active shards \ie the most advanced version of every shard, even if it has been copied into the old generation.
-Thus, from this point we call the young and old generations the \emph{fast} and \emph{rescue} paths.
+Thus, from this point we call the young and old generations the \emph{active} and \emph{archive} layers.
 
-Safety: for all version, every stripe is safe by replaying the transactions from the last epoch version, and the safety of epoch version state is as discussed in the I2 design.
-Additionally, the probability for each shard to be served by fast path is $1-\frac{1}{3^c}$, which is more than 99.9\% with $c=7$ and more than six-nines with $c=13$.
-The robustness of fast path increases exponentially to $c$ and is configurable by administrator.
-Note that this does not turn the upper layer BFT into speculative consensus and does not require the service state machine to support rollback: in the rescuing case where the shards are not available on the fast path, the ledger history is not lost, and the nodes just re-execute the same transaction sequence.
+Safety: for all version, every stripe is safe by replaying the transactions from the last archived version, and the safety of the archived state is as discussed in the I2 design.
+Additionally, the probability for each shard to be served by the active layer is $1-\frac{1}{3^c}$, which is more than 99.9\% with $c=7$ and more than six-nines with $c=13$.
+The robustness of active layer increases exponentially to $c$ and is configurable by administrator.
+Note that this does not turn the upper layer BFT into speculative consensus and does not require the service state machine to support rollback: in the rescuing case where the shards are not available on the active layer, the ledger history is not lost, and the nodes just re-execute the same transaction sequence.
 Whatever replies have been committed on clients will not be invalidated.
