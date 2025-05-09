@@ -65,3 +65,5 @@ XORing
 Yiqing
 Sharding
 sharding
+Trie
+OLAP

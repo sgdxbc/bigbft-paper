@@ -1,46 +1,68 @@
 \section{Motivation}
 \label{sec:bg}
 
+\paragraph{Problem settings.}
+In this work we target the BFT replications protocols that perform state machine replication (SMR) over states that potentially cannot fit into single node's storage.
+We don't assume any specific structure of the state, only requires it to be \emph{shard-able}.
+The number of shards is also not significant, though sufficient many shards (\eg much more than the number of nodes) can achieve a better load balance effect.
+Examples of compatible states are key-value stores (atop what relational databases potentially build) and (Merkle) Patricia Trie used by Ethereum.
+
+We also do not assume any specific structure of the transactions, which may range from simple key-value updates to complex smart contracts.
+We only expect that most transactions in the workload access only single or few shards (\ie online transaction processing (OLTP) workload instead of online analytical processing (OLAP)).
+This expectation is valid for extensive scenarios such as token transfer between a pair of accounts or status update of a specific merchandise in a supply chain.
+Besides, OLAP workload that scans over large number of shards can be performed off-chain with a verified state snapshot.
+
+Note that because of the correspondence of replicating log and state established by SMR, several works focus on the availability of a sharded log (\ie the blocks in blockchains)~\cite{qi2020bft,eip4844}.
+While the intermediate state can always be reconstructed with an available chain of blocks, blockchain databases demand \emph{explicit} states for online execution of transactions.
+To keep a bounded storage usage, \sys releases historical blocks that will not be required by any further execution.
+
 \paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
 \XXX.
 BlockchainDB~\cite{el2019blockchaindb}.
 FalconDB~\cite{peng2020falcondb}.
 
 Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.
-\textsc{Integri}DB~\cite{zhang2015integridb}.
+\textsc{IntegriDB}~\cite{zhang2015integridb}.
+\textsc{GriDB}~\cite{hong2024gridb}
 
 As the blockchain databases keep operating, the size of content they store may ever grow.
-However, blockchains, as state machine replication protocols, by default require each node to store a full copy of the execution state in order to replicate the execution individually.
+However, blockchains, as state machine replication protocols, by default require each node to store a full copy of the state in order to replicate the execution individually.
 Eventually, the ever-growing database will overwhelm the storage capacity of the nodes. 
 
 \paragraph{Sharded blockchains.}
 To overcome this problem, the stored data can be divided into shards and each node stores only one or a subset of the shards.
-However, without the whole execution state, the nodes can no longer execute every transaction.
-One solution is to shard the historical ledger (\ie the blocks) and leave the execution state intact.
+However, without the whole state, the nodes can no longer process every transaction.
+One line of works shard the historical ledger (\ie the blocks) and leave the state intact.
 For example, BFT-Store~\cite{qi2020bft} performs erasure coding on the blocks to reduce the storage complexity per block to $O(1)$.
 EIP-4844~\cite{eip4844} of Ethereum proposes to shard \emph{blob}, a special kind of block data only whose commitment is accessible by the transactions.
-These works guarantee the availability of blocks and claim that one can always replay the execution state from an available chain.
-However, online execution is still required by many blockchain systems to \emph{validate} the block.
-Moreover, if the execution state size exceeds the capacity of a single node, even replaying becomes infeasible.
+As previously discussed, these solutions are not desirable by blockchain databases.
 
-The other solution is to perform \emph{processing sharding} like regular databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
-This is safe for regular databases, however, reducing the execution quorum immediately brings safety concerns to the blockchain databases, as the faulty nodes gain more power in a smaller execution quorum.
+The other works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
+\footnote{
+    In some works \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
+    In this work shard always refers to state shard.
+}
+Some works like \textsc{Elastico}~\cite{luu2016secure} take an epoch based approach and randomize the shards that the nodes work on in each epoch.
+The processing sharding in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
+
+On the other hand, deterministically reduce the processing quorum brings safety concerns to the blockchain databases, as the faulty nodes gain more power in a smaller processing quorum.
 BlockchainDB~\cite{el2019blockchaindb}.
 SharPer~\cite{amiri2021sharper}: ``the number of nodes, $N$, is assumed to be much larger than $f$''.
-\xxx{Discuss randomize execution quorum approaches.}
+
 Moreover, cross shard transactions bring additional coordination overhead to processing sharding approach, posing performance penalty and complicating the reasoning of safety.
+Besides the consistent ordering, database transaction workload may also bring inefficient processing in sharded blockchains~\cite{hong2024gridb}.
 
 % Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.
 % Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure}.
 % Morph~\cite{kim2024morph}.
 
-\paragraph{Decouple sharding from execution.}
-To summarize, state sharding is desired for scaling out blockchains like databases, while global execution is desired for solid security.
+\paragraph{Decouple sharding from processing.}
+To summarize, state sharding is desired for scaling out blockchains like databases, while global processing is desired for solid security.
 However, this design space is rarely exploited.
 Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
 \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 
-Decoupling sharding from execution is challenging.
-The storage layer must mask the missing shards prior to execution and synchronize them from storing nodes in time.
+Decoupling sharding from processing is challenging.
+The storage layer must mask the missing shards prior to processing and synchronize them from storing nodes in time.
 The synchronized shards must prove their \emph{integrity} \ie their contents are not tampered by the faulty storing nodes.
 And most importantly, Byzantine faults must not cause any \emph{liveness} issues by withholding the storing shards.
