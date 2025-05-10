@@ -3,9 +3,9 @@
 
 \paragraph{Problem settings.}
 In this work we target the BFT replications protocols that perform state machine replication (SMR) over states that potentially cannot fit into single node's storage.
-We don't assume any specific structure of the state, only requires it to be \emph{shard-able}.
-The number of shards is also not significant, though sufficient many shards (\eg much more than the number of nodes) can achieve a better load balance effect.
-Examples of compatible states are key-value stores (atop what relational databases potentially build) and (Merkle) Patricia Trie used by Ethereum.
+We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
+The number of shards is also not significant, though sufficient shards (\ie much more than the number of nodes) can achieve a better load balance effect.
+Examples of compatible states are key-value stores (atop what relational databases potentially build)~\cite{corbett2013spanner} and (Merkle) Patricia Trie used by Ethereum.
 
 We also do not assume any specific structure of the transactions, which may range from simple key-value updates to complex smart contracts.
 We only expect that most transactions in the workload access only single or few shards (\ie online transaction processing (OLTP) workload instead of online analytical processing (OLAP)).
@@ -39,18 +39,15 @@ As previously discussed, these solutions are not desirable by blockchain databas
 
 The other works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
 \footnote{
-    In some works \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
-    In this work shard always refers to state shard.
+    In some works, \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
+    Following distributed database's convention, in this work shard means \emph{data shard} and always refers to state shard.
 }
-Some works like \textsc{Elastico}~\cite{luu2016secure} take an epoch based approach and randomize the shards that the nodes work on in each epoch.
-The processing sharding in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
+The immediate effect of a reduced processing quorum is low fault resiliency, \eg, $\frac{1}{4}$~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
 
-On the other hand, deterministically reduce the processing quorum brings safety concerns to the blockchain databases, as the faulty nodes gain more power in a smaller processing quorum.
-BlockchainDB~\cite{el2019blockchaindb}.
-SharPer~\cite{amiri2021sharper}: ``the number of nodes, $N$, is assumed to be much larger than $f$''.
-
-Moreover, cross shard transactions bring additional coordination overhead to processing sharding approach, posing performance penalty and complicating the reasoning of safety.
-Besides the consistent ordering, database transaction workload may also bring inefficient processing in sharded blockchains~\cite{hong2024gridb}.
+Besides the security concern, some works randomize the shards that the nodes work on and reshuffle the formation frequently on an epoch basis~\cite{luu2016secure,dang2019towards,yu2020ohie}.
+This approach not only in advance degrades to probabilistic safety guarantee, but also the processing sharding that operates in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
+Moreover, cross shard transactions bring additional coordination overhead to processing sharding approach, posing performance penalty and complicating the reasoning of safety~\cite{dang2019towards}.
+Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
 
 % Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.
 % Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure}.
