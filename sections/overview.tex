@@ -5,6 +5,8 @@
 However, its consistent ordering property is achieved by integrating any off-the-shelf Byzantine atomic broadcast protocols \XXX{cite some}, and the following description focuses on the processing part.
 That is, given a consistently ordered list of transactions available on every correct node, how to execute on the nodes that do not persist the whole state locally.
 
+\lijl{Before discussing the design overview, we should formally define the guarantees of the system.}
+
 In the following, we iteratively describe the overview of \sys.
 We start with a simple design I1, refine its redundancy level with I2, combine I1 and I2 together into a generational design to amortize the coding overhead in I3, and finally combine a modified version of I1 with I2 as I4 for a better usability.
 
@@ -21,6 +23,7 @@ Safety: for each state version, every shard is served by $f+1$ nodes and at leas
 All correct nodes have consistent views (\ie Merkle roots) of each version of the state, so they are able to verify remote shards, execute with correct shards, and keep going with the consistent views of the versions of the state.
 
 \paragraph{Garbage collection.}
+\lijl{What is the guarantee of GC? No correct node needs the older version? The new version is available?}
 First, each shard is placed on $2f+1$ nodes instead of $f+1$.
 Safety is not affected by additional redundancies, obviously.
 
@@ -58,10 +61,12 @@ With $k=pf$ where $p\in(0,\frac{f+1}{f}]$, the redundancy is $\frac{p+2}{p}$ and
 
 However, this also means that when $f$ increases (\ie more nodes joining), $k$ increases as well, and we have to dynamically adjust the number of shards of a stripe.
 Thanks to convertible code, we are able to merge multiple stripes into single one (with multiplied $k$) with lightweight computation by merging the parities of the original stripes, mitigate the overhead of massive transcoding.
+\lijl{This should be part of the reconfiguration protocol?}
 
 Note that even if $k$ is not adjusted according to increasing $f$, the safety is not violated, and we are just paying for additional redundancy overhead.
 On the other hand, when $f$ is decreasing, $k$ must be decreased and the stripes must be reconstructed immediately.
 Nevertheless, when $n$ is increasing, $f$ must be increased immediately but $k$ is not required to do so; while when $n$ is decreasing, $f$ is not required to be decreased immediately (except concerning liveness), and administrator can only decrease $f$ when it's a proper timing to decrease $k$.
+\lijl{We would carefully design a reconfiguration protocol.}
 
 \paragraph{I3: Amortize erasure code overhead with generational design.}
 The I2 design incurs frequent encoding and decoding operations.
@@ -77,6 +82,7 @@ The (extra) copies of the shards from the young generation can be released.
 
 At first glance the young generation adds an $f+1$ extra redundancy (as in I1) and defeats the scalability goal.
 However, the $f+1$ shard copies are only for the shards updated in the current epoch; under many (skewed) workloads and with proper epoch interval, the portion of updated shards is tiny.
+\lijl{We should show that in real-world workloads, the working set size is typically constant, independent of the overall storage size.}
 Nevertheless, it does not fit all kinds of workloads, and faulty nodes can still perform withhold attacks at the beginning of each epoch.
 This is solved in the next design.
 
