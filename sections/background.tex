@@ -5,7 +5,7 @@
 In this work we target the BFT replications protocols that perform state machine replication (SMR) over states that potentially cannot fit into single node's storage.
 We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
 The number of shards is also not significant, though sufficient shards (\ie much more than the number of nodes) can achieve a better load balance effect.
-Examples of compatible states are key-value stores (atop what relational databases potentially build)~\cite{corbett2013spanner} and (Merkle) Patricia Trie used by Ethereum.
+Examples of compatible states are key-value stores (atop what relational databases potentially build)~\cite{corbett2013spanner} and (Merkle) Patricia Trie~\cite{mpt} used by Ethereum.
 
 We also do not assume any specific structure of the transactions, which may range from simple key-value updates to complex smart contracts.
 We only expect that most transactions in the workload access only single or few shards (\ie online transaction processing (OLTP) workload instead of online analytical processing (OLAP)).
@@ -13,20 +13,24 @@ This expectation is valid for extensive scenarios such as token transfer between
 Besides, OLAP workload that scans over large number of shards can be performed off-chain with a verified state snapshot.
 
 \paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
-\XXX.
-BlockchainDB~\cite{el2019blockchaindb}.
-FalconDB~\cite{peng2020falcondb}.
+In blockchain databases, clients \emph{outsource} the database storage to the blockchain, which consists of the nodes with abundant storage capacity but are mutually untrusted to each other.
+The common database operations \eg SQL queries are implemented on top of the BFT replication, realizing the user experience of database applications while tolerating Byzantine faults at the same time\cite{el2019blockchaindb,peng2020falcondb}.
+Also, \cite{nathan2019blockchain} approaches the goal by plugging an ordering service into databases.
 
-Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.
-\textsc{IntegriDB}~\cite{zhang2015integridb}.
-\textsc{GriDB}~\cite{hong2024gridb}
+% Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.
+% \textsc{IntegriDB}~\cite{zhang2015integridb}.
+% \textsc{GriDB}~\cite{hong2024gridb}
 
+Scaling out blockchain state has been the recurring topic of blockchain databases.
 As the blockchain databases keep operating, the size of content they store may ever grow.
 However, blockchains, as state machine replication protocols, by default require each node to store a full copy of the state in order to replicate the execution individually.
-Eventually, the ever-growing database will overwhelm the storage capacity of the nodes. 
+Eventually, the ever-growing database will overwhelm the storage capacity of the nodes.
+Some blockchain databases leverage the inherent structure of rational databases and decompose the databases into table-level sub-chains~\cite{el2019blockchaindb}.
+The researches go further by utilizing authenticated data structures~\cite{martel2004general, tamassia2003authenticated} to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
+However, more universal solutions that are compatible with single large table or even agnostic to state structure are demanded for more widely adoption.
 
-\paragraph{Sharded blockchains.}
-To overcome this problem, the stored data can be divided into shards\cite{corbett2013spanner} and each node stores only one or a subset of the shards.
+\paragraph{Sharded blockchains}
+One layer down, the blockchains can divide the stored data into shards\cite{corbett2013spanner} and each node stores only one or a subset of the shards.
 However, without the whole state, the nodes can no longer process every transaction.
 EIP-4844~\cite{eip4844} of Ethereum bypasses this limitation by sharding \emph{blob}, a special kind of block data only whose (succinct) commitment is fully replicated and accessible by the transactions.
 This approach is not desirable by blockchain databases which requires the whole data to present in the state.
