@@ -12,10 +12,6 @@ We only expect that most transactions in the workload access only single or few 
 This expectation is valid for extensive scenarios such as token transfer between a pair of accounts or status update of a specific merchandise in a supply chain.
 Besides, OLAP workload that scans over large number of shards can be performed off-chain with a verified state snapshot.
 
-Note that because of the correspondence of replicating log and state established by SMR, several works focus on the availability of a sharded log (\ie the blocks in blockchains)~\cite{qi2020bft,eip4844}.
-While the intermediate state can always be reconstructed with an available chain of blocks, blockchain databases demand \emph{explicit} states for online execution of transactions.
-To keep a bounded storage usage, \sys releases historical blocks that will not be required by any further execution.
-
 \paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
 \XXX.
 BlockchainDB~\cite{el2019blockchaindb}.
@@ -30,23 +26,24 @@ However, blockchains, as state machine replication protocols, by default require
 Eventually, the ever-growing database will overwhelm the storage capacity of the nodes. 
 
 \paragraph{Sharded blockchains.}
-To overcome this problem, the stored data can be divided into shards and each node stores only one or a subset of the shards.
+To overcome this problem, the stored data can be divided into shards\cite{corbett2013spanner} and each node stores only one or a subset of the shards.
 However, without the whole state, the nodes can no longer process every transaction.
-One line of works shard the historical ledger (\ie the blocks) and leave the state intact.
-For example, BFT-Store~\cite{qi2020bft} performs erasure coding on the blocks to reduce the storage complexity per block to $O(1)$.
-EIP-4844~\cite{eip4844} of Ethereum proposes to shard \emph{blob}, a special kind of block data only whose commitment is accessible by the transactions.
-As previously discussed, these solutions are not desirable by blockchain databases.
+EIP-4844~\cite{eip4844} of Ethereum bypasses this limitation by sharding \emph{blob}, a special kind of block data only whose (succinct) commitment is fully replicated and accessible by the transactions.
+This approach is not desirable by blockchain databases which requires the whole data to present in the state.
 
-The other works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
+Currently, the sharded blockchain works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
 \footnote{
     In some works, \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
     Following distributed database's convention, in this work shard means \emph{data shard} and always refers to state shard.
 }
-The immediate effect of a reduced processing quorum is low fault resiliency, \eg, $\frac{1}{4}$~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
+The immediate effect of a reduced processing quorum is low fault resiliency (except when seeking for synchronous BFT protocols~\cite{zamani2018rapidchain}), \eg, tolerating $\frac{1}{4}$ faulty nodes globally~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ faulty nodes locally within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
+Monoxide~\cite{wang2019monoxide} introduces Chu-ko-nu mining to recover a 50\% resiliency of faulty mining power, but its safety statement is built upon the assumption of dominance of the professional mining facilities that will perform batch-mining simultaneously on every shard, and the approach is limited to PoW setup.
 
-Besides the security concern, some works randomize the shards that the nodes work on and reshuffle the formation frequently on an epoch basis~\cite{luu2016secure,dang2019towards,yu2020ohie}.
+Besides the security concern, some works randomize the shards that the nodes work on and reshuffle the formation frequently on an epoch basis~\cite{luu2016secure,dang2019towards,yu2020ohie,zamani2018rapidchain}.
 This approach not only in advance degrades to probabilistic safety guarantee, but also the processing sharding that operates in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
-Moreover, cross shard transactions bring additional coordination overhead to processing sharding approach, posing performance penalty and complicating the reasoning of safety~\cite{dang2019towards}.
+
+Last but not least, cross shard transactions bring additional coordination challenges.
+They either pose performance penalty and complicate the reasoning of safety (potentially relying on the client~\cite{kokoris2018omniledger}), or the sharded blockchains give up atomicity and relax the linearizable guarantee~\cite{luu2016secure} or even completely overlook cross shard transactions~\cite{li2020polyshard}.
 Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
 
 % Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.

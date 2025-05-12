@@ -1,21 +1,9 @@
 \section{System Design: An Iterative Approach}
 \label{sec:overview}
 
-The \sys protocol is a general state partitioning and execution solution that works with any atomic broadcast protocol.
-Its interface is single \texttt{Execute}$(txn)\rightarrow{}result$ function, which execute transactions in the order of calling and returns the result.
-\sys makes minimal assumption on the atomic broadcast protocol.
-Every correct replica should call \texttt{Execute} with the same sequence of transactions.
-The execution of the same $txn$ does not need to be aligned, and concurrent \texttt{Execute} calls can be made to \sys.
-Meanwhile, \sys guarantees that the same sequence of $result$s is outputted on every correct replica, and the overlapping parts of the state stored across correct replicas are consistent.
-
-Note that although the \sys interface is tailored for regular order-execute replication, it can be simply extended to support speculative execution, and the core idea behind \sys can also support execute-order-validate replication.
-
-\sys only makes basic assumptions on the replicated state and the executed transactions.
-The state should support sharding operation to be partitioned into large number of shards.
-The transaction should support static analysis of its \emph{read set} and \emph{write set}.
-Finally, \sys integrates a simple commitment strategy (such as Merkle tree) so that the replicas can locally verify remote shards.
-Each version of the state has a corresponding \emph{commitment}, and each shard is equipped with a proof that can prove the shard is included in the commitment.
-With the simple Merkle tree implementation, the commitment is the Merkle root of a tree whose leaf nodes are consisted by the shards, and the proof is the sibling hashes of the leaf node.
+\sys is a BFT replication protocol designed from end to end.
+However, its consistent ordering property is achieved by integrating any off-the-shelf Byzantine atomic broadcast protocols \XXX{cite some}, and the following description focuses on the processing part.
+That is, given a consistently ordered list of transactions available on every correct node, how to execute on the nodes that do not persist the whole state locally.
 
 In the following, we iteratively describe the overview of \sys.
 We start with a simple design I1, refine its redundancy level with I2, combine I1 and I2 together into a generational design to amortize the coding overhead in I3, and finally combine a modified version of I1 with I2 as I4 for a better usability.
