@@ -41,7 +41,7 @@ Currently, the sharded blockchain works perform \emph{processing sharding} like 
     In some works, \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
     Following distributed database's convention, in this work shard means \emph{data shard} and always refers to state shard.
 }
-The immediate effect of a reduced processing quorum is low fault resiliency (except when seeking for synchronous BFT protocols~\cite{zamani2018rapidchain}), \eg, tolerating $\frac{1}{4}$ faulty nodes globally~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ faulty nodes locally within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
+The immediate effect of a reduced processing quorum is low fault resiliency (unless when reaching out for synchronous BFT protocols~\cite{zamani2018rapidchain}), \eg, tolerating $\frac{1}{4}$ faulty nodes globally~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ faulty nodes locally within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
 \lijl{Since compromised security/correctness guarantee is a major concern, we should elaborate this part.}
 Monoxide~\cite{wang2019monoxide} introduces Chu-ko-nu mining to recover a 50\% resiliency of faulty mining power, but its safety statement is built upon the assumption of dominance of the professional mining facilities that will perform batch-mining simultaneously on every shard, and the approach is limited to PoW setup.
 \lijl{Not sure if we need to talk about this work.}
