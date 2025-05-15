@@ -2,14 +2,19 @@
 \label{sec:bg}
 
 \paragraph{Problem settings.}
-In this work we target the BFT replications protocols that perform state machine replication (SMR) over states that potentially cannot fit into single node's storage.
+In this work we target the BFT protocols that perform state machine replication (SMR) over states that potentially cannot fit into single node's storage.
+As a BFT protocol \sys guarantees \emph{linearizable}\xxx{cite} and tolerate Byzantine faults: the processing results observed by the clients can be simulated by a sequential processing of the transactions, even if up to $f$ participating nodes' behavior is arbitrarily diverged from the protocol's specification \eg collude to cheat the other nodes, as long as the system consists of more than $3f$ nodes.
+Additionally, \sys also guarantees to operate with $O(state\ size)$ storage capacity occupied across all (correct) nodes regardless of the number of nodes, while a typical fully-replicated BFT protocol would take $O(state\ size\times{}number\ of\ node)$.
+
 We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
 \lijl{Is there a proper ``compatibility'' definition?}
+\gd{Have a try here.}
+The state should be able to be divided into certain number of shards, and given a transaction, nodes can identify which shard(s) are required to process the transactions.
 The number of shards is also not significant, though sufficient shards (\ie much more than the number of nodes) can achieve a better load balance effect.
 Examples of compatible states are key-value stores (atop what relational databases potentially build)~\cite{corbett2013spanner} and (Merkle) Patricia Trie~\cite{mpt} used by Ethereum.
 
 We also do not assume any specific structure of the transactions, which may range from simple key-value updates to complex smart contracts.
-We only expect that most transactions in the workload access only single or few shards (\ie online transaction processing (OLTP) workload instead of online analytical processing (OLAP)).
+Though not affecting safety, we expect that most transactions in the workload access only single or few shards (\ie online transaction processing (OLTP) workload instead of online analytical processing (OLAP)) for performance reason.
 This expectation is valid for extensive scenarios such as token transfer between a pair of accounts or status update of a specific merchandise in a supply chain.
 Besides, OLAP workload that scans over large number of shards can be performed off-chain with a verified state snapshot.
 
