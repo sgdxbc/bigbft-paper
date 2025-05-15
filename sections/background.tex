@@ -61,15 +61,3 @@ Database transaction workload are also identified to bring inefficient processin
 % Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.
 % Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure}.
 % Morph~\cite{kim2024morph}.
-
-\paragraph{Decouple sharding from processing.}
-\lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
-To summarize, state sharding is desired for scaling out blockchains like databases, while global processing is desired for solid security.
-However, this design space is rarely exploited.
-Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
-\emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
-
-Decoupling sharding from processing is challenging.
-The storage layer must mask the missing shards prior to processing and synchronize them from storing nodes in time.
-The synchronized shards must prove their \emph{integrity} \ie their contents are not tampered by the faulty storing nodes.
-And most importantly, Byzantine faults must not cause any \emph{liveness} issues by withholding the storing shards.
