@@ -4,13 +4,30 @@
 \lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
 \gd{Done.}
 To summarize, state sharding is desired for scaling out blockchains like databases, while global processing is desired for solid security.
+\xxx{Elaborate this sentence into two bullet points.}
+This leads us to design for separation of concern~\xxx{cite}:
+\begin{quote}
+    \XXX
+\end{quote}
+% Combining the two considerations outputs the famous principle:
+% \begin{quote}
+%     Instead of bringing execution to data, bring data to execution.\xxx{Should be able to cite something}
+% \end{quote}
 However, the design combination of state sharding with global processing is rarely explored.
 Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
 \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 
-\xxx{Maybe one paragraph here claiming performance is not a concern.}
+At first glance this may be a costly approach that nodes transferring shards back and forth now and ever.
+In fact, it is more practical than it seems like.
+As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards, so with sufficient number of shards, the amount of transferred data for processing one transaction will be acceptably small.
+Also, even in fully replicated systems, there's still a baseline amount of data to be transferred for dispersing the transaction and reply the client, both of each would be $O(number\ of\ node)$ bit complexity of communication.
+And last but not least, the real world workload are mostly skewed~\xxx{cite zipf}.
+By simply caching a small fraction of shards, the total amount of transferred data can be greatly reduced.
 
-Decoupling sharding from processing is challenging.
+To verify the above claims, we simulate/perform numerical analysis to project the total amount of data transferring under a realistic setup.
+\XXX
+
+Despite, the approach of decoupling
 The storage layer must mask the missing shards prior to processing and synchronize them from storing nodes in time.
 The synchronized shards must prove their \emph{integrity} \ie their contents are not tampered by the faulty storing nodes.
 And most importantly, Byzantine faults must not cause any \emph{liveness} issues by withholding the storing shards.
