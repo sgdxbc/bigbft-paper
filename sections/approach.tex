@@ -5,7 +5,7 @@
 \gd{Done.}
 To summarize, state sharding is desired for scaling out blockchains like databases, while global processing is desired for solid security.
 \xxx{Elaborate this sentence into two bullet points.}
-This leads us to design for separation of concern~\xxx{cite}:
+This leads us to design for \emph{separation of concern}~\xxx{cite}:
 \begin{quote}
     \XXX
 \end{quote}
@@ -27,7 +27,20 @@ By simply caching a small fraction of shards, the total amount of transferred da
 To verify the above claims, we simulate/perform numerical analysis to project the total amount of data transferring under a realistic setup.
 \XXX
 
-Despite, the approach of decoupling
-The storage layer must mask the missing shards prior to processing and synchronize them from storing nodes in time.
-The synchronized shards must prove their \emph{integrity} \ie their contents are not tampered by the faulty storing nodes.
-And most importantly, Byzantine faults must not cause any \emph{liveness} issues by withholding the storing shards.
+Despite this positive result, the approach of decoupling state sharding from global processing is still challenging for the following C1-C3.
+
+\paragraph{C1: Garbage collection strategy.}
+The nodes should not only store the latest view of the shards but also some previous ones in case the other (slower) nodes still need them for processing.
+However, the nodes also cannot store all historical views or the storage overhead would grow unbounded.
+It is critical to employ a \emph{checkpoint and garbage collection} which, must not only garbage collect when all nodes participate the checkpoint (or the faulty nodes can impede the garbage collections), but also can ensure that any (correct) node that did not participate the checkpoint can transfer the checkpoint view of the shards from \emph{some} other nodes, skip the processing until the checkpoint and be free from liveness issue.
+
+\paragraph{C2: Constant redundancy.}
+As stated in the problem settings (\autoref{sec:bg}), \sys can perfectly scale to any number of nodes and remain $O(state\ size)$ storage overhead \ie storing only constant redundancy of the state.
+Storing constant number of verbatim copies of the shards can fulfill this requirement but destroy safety: faulty nodes will eventually overwhelm the storing nodes of a shard and cause state lost.
+Deploying \emph{erasure code}~\xxx{cite} can effectively tolerate more faults while respecting the redundancy budget.
+However, that leads to nontrivial design and safety reasoning, and also cause the next challenge.
+
+\paragraph{C3: Mask encode and decode overhead.}
+Compare to operating on verbatim copies, operating encoded stats add significant encode overhead: every shard update have to update the parities, costing computation and (what's more concerning) amplifying read.
+At the same time, while systematic code \xxx{cite} can enjoy optimal read performance on happy path, faulty nodes can easily cause \emph{degraded read} by withholding the storing shards.
+As the result, the design must ensure off-the-path encoding, and must avoid degraded read as much as possible.
