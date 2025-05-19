@@ -2,7 +2,7 @@
 \label{sec:overview}
 
 As the problem settings formulated in \autoref{sec:bg}, \sys is a BFT replication protocol from end to end.
-However, its consistent ordering property can be achieved by any off-the-shelf Byzantine atomic broadcast (BAB) protocols \XXX{cite some}, so the following description focuses on the processing part which will be integrated into existing BAB protocols.
+However, its consistent ordering property can be achieved by any off-the-shelf Byzantine atomic broadcast (BAB) protocols~\XXX{cite some}, so the following description focuses on the processing part which will be integrated into existing BAB protocols.
 We will describe that given a consistently ordered list of transactions available on every correct node, how to execute on the nodes that do not persist the whole state locally.
 
 \lijl{Before discussing the design overview, we should formally define the guarantees of the system.}
@@ -25,6 +25,7 @@ All correct nodes have consistent views (\ie Merkle roots) of each version of th
 
 \paragraph{Garbage collection.}
 \lijl{What is the guarantee of GC? No correct node needs the older version? The new version is available?}
+\gd{Defined in C1.}
 First, each shard is placed on $2f+1$ nodes instead of $f+1$.
 Safety is not affected by additional redundancies, obviously.
 
