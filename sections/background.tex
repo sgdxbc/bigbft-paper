@@ -9,7 +9,11 @@ Additionally, \sys also guarantees to operate with $O(state\ size)$ storage capa
 We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
 \lijl{Is there a proper ``compatibility'' definition?}
 \gd{Have a try here.}
-The state should be able to be divided into certain number of shards, and given a transaction, nodes can identify which shard(s) are required to process the transactions.
+The state should be able to be divided into certain number of shards
+\footnote{
+    In some works on sharded blockchains, \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
+    Following distributed database's convention, in this work shard means \emph{data shard} and always refers to state shard.
+}, and given a transaction, nodes can identify which shard(s) are required to process the transactions.
 The number of shards is also not significant, though sufficient shards (\ie much more than the number of nodes) can achieve a better load balance effect.
 Examples of sharding compatible states are key-value store (atop what relational databases potentially build)~\cite{corbett2013spanner} and (Merkle) Patricia Trie~\cite{mpt} used by Ethereum~\cite{buterin2014next}.
 
@@ -27,51 +31,65 @@ Blockchain is favored for its strict security guarantee, and has been widely res
 
 These big data blockchains can incur very large states.
 NASDAQ TotalView-ITCH, a dataset recorded at a trading matching engine, is reported to have 20 TB of total size and 4.13 GB per day~\cite{laughlin2014information}.
+The dataset for high-frequency stock market can go as high as 20-40 GB per day~\cite{rabindrajit2024high}.
 Also, the medical records are usually in MB or even tens of MB scale~\cite{garcia2011mantisgrid} due to their multimodal contents, while public medical record datasets may contain up to 40,000-200,000 records~\cite{pollard2018eicu,johnson2023mimic} and occupy TB level storage.
 These are just the sizes of one-party datasets. In consortium blockchains, multiple participates (\eg exchanges or hospitals) contribute their data, each of which could be of a similar size of these datasets.
 This results in TB or even PB scale blockchain states that are beyond the storage capacity of single blockchain nodes.
 
 \paragraph{Previous arts with sharded blockchain states.}
+In common centralized distributed databases like~\cite{corbett2013spanner}, all nodes are centrally managed to collaboratively store the database states and each transaction is processed only once.
+While in BFT systems the processing has to be replicated in order to tolerate faults, and multiple state copies reside on different nodes to support the replicated processing, resulting in high storage overhead.
+Previous works developed blockchains with sharding mechanism which allow nodes to store only partial states and reduce the storage load.
+In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb} and FalconDB~\cite{peng2020falcondb}, the state consists of multiple tables.
+Each table is stored by a subset of nodes and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are employed to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
+The sharded blockchain works are more universal and state-agnostic solutions that also provide clear safety guarantees.
+In these works, the nodes are grouped into multiple \emph{committees} which are responsible for maintaining different shards of the state.
+The transactions are processed only once by the committees (and replicated within each committee), similar to the distributed database.
+Indeed, the works report their space efficiency especially in large scale setup.
+\xxx{Summarize the results.}
 
+% \paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
+% In blockchain databases, clients \emph{outsource} the database storage to the blockchain, which consists of the nodes with abundant storage capacity but are mutually untrusted to each other.
+% The common database operations \eg SQL queries are implemented on top of the BFT replication, realizing the user experience of database applications while tolerating Byzantine faults at the same time\cite{el2019blockchaindb,peng2020falcondb}.
+% Also, \cite{nathan2019blockchain} approaches the goal by plugging an ordering service into databases.
 
-\paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
-In blockchain databases, clients \emph{outsource} the database storage to the blockchain, which consists of the nodes with abundant storage capacity but are mutually untrusted to each other.
-The common database operations \eg SQL queries are implemented on top of the BFT replication, realizing the user experience of database applications while tolerating Byzantine faults at the same time\cite{el2019blockchaindb,peng2020falcondb}.
-Also, \cite{nathan2019blockchain} approaches the goal by plugging an ordering service into databases.
+% % Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.
+% % \textsc{IntegriDB}~\cite{zhang2015integridb}.
+% % \textsc{GriDB}~\cite{hong2024gridb}
 
-% Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.
-% \textsc{IntegriDB}~\cite{zhang2015integridb}.
-% \textsc{GriDB}~\cite{hong2024gridb}
+% Scaling out blockchain state has been the recurring topic of blockchain databases.
+% As the blockchain databases keep operating, the size of content they store may ever grow.
+% However, blockchains, as state machine replication protocols, by default require each node to store a full copy of the state in order to replicate the execution individually.
+% Eventually, the ever-growing database will overwhelm the storage capacity of the nodes.
+% Some blockchain databases leverage the inherent structure of rational databases and decompose the databases into table-level sub-chains~\cite{el2019blockchaindb}.
+% The researches go further by utilizing authenticated data structures~\cite{martel2004general, tamassia2003authenticated} to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
+% However, more universal solutions that are compatible with single large table or even agnostic to state structure are demanded for more widely adoption.
 
-Scaling out blockchain state has been the recurring topic of blockchain databases.
-As the blockchain databases keep operating, the size of content they store may ever grow.
-However, blockchains, as state machine replication protocols, by default require each node to store a full copy of the state in order to replicate the execution individually.
-Eventually, the ever-growing database will overwhelm the storage capacity of the nodes.
-Some blockchain databases leverage the inherent structure of rational databases and decompose the databases into table-level sub-chains~\cite{el2019blockchaindb}.
-The researches go further by utilizing authenticated data structures~\cite{martel2004general, tamassia2003authenticated} to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
-However, more universal solutions that are compatible with single large table or even agnostic to state structure are demanded for more widely adoption.
+% \paragraph{Sharded blockchains}
+% One layer down, the blockchains can divide the stored data into shards\cite{corbett2013spanner} and each node stores only one or a subset of the shards.
+% However, without the whole state, the nodes can no longer process every transaction.
+% EIP-4844~\cite{eip4844} of Ethereum bypasses this limitation by sharding \emph{blob}, a special kind of block data only whose (succinct) commitment is fully replicated and accessible by the transactions.
+% This approach is not desirable by blockchain databases which requires the whole data to present in the state.
 
-\paragraph{Sharded blockchains}
-One layer down, the blockchains can divide the stored data into shards\cite{corbett2013spanner} and each node stores only one or a subset of the shards.
-However, without the whole state, the nodes can no longer process every transaction.
-EIP-4844~\cite{eip4844} of Ethereum bypasses this limitation by sharding \emph{blob}, a special kind of block data only whose (succinct) commitment is fully replicated and accessible by the transactions.
-This approach is not desirable by blockchain databases which requires the whole data to present in the state.
+% Currently, the sharded blockchain works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
+% The immediate effect of a reduced processing quorum is low fault resiliency (unless when reaching out for synchronous BFT protocols~\cite{zamani2018rapidchain}), \eg, tolerating $\frac{1}{4}$ faulty nodes globally~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ faulty nodes locally within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
+% \lijl{Since compromised security/correctness guarantee is a major concern, we should elaborate this part.}
+% Monoxide~\cite{wang2019monoxide} introduces Chu-ko-nu mining to recover a 50\% resiliency of faulty mining power, but its safety statement is built upon the assumption of dominance of the professional mining facilities that will perform batch-mining simultaneously on every shard, and the approach is limited to PoW setup.
+% \lijl{Not sure if we need to talk about this work.}
 
-Currently, the sharded blockchain works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
-\footnote{
-    In some works, \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
-    Following distributed database's convention, in this work shard means \emph{data shard} and always refers to state shard.
-}
-The immediate effect of a reduced processing quorum is low fault resiliency (unless when reaching out for synchronous BFT protocols~\cite{zamani2018rapidchain}), \eg, tolerating $\frac{1}{4}$ faulty nodes globally~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ faulty nodes locally within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
-\lijl{Since compromised security/correctness guarantee is a major concern, we should elaborate this part.}
-Monoxide~\cite{wang2019monoxide} introduces Chu-ko-nu mining to recover a 50\% resiliency of faulty mining power, but its safety statement is built upon the assumption of dominance of the professional mining facilities that will perform batch-mining simultaneously on every shard, and the approach is limited to PoW setup.
-\lijl{Not sure if we need to talk about this work.}
+The downside for the nodes to store less state data is that, in sharded blockchains only a subset of nodes can participate the processing of each transaction.
+This has to result in some trade-offs around the resiliency to the faulty processing nodes.
+An early line of works~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} can tolerate only up to $\frac{1}{4}$ faulty nodes.
+RapidChain~\cite{zamani2018rapidchain} resorts to synchronous protocol and poses higher requirement to the network conditions.
+Monoxide~\cite{wang2019monoxide} assumes the domination of professional mining facilities and is limited to PoW setup.
+\xxx{Find something with TEE}.
+The blockchain database works~\cite{el2019blockchaindb,amiri2021sharper} normally choose to tolerate $\frac{1}{3}$ faulty nodes locally within each processing committee, which also requires to predetermine the committees.
 
-Besides the security concern, some works randomize the shards that the nodes work on and reshuffle the formation frequently on an epoch basis~\cite{luu2016secure,dang2019towards,yu2020ohie,zamani2018rapidchain}.
-This approach not only in advance degrades to probabilistic safety guarantee, but also the processing sharding that operates in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
+% Besides the security concern, some works randomize the shards that the nodes work on and reshuffle the formation frequently on an epoch basis~\cite{luu2016secure,dang2019towards,yu2020ohie,zamani2018rapidchain}.
+% This approach not only in advance degrades to probabilistic safety guarantee, but also the processing sharding that operates in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
 
-Last but not least, cross shard transactions bring additional coordination challenges.
-They either pose performance penalty and complicate the reasoning of safety (potentially relying on the client~\cite{kokoris2018omniledger}), or the sharded blockchains give up atomicity and relax the linearizable guarantee~\cite{luu2016secure} or even completely overlook cross shard transactions~\cite{li2020polyshard}.
+Besides degraded security, cross shard transactions also bring additional coordination challenges.
+They either pose performance penalty and complicate the reasoning of safety (potentially relying on the client~\cite{kokoris2018omniledger} or TEE~\xxx{cite}), or the sharded blockchains give up atomicity and relax the linearizable guarantee~\cite{luu2016secure} or even completely overlook cross shard transactions~\cite{li2020polyshard}.
 Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
 
 % Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.

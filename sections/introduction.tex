@@ -1,53 +1,71 @@
 \section{Introduction}
 \label{sec:intro}
 
-There is a trend to build databases out of blockchains.
-\XXX.
+\xxx{Add cites from bg section.}
 
-There is a dilemma between scaling out the database state and blockchain's replicated execution.
-The key of database's scalability is state sharding -- storage nodes can operate by storing only partial state \ie state shards.
-As the result, databases can perfectly scale out to more storage nodes as the state size grows.
-The storage capacity, collaboratively contributed by arbitrary number of storage nodes, can operate arbitrary large states without degrading performance.
-Because the whole database is managed by a single central administration, the state updates (\ie transactions) only need to be performed by the nodes holding the relevant shards.
-Single shard transaction can be performed locally, and for cross shard transactions, sophisticated methods are developed to minimize the overhead of ensuring ACID properties of them.
+Blockchain state is growing big.
+The popular permissionless blockchains are incurring hundreds to thousands of GBs states, and the high storage requirements to run nodes have been causing centralization.
+On the other hand, big data applications are vastly deploying on to blockchains, whose states can scale up to TB or even PB level.
+Eventually, the node storage are not going to be on par with the state size and the blockchains must be able to operate with nodes holding partial states.
 
-On the other hand, blockchains, essentially state machine replication protocols, demanding replicated execution on a quorum of nodes.
-To tolerate Byzantine faults that deliver diverged execution results or withhold state, each correct node has to preserve a copy of the whole state and process transactions individually.
-\lijl{It is unclear why BFT fundamentally requires full state replication.}
-The requirement of holding the whole database poses high entry barrier.
-Indeed, the large states have caused centralization tendency of popular blockchains.
+Sharded blockchains are extensively studied by the previous works.
+While these works indeed allow nodes to store only part of the states, the consequence is that not all nodes can process all transactions.
+As the result, these works cannot retain the standard security guarantee of blockchains \ie Byzantine faulty tolerance (BFT) replication: deterministically tolerate any $f$ Byzantine faulty nodes with a total of at least $3f+1$ nodes.
+Some works degrade to tolerate only $\frac{1}{4}$ faulty nodes, some resorts to probabilistic safety guarantee, while the others demand predetermined node \emph{committees} and can only tolerate $\frac{1}{3}$ Byzantine faults locally within each committee.
 
-Previous works have studied sharded blockchain extensively, striving for better scaling out capability while preserving consistency.
-\XXX
-However, by sharding the processing of transactions, the trade-off between safety and scalability becomes fundamental.
-More nodes participating a processing shard results in poorer scalability -- more copies of the shard state reside on these nodes, while less participant nodes can tolerate fewer faults.
+% There is a dilemma between scaling out the database state and blockchain's replicated execution.
+% The key of database's scalability is state sharding -- storage nodes can operate by storing only partial state \ie state shards.
+% As the result, databases can perfectly scale out to more storage nodes as the state size grows.
+% The storage capacity, collaboratively contributed by arbitrary number of storage nodes, can operate arbitrary large states without degrading performance.
+% Because the whole database is managed by a single central administration, the state updates (\ie transactions) only need to be performed by the nodes holding the relevant shards.
+% Single shard transaction can be performed locally, and for cross shard transactions, sophisticated methods are developed to minimize the overhead of ensuring ACID properties of them.
 
-What's worse, as the blockchain scaling out to more nodes, either scalability or security must be suffered, depending on whether the number of nodes participating a shard increases with the total number of nodes.
-\lijl{Not exactly sure what this sentence means. Also seems too strong.}
-\xxx{Literature review to verify this argument.}
-\xxx{Distinguish performance and storage scalability?}
+% On the other hand, blockchains, essentially state machine replication protocols, demanding replicated execution on a quorum of nodes.
+% To tolerate Byzantine faults that deliver diverged execution results or withhold state, each correct node has to preserve a copy of the whole state and process transactions individually.
+% \lijl{It is unclear why BFT fundamentally requires full state replication.}
+% The requirement of holding the whole database poses high entry barrier.
+% Indeed, the large states have caused centralization tendency of popular blockchains.
+
+% Previous works have studied sharded blockchain extensively, striving for better scaling out capability while preserving consistency.
+% \XXX
+% However, by sharding the processing of transactions, the trade-off between safety and scalability becomes fundamental.
+% More nodes participating a processing shard results in poorer scalability -- more copies of the shard state reside on these nodes, while less participant nodes can tolerate fewer faults.
+
+% What's worse, as the blockchain scaling out to more nodes, either scalability or security must be suffered, depending on whether the number of nodes participating a shard increases with the total number of nodes.
+% \lijl{Not exactly sure what this sentence means. Also seems too strong.}
+% \xxx{Literature review to verify this argument.}
+% \xxx{Distinguish performance and storage scalability?}
 
 Can blockchains scale out to more storage nodes like databases while deterministically tolerate $\frac{1}{3}$ Byzantine faults as BFT protocols?
 \lijl{I think earlier paragraphs should center around this goal.}
-In this work, we propose a new approach that \emph{independently scales out state to the processing}.
+\gd{Done}
+In this work, we propose a new approach that \emph{independently considers state sharding to processing sharding}.
 \lijl{Should motivate why only scaling storage, and not performance, is desirable.}
+\gd{Need to think about how to mention performance.}
 As in regular databases, the storage layer shards the state and each node preserves only a subset of the shards.
 At the same time, the global consensus (\ie Byzantine atomic broadcast) and processing are retained, and the accessed shards are made available by the storage layer prior to transaction processing on all nodes, create the ``illusion'' of the shards are stored by every node.
 Thus, the sharding design is fully \emph{decoupled} with the consistency guarantee and only need to ensure the availability of state shards.
 \lijl{There seem to be an interesting principle here. We are arguing for a separation of responsibility. The storage layer is responsible for data availability. The consensus layer is responsible for consistency. This is an interesting insight that we should emphasize.}
+We emphasize that this \emph{separation of concern} is crucial to escape the dilemma between scalability and safety, allowing us to independently scaling out the state without affecting the consistency guarantee of BFT protocols.
 
-Independent scaling-out of state brings its unique challenges.
-The storing nodes must disperse the relevant state shards efficiently prior processing, the other nodes must be able to verify the state shards independently, and most importantly, the state shards must be available even if Byzantine nodes participate in storing them.
-We organize the state shards into self-certifying data structures (like Merkle tree), allowing their integrity to be proved and verified in a lightweight and scalable fashion.
+% Independent scaling-out of state brings its unique challenges.
+% The storing nodes must disperse the relevant state shards efficiently prior processing, the other nodes must be able to verify the state shards independently, and most importantly, the state shards must be available even if Byzantine nodes participate in storing them.
+% We organize the state shards into self-certifying data structures (like Merkle tree), allowing their integrity to be proved and verified in a lightweight and scalable fashion.
+
+To this end, we propose \sys, a BFT protocol with optimal resiliency to Byzantine faults, ensuring consistency and availability with constant redundancy.
 To cope the Byzantine storing nodes, we deploy erasure code to disseminate the state shards to more than $\frac{2}{3}$ of all the nodes with a constant overall redundancy (\ie about 3x).
 \lijl{Emphasize that redundancy is independent of system size, so the overall storage capacity scales with more nodes.}
-Because of the high overhead of deploying erasure code online, we propose an alternative online processing path where constant number of verbatim copies of state shards reside on uniformly random nodes, achieving tunable probabilistic availability while opening the opportunity of speculative prefetching of the state shards.
+\gd{Done at the end of the paragraph.}
+While erasure code space-efficiently spread shards to a wide range of the nodes, performing encode and decode operations online significantly affect performance.
+So we propose an alternative online processing path with constant number of verbatim copies of state shards residing on uniformly random nodes.
+This processing path is free to encode and decode and achieve probabilistic (but tunable) availability.
 \lijl{This sentence is too long and hard to understand. Decompose it into simpler sentences.}
-Both of the methods incurs constant overall storage overhead per state shard regardless of the number of nodes.
+\gd{Done.}
+Both of the methods incurs constant overall storage overhead.
+With more nodes joining the system, the storage consumption for storing the state remains unchanged, and the nodes can collaboratively store larger state with increasing storage capacity.
 
-To this end, we propose \sys, a BFT protocol designed for practically scaling out the replicated state.
 \sys combines the two aforementioned methods, utilizing the verbatim copies as the \emph{active layer} and the erasure code as the \emph{archive layer}.
 The active layer possesses the latest version of the state shards and can serve online processing with high probability.
 At the same time, \sys periodically archives the state with erasure code, providing deterministic safety guarantee with minimal overhead.
 
-\xxx{Contribution and conclusion.}
+\xxx{Evaluation results.}

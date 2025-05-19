@@ -3,11 +3,12 @@
 
 \lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
 \gd{Done.}
-To summarize, state sharding is desired for scaling out blockchains like databases, while global processing is desired for solid security.
-\xxx{Elaborate this sentence into two bullet points.}
-This leads us to design for \emph{separation of concern}~\xxx{cite}:
+To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
+This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
 \begin{quote}
-    \XXX
+    The processing layer and the storage layer of BFT protocols should be considered separately.
+    The processing layer is responsible for \emph{consistency}, and should not be sharded to maximize the safety guarantee;
+    the storage layer is only responsible for \emph{availability} and can employ arbitrarily sharding scheme just as in distributed databases.
 \end{quote}
 % Combining the two considerations outputs the famous principle:
 % \begin{quote}
