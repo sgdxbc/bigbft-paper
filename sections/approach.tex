@@ -17,12 +17,13 @@ However, the design combination of state sharding with global processing is rare
 Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
 \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 
-At first glance this may be a costly approach that nodes transferring shards back and forth now and ever.
+At first glance this may be a costly approach that has to pay both extra bandwidth for nodes continuously synchronizing shards to each other and extra latency for ad-hoc synchronization.
 In fact, it is more practical than it seems like.
 As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards, so with sufficient number of shards, the amount of transferred data for processing one transaction will be acceptably small.
-Also, even in fully replicated systems, there's still a baseline amount of data to be transferred for dispersing the transaction and reply the client, both of each would be $O(number\ of\ node)$ bit complexity of communication.
+Also, even in fully replicated systems, there's still a baseline bandwidth occupation for dispersing the transactions and replying the clients, and additionally sending shards will not make bandwidth consumption dramatically worse.
+The synchronization latency can be masked with speculation (\autoref{sec:impl}).
 And last but not least, the real world workload are mostly skewed~\xxx{cite zipf}.
-By simply caching a small fraction of shards, the total amount of transferred data can be greatly reduced.
+By simply caching a small fraction of shards (\autoref{sec:impl}), the total amount of transferred data can be greatly reduced.
 
 To verify the above claims, we simulate/perform numerical analysis to project the total amount of data transferring under a realistic setup.
 \XXX
@@ -32,11 +33,11 @@ Despite this positive result, the approach of decoupling state sharding from glo
 \paragraph{C1: Garbage collection strategy.}
 The nodes should not only store the latest view of the shards but also some previous ones in case the other (slower) nodes still need them for processing.
 However, the nodes also cannot store all historical views or the storage overhead would grow unbounded.
-It is critical to employ a \emph{checkpoint and garbage collection} which, must not only garbage collect when all nodes participate the checkpoint (or the faulty nodes can impede the garbage collections), but also can ensure that any (correct) node that did not participate the checkpoint can transfer the checkpoint view of the shards from \emph{some} other nodes, skip the processing until the checkpoint and be free from liveness issue.
+It is critical to employ \emph{checkpoints and garbage collection} which, must not progress only when all nodes participate the checkpoint (or the faulty nodes can impede the garbage collection), while also ensure that any (correct) node that did not participate the checkpoint can transfer the checkpoint view of the shards from \emph{some} other nodes, skip the processing until the checkpoint and be free from liveness issue.
 
 \paragraph{C2: Constant redundancy.}
 As stated in the problem settings (\autoref{sec:bg}), \sys can perfectly scale to any number of nodes and remain $O(state\ size)$ storage overhead \ie storing only constant redundancy of the state.
-Storing constant number of verbatim copies of the shards can fulfill this requirement but destroy safety: faulty nodes will eventually overwhelm the storing nodes of a shard and cause state lost.
+Storing constant number of verbatim copies of the shards can fulfill this requirement but destroy safety: with sufficient nodes, the faulty nodes will eventually overwhelm the storing nodes of a shard and cause state lost.
 Deploying \emph{erasure code}~\xxx{cite} can effectively tolerate more faults while respecting the redundancy budget.
 However, that leads to nontrivial design and safety reasoning, and also cause the next challenge.
 
