@@ -20,7 +20,7 @@ Define
     \item $c$ as the number of shard copies preserved by the active layer
     \item $d$ as the number of shards
     \item $d_t$ as the average number of shards accessed by each transaction
-    \item $S$ as the state size, $s=\frac{S}{d}$ as the shard size
+    % \item $S$ as the state size, $s=\frac{S}{d}$ as the shard size
     \item $t$ as the transaction and reply size
     \item $\sigma$ as the missing rate of local shard cache
 \end{itemize}
@@ -37,17 +37,18 @@ note that although BFT protocols usually requires only $f+1$ replies to client, 
 
 Compared to the baseline overhead for dispersing transactions and replying to clients, shard synchronization makes a
 \[
-    1+\frac{n-c}{n}\cdot{}\frac{d_ts}{t}\sigma=1+\frac{n-c}{n}\cdot{}\frac{d_t}{d}\cdot{}\frac{S}{t}\sigma
+    1+\frac{n-c}{n}\cdot{}d_t\cdot{}\frac{s}{t}\sigma
 \]
 times amplification of network overhead.
 
-Let's break down analysis each of the fractions
+Let's break down analysis each of the fractions in the context of a simple key-value store state
 \begin{itemize}
     \item $\frac{n-c}{n}$ increases as $n$ increases (because $c$ is constant) but never reach $1$
-    \item $\frac{d_t}{d}$ is the fraction of shards accessed in each transaction, which is expected to be as small as \eg $10^{-5}$
-    \item $\frac{S}{t}$ has varying meanings with different states and transactions.
-    With key-value store state it is approximately the number of key-value pairs.
+    \item $d_t$ is the average number of shards access by the transactions, expected to be only slightly greater than $1$
+    \item $\frac{s}{t}$ has varying meanings with different states and transactions.
+    With key-value store state it is approximately the number of key-value pairs in a shard.
     \item $\sigma$ is the missing rate which is also transaction-dependent.
+    Given a skewed workload (\eg most configurations in YCSB), the missing rate can be as low as 1-10\%.
 \end{itemize}
 
 \xxx{List some common parameters and the results.}
