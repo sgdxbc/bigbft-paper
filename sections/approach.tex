@@ -3,22 +3,39 @@
 
 \lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
 \gd{Done.}
-To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
-This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
-\begin{quote}
-    The processing layer and the storage layer of BFT protocols should be considered separately.
-    The processing layer is responsible for \emph{consistency}, and should not be sharded to maximize the safety guarantee;
-    the storage layer is only responsible for \emph{availability} and can employ arbitrarily sharding scheme just as in distributed databases.
-\end{quote}
-% Combining the two considerations outputs the famous principle:
-% \begin{quote}
-%     Instead of bringing execution to data, bring data to execution.\xxx{Should be able to cite something}
-% \end{quote}
-However, the design combination of state sharding with global processing is rarely explored.
-Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
-\emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 
-At first glance this may be a costly approach that has to pay both extra bandwidth for nodes continuously synchronizing shards to each other and extra latency for ad-hoc synchronization.
+In \autoref{sec:bg} we observe that, previous works attempt to scale out processing and storage at the same time and can only settle on the trade-offs among the three properties.
+Meanwhile, recent works have made noticeable progress on just improve the processing scalability~\cite{gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
+At the same time, distributed databases have always been perfectly scalable and supporting to tolerate configurable faults with erasure coding \xxx{cite} techniques.
+Base on this observation, we propose a novel idea on the BFT scalability
+\begin{quote}
+    The BFT protocols should be decomposed into dedicated \emph{storage} layer and \emph{consensus} layer, and the layers should be scaling out in different ways.
+\end{quote}
+While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), the idea is akin to the one behind recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn}, who decompose BFT protocols into delivery layer and consensus layer and independently scale the former one.
+
+The decomposition of architecture leads to the separation of concerns~\cite{reade1989elements}.
+The storage layer and the consensus layer each takes charges in different desirable properties: the safety is guaranteed by the consensus, the state scalability is guaranteed by the storage, while the liveness is concerned by both of them, in different aspects.
+On one hand, consensus layer must progress on make decisions of the transactions to be processed, which is the same to the liveness in a typical BFT protocol.
+On the other hand, storage layer must ensure the \emph{availability} of the state to support the nodes to process whatever transactions decided by the consensus.
+This is a unique thing to this work and lead to several challenges, which we will discuss later.
+
+% To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
+% This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
+% \begin{quote}
+%     The processing layer and the storage layer of BFT protocols should be considered separately.
+%     The processing layer is responsible for \emph{consistency}, and should not be sharded to maximize the safety guarantee;
+%     the storage layer is only responsible for \emph{availability} and can employ arbitrarily sharding scheme just as in distributed databases.
+% \end{quote}
+% % Combining the two considerations outputs the famous principle:
+% % \begin{quote}
+% %     Instead of bringing execution to data, bring data to execution.\xxx{Should be able to cite something}
+% % \end{quote}
+% However, the design combination of state sharding with global processing is rarely explored.
+% Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
+% \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
+
+\paragraph{Network overhead.}
+At first glance this decomposition may be a costly approach that has to pay both extra bandwidth for nodes continuously synchronizing shards to each other and extra latency for ad-hoc synchronization.
 In fact, it is more practical than it seems like.
 As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards, so with sufficient number of shards, the amount of transferred data for processing one transaction will be acceptably small.
 Also, even in fully replicated systems, there's still a baseline bandwidth occupation for dispersing the transactions and replying the clients, and additionally sending shards will not make bandwidth consumption dramatically worse.
@@ -29,7 +46,7 @@ By simply caching a small fraction of shards (\autoref{sec:impl}), the total amo
 To verify the above claims, we simulate/perform numerical analysis to project the total amount of data transferring under a realistic setup.
 \XXX
 
-Despite this positive result, the approach of decoupling state sharding from global processing is still challenging for the following C1-C3.
+Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.
 
 \paragraph{C1: Garbage collection strategy.}
 The nodes should not only store the latest view of the shards but also some previous ones in case the other (slower) nodes still need them for processing.
@@ -38,7 +55,7 @@ It is critical to employ \emph{checkpoints and garbage collection} which, must n
 
 \paragraph{C2: Constant redundancy.}
 As stated in the problem settings (\autoref{sec:bg}), \sys can perfectly scale to any number of nodes and remain $O(state\ size)$ storage overhead \ie storing only constant redundancy of the state.
-Storing constant number of verbatim copies of the shards can fulfill this requirement but destroy safety: with sufficient nodes, the faulty nodes will eventually overwhelm the storing nodes of a shard and cause state lost.
+Storing constant number of verbatim copies of the shards can straightforwardly fulfill this requirement but destroy availability: with sufficient nodes, the faulty nodes will eventually overwhelm the storing nodes of a shard and cause state lost.
 Deploying \emph{erasure code}~\xxx{cite} can effectively tolerate more faults while respecting the redundancy budget.
 However, that leads to nontrivial design and safety reasoning, and also cause the next challenge.
 
