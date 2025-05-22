@@ -34,17 +34,28 @@ This is a unique thing to this work and lead to several challenges, which we wil
 % Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
 % \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 
+\begin{figure}
+    \includegraphics[width=0.75\linewidth]{graphs/network-overhead}
+    \caption{The network overhead brought by shard synchronization.
+    The y-axis shows the total network overhead of \sys, normalized to baseline BFT protocols that only transfer transactions and replies.}
+    \label{fig:network-overhead}
+\end{figure}
+
 \paragraph{Network overhead.}
 At first glance this decomposition may be a costly approach that has to pay both extra bandwidth for nodes continuously synchronizing shards to each other and extra latency for ad-hoc synchronization.
 In fact, it is more practical than it seems like.
 As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards, so with sufficient number of shards, the amount of transferred data for processing one transaction will be acceptably small.
-Also, even in fully replicated systems, there's still a baseline bandwidth occupation for dispersing the transactions and replying the clients, and additionally sending shards will not make bandwidth consumption dramatically worse.
+Also, even in fully replicated systems, there's still a baseline bandwidth occupation for dispersing the transactions and replying the clients.
+The overhead of sending transactions and replies is on the same complexity of synchronizing shards, so additionally sending shards will not make bandwidth consumption dramatically worse.
 The synchronization latency can be masked with speculation (\autoref{sec:impl}).
 And last but not least, the real world workload are mostly skewed~\xxx{cite zipf}.
 By simply caching a small fraction of shards (\autoref{sec:impl}), the total amount of transferred data can be greatly reduced.
 
-To verify the above claims, we simulate/perform numerical analysis to project the total amount of data transferring under a realistic setup.
-\XXX
+To verify the above claims, we perform numerical analysis to project the total amount of data transferring under a realistic setup.
+The exact formula and parameter values are presented in appendix, and the result is shown in \autoref{fig:network-overhead}.
+When the number of nodes is smaller than the targeted redundancy, every node effectively stores a full copy of the state and \sys has the same network overhead to other BFT protocols.
+As the number of nodes goes more than the redundancy rate, \sys starts to pay network overhead for shard synchronization, but the overhead quickly converges to a constant factor of the baseline and the overhead of \sys is always below $2.5\times$ of the baseline overhead.
+This result proves that the network overhead of synchronizing shards indeed does not affect the bit complexity of network communication, but only affects the factor.
 
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.
 
