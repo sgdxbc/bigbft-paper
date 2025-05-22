@@ -1,0 +1,20 @@
+\section{Related Works}
+\label{sec:rel}
+
+\paragraph{Availability of historical transactions \ie blocks.}
+Alternative to the previous works we discussed in \autoref{sec:bg} that maintain partial states on the nodes, some other works offer availability solutions for the historical transactions.
+In such systems storing the processing state explicitly is not necessary.
+All committed transactions are made available for a prolonged time and the state (either the current version of any historical one) can be reconstructed by replaying them.
+
+In public blockchains, \emph{archival nodes} volunteer to provision the historical blocks for auditing or analysis purposes.
+BFT-store~\cite{qi2020bft} proposes to let the replication nodes collaboratively store the blocks and the design can tolerate $f$ faulty nodes out of the $3f+1$ total ones.
+Under permissionless setting, layer-2 \emph{rollups} \xxx{cite} submit their historical transactions to Ethereum's blocks.
+EIP-4844~\cite{eip4844} is proposed to extend Ethereum's blocks with \emph{blobs}, which are erasure coded and collaboratively stored by the nodes.
+These works have similar designs to \sys, only the blocks instead of the state become the data in interest.
+While the historical blocks are an immutable append-only data structure, the processing state is not and poses unique challenges to our work.
+
+\XXX
+
+\paragraph{Sharded blockchains.}
+
+\paragraph{Blockchain databases.}
