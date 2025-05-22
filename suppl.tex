@@ -11,49 +11,7 @@
 
 \maketitle
 \pagestyle{plain}
-
-\section{Analysis on Shard Synchronization Network Overhead}
-
-Define
-\begin{itemize}
-    \item $n$ as the number of nodes
-    \item $c$ as the number of shard copies preserved by the active layer
-    \item $d$ as the number of shards
-    \item $d_t$ as the average number of shards accessed by each transaction
-    % \item $S$ as the state size, $s=\frac{S}{d}$ as the shard size
-    \item $t$ as the transaction and reply size
-    \item $\sigma$ as the missing rate of local shard cache
-\end{itemize}
-
-The expectation of the network overhead of synchronizing shards for each transaction would be
-\[
-    d_t(n-c)s\sigma
-\]
-and the network overhead of dispersing transactions and replying to clients would be
-\[
-    nt
-\]
-note that although BFT protocols usually requires only $f+1$ replies to client, all nodes are sending replies, so the network overhead is still incurred.
-
-Compared to the baseline overhead for dispersing transactions and replying to clients, shard synchronization makes a
-\[
-    1+\frac{n-c}{n}\cdot{}d_t\cdot{}\frac{s}{t}\sigma
-\]
-times amplification of network overhead.
-
-Let's break down analysis each of the fractions in the context of a simple key-value store state
-\begin{itemize}
-    \item $\frac{n-c}{n}$ increases as $n$ increases (because $c$ is constant) but never reach $1$
-    \item $d_t$ is the average number of shards access by the transactions, expected to be only slightly greater than $1$
-    \item $\frac{s}{t}$ has varying meanings with different states and transactions.
-    With key-value store state it is approximately the number of key-value pairs in a shard.
-    \item $\sigma$ is the missing rate which is also transaction-dependent.
-    Given a skewed workload (\eg most configurations in YCSB), the missing rate can be as low as 1-10\%.
-\end{itemize}
-
-\xxx{List some common parameters and the results.}
-
-\nocite{bft}
+\input{sections/network-analysis}
 \bibliography{paper}
 
 \end{document}
