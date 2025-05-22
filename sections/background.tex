@@ -2,9 +2,18 @@
 \label{sec:bg}
 
 \paragraph{Problem settings.}
-In this work we target the BFT protocols that perform state machine replication (SMR) over states that potentially cannot fit into single node's storage.
-As a BFT protocol \sys guarantees \emph{linearizable}\xxx{cite} and tolerate Byzantine faults: the processing results observed by the clients can be simulated by a sequential processing of the transactions, even if up to $f$ participating nodes' behavior is arbitrarily diverged from the protocol's specification \eg collude to cheat the other nodes, as long as the system consists of more than $3f$ nodes.
-Additionally, \sys also guarantees to operate with $O(state\ size)$ storage capacity occupied across all (correct) nodes regardless of the number of nodes, while a typical fully-replicated BFT protocol would take $O(state\ size\times{}number\ of\ node)$.
+Our work can be used as a replicated service for arbitrary state machines, tolerating Byzantine faults as common BFT protocols while maintaining a desirable storage overhead as distributed databases.
+In detail, \sys provides the safety and liveness properties following common BFT protocols~\cite{pbft} and the bounded redundancy property following the distributed storage systems~\cite{corbett2013spanner}.
+\begin{itemize}
+    \item Safety: the replicated service satisfies linearizability~\cite{herlihy1987axioms}, behaving like a centralized implementation that processes transactions atomically once at a time.
+    \item Liveness: the clients are eventually replied for their requested transactions.
+    \item Storage scalability: the overall storage resources required to operate the system is $O(state\ size)$.
+    The number of nodes in the system do not affect the storage consumption.
+    This is in the contrary of normal BFT protocols where the storage complexity is $O(state\ size\times{}number\ of\ node)$.
+\end{itemize}
+\sys operates with $3f+1$ nodes and can ensure the above properties when up to $f$ nodes are Byzantine faulty and behave arbitrarily.
+The required network model depends on the requirement of the employed atomic broadcast protocol (\autoref{sec:overview}).
+When working with most atomic broadcast protocols (\xxx{name some examples}), the system guarantees the above properties in asynchronous network while ensure progress in the synchronous periods.
 
 We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
 \lijl{Is there a proper ``compatibility'' definition?}
