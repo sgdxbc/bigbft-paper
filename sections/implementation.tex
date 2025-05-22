@@ -1,6 +1,18 @@
 \section{Implementation}
 \label{sec:impl}
 
-\paragraph{Speculative push shards.}
+In this section we discuss the most significant performance boosters beyond the core protocol.
 
-\paragraph{Cache shard hashes.}
+\paragraph{Cache shard and/or shard hashes.}
+Nodes are recommended to maintain a least-recent-used (LRU) cache of shards to exploit the skewness of shard access of the transactions and reduce the network overhead of shard synchronization.
+At the same time, nodes are recommended to cache the hashes of all shards for the latest view it has.
+This allows the nodes to replace the verification of inclusion proof with a direct hash comparison upon receiving remote shards, which is much more lightweight.
+Thanks to the decomposition of storage and consensus layer (\autoref{sec:approach}), caching shard hashes does not require any additional communication -- the nodes obtain all the hashes from its local processing.
+
+\paragraph{Speculative push shards.}
+The active layer by default works in pull mode -- the nodes fetch the remote copies of the shards on demand -- to minimize network overhead.
+However, the ad-hoc fetching is on the critical path and add latency overhead.
+So other than serve the pulling, one of the storing node from the active layer is designated as the pushing node, who actively broadcast the storing shard to the other nodes upon processing.
+Furthermore, the pushing can be advanced to even before the associated transaction is committed.
+In many BFT protocols there is a time interval between the transactions are proposed to committed, and the proposed transactions are likely to be committed soon.
+By speculatively pushing the shards for the proposed transactions, the shard dispersing can be concurrent to the transaction dispersing and mask the latency penalty by the remote storing shards.
