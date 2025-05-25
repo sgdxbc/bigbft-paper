@@ -1,12 +1,12 @@
 \section{Approach: Decouple Sharding from Processing}
-\label{sec:approch}
+\label{sec:approach}
 
 \lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
 \gd{Done.}
 
 In \autoref{sec:bg} we observe that, previous works attempt to scale out processing and storage at the same time and can only settle on the trade-offs among the three properties.
-Meanwhile, recent works have made noticeable progress on just improve the processing scalability~\cite{gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
-At the same time, distributed databases have always been perfectly scalable and supporting to tolerate configurable faults with erasure coding \xxx{cite} techniques.
+Meanwhile, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
+At the same time, distributed databases have always been perfectly scalable and supporting to tolerate configurable faults with erasure coding~\cite{ec} techniques.
 Base on this observation, we propose a novel idea on the BFT scalability
 \begin{quote}
     The BFT protocols should be decomposed into dedicated \emph{storage} layer and \emph{consensus} layer, and the layers should be scaling out in different ways.
