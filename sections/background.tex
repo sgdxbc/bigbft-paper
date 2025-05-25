@@ -67,22 +67,30 @@ When more nodes joining the system, they are essentially \emph{contributing} the
 This property would be the key to enable blockchains to operate giant big data states as distributed databases does.
 
 \begin{table}
-\caption{Comparison of BFT approaches}
+\caption{Comparison of BFT works.
+\emph{Safety?} and \emph{Liveness?} shows whether the work can maintain safety or liveness properties (deterministically or probabilistically) in the presence of $\frac{1}{3}$ faulty nodes globally.
+\emph{Scalable storage?} shows whether the work can maintain constant storage redundancy regardless of number of nodes.}
 \label{tab:compare}
 \begin{tabular}{llll}
     \toprule
-    Approach            & Safety?       & Liveness?     & Scalable storage? \\
+    Work                    & Safety?       & Liveness?     & Scalable storage? \\
     \midrule
-    Fully replicated    & \checkmark    & \checkmark    &                   \\
-                        &               &               &                   \\
-                        &               &               &                   \\
+    Fully replicated        & Yes           & Yes           & No                \\
+    \textit{BlockchainDB}   & No            & No            & Yes               \\
+    OmniLedger              & No            & No            & Yes               \\
+    OmniLedger (Adaptive)   & Yes           & Yes           & No                \\
+    RapidChain              & Yes           & No            & Poor              \\
+    Monoxide                & No            & No            & No                \\
+    SharPer                 & No            & No            & Yes               \\
+    \sys                    & Yes           & Yes           & Yes               \\
     \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Blockchain systems with scalable storage.}
+\paragraph{Blockchain systems with scalable storage (\autoref{tab:compare}).}
 Various previous works support to operate with nodes storing partial states in several ways.
-In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb} and FalconDB~\cite{peng2020falcondb}, the state consists of multiple tables.
+% In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb} and FalconDB~\cite{peng2020falcondb}, the state consists of multiple tables.
+In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb}, the state consists of multiple tables.
 Each table is stored by a subset of nodes and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are employed to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
 More general-purpose sharded blockchains group nodes into multiple \emph{committees} who are responsible for maintaining disjoint state shards.
 These works usually employ multiple instances of fully-replicated BFT protocols, one within each committee, and resolve the atomicity of cross-committee transactions with specialized strategies.
@@ -113,6 +121,18 @@ Monoxide~\cite{wang2019monoxide} proposes asynchronous consensus zone, which can
 It proposes a novel PoW mining scheme that allow mining power to simultaneously work on multiple zones and tolerate up to $\frac{1}{2}$ faulty mining power globally.
 Finally, SharPer~\cite{amiri2021sharper} takes a different approach and exploits the per-determined fault-tolerant clusters to provide deterministic safety guarantees, contrary to the probabilistic ones by the aforementioned works.
 
+\paragraph{The dilemma between security and scalability.}
+As shown in \autoref{tab:compare}, all previous works fail to achieve the safety, liveness and storage scalability properties at the same time.
+Typical BFT protocols and some blockchain databases~\cite{peng2020falcondb} fully replicate their states to all nodes, ensuring safety and liveness but with no storage scalability.
+\textit{BlockchainDB} and SharPer require pre-determined fault-tolerant clusters.
+They can only tolerate a fraction of faulty nodes locally within each cluster, and fail when the total number of faulty nodes can overwhelm any individual cluster.
+\textsc{Elastico} and OmniLedger can only work when the global faulty fraction is low (\eg $\frac{1}{4}$).
+With $\frac{1}{3}$ faulty nodes, randomly sampling fix-sized committees cannot secure honest supermajorities (\ie $\frac{2}{3}$) within them.
+On the other hand, if we modify the works by adaptively increasing the committee size to cope with higher faulty fraction, while the security is regained, the storage scalability becomes worse, and when the faulty fraction approaches $\frac{1}{3}$ the committee size is close to all the nodes and the works degrade into fully replicated systems.
+Later works demend either TEE or synchronous network condition, and RapidChain additionally sacrifices storage scalability.
+Monoxide seems to secure all three properties, but actually fails all of them: its safety depends on the assumption of professional mining facilities dominating the mining power (otherwise, individual asynchronous consensus zone can be overwhelmed by faulty mining power), and it cannot secure the liveness of cross-zone transactions if the transaction is rejected or censored by some involved zones.
+It requires mining power to take part in multiple if not all zones, and the storage scalability vanishes as the nodes storing state for many zones.
+
 % The downside for the nodes to store less state data is that, in sharded blockchains only a subset of nodes can participate the processing of each transaction.
 % This has to result in some trade-offs around the resiliency to the faulty processing nodes.
 % An early line of works~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} can tolerate only up to $\frac{1}{4}$ faulty nodes.
@@ -126,8 +146,8 @@ Finally, SharPer~\cite{amiri2021sharper} takes a different approach and exploits
 % Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
 
 \paragraph{Conclusion.}
-In previous works, the state scalability is achieved by restricting the management responsibility of (different parts of) the state to a subset of the nodes \ie the committees.
-However, such restriction always affects the safety and/or the liveness properties at the same time.
+In previous works, the storage scalability is achieved by restricting the management responsibility of the state shards to a subset of the nodes \ie the committees.
+However, such restriction unavoidable affects the safety and/or the liveness properties.
 In the end, none of the previous works succeed in securing all three properties.
 
 \iffalse
