@@ -13,7 +13,7 @@ In detail, \sys provides the safety and liveness properties following common BFT
 \end{itemize}
 \sys operates with $3f+1$ nodes and can ensure the above properties when up to $f$ nodes are Byzantine faulty and behave arbitrarily.
 The required network model depends on the requirement of the employed atomic broadcast protocol (\autoref{sec:overview}).
-When working with most atomic broadcast protocols (\xxx{name some examples}), the system guarantees the above properties in asynchronous network while ensure progress in the synchronous periods.
+When working with most atomic broadcast protocols (\xxx{name some examples}), the system guarantees the above properties in asynchronous network while ensuring progress in the synchronous periods.
 
 \gd{``Spoiler'' here or just mention in approach?}
 Unlike the previous works where the liveness property mostly concerns the network coordination (\eg continuous leader changes), in this work, the liveness additionally covers (and in fact focuses on) the \emph{availability} of the state.
