@@ -1,15 +1,25 @@
 \section{System Design: An Iterative Refinement}
 \label{sec:overview}
 
-As the problem settings formulated in \autoref{sec:bg}, \sys is a BFT replication protocol from end to end.
-However, its consistent ordering property can be achieved by any off-the-shelf Byzantine atomic broadcast (BAB) protocols~\XXX{cite some}, so the following description focuses on the processing part which will be integrated into existing BAB protocols.
-We will describe that given a consistently ordered list of transactions available on every correct node, how to execute on the nodes that do not persist the whole state locally.
+In this section we describe our design of the storage layer of \sys, and resort to off-the-shelf Byzantine atomic broadcast protocols for the consensus layer.
+The storage layer is fed with a (potentially infinite) list of transactions ordered by the consensus layer.
+It should bring the accessed state shards of the transactions available on every node, then the transaction is processed, and the shards are updated.
+In the following we consider the state as a piece of multi-versioned shared data, and by processing a transaction the nodes bring the state into a new version.
 
-\lijl{Before discussing the design overview, we should formally define the guarantees of the system.}
-\gd{Done}
-
-In the following, we iteratively describe the overview of \sys.
+The consensus layer guarantees to produce a consistent list of transactions on every (correct) node.
+The main goal of designing the storage layer is to ensure two properties: storage scalability (\autoref{sec:bg}) and availability (\autoref{sec:approach}).
+The former property requires the storage layer to store bounded number of shards of all versions at any time on every node.
+And the latter one means every node can either access every shard of the current version (so it can process arbitrary transaction against it), or it can access every shard of a newer version (because a supermajority of nodes has advanced to it), and it can verify the correctness of these shards and accept to skip to this version.
+For easy understanding, we iteratively describe the design.
 We start with a simple design I1, refine its redundancy level with I2, combine I1 and I2 together into a generational design to amortize the coding overhead in I3, and finally combine a modified version of I1 with I2 as I4 for a better usability.
+
+% As the problem settings formulated in \autoref{sec:bg}, \sys is a BFT replication protocol from end to end.
+% However, its consistent ordering property can be achieved by any off-the-shelf Byzantine atomic broadcast (BAB) protocols~\XXX{cite some}, so the following description focuses on the processing part which will be integrated into existing BAB protocols.
+% We will describe that given a consistently ordered list of transactions available on every correct node, how to execute on the nodes that do not persist the whole state locally.
+
+% \lijl{Before discussing the design overview, we should formally define the guarantees of the system.}
+% \gd{Done}
+
 
 \paragraph{I1: Sharding + plain replication.}
 Each shard is placed on $f+1$ nodes and the placement is assigned with consistent hashing.
