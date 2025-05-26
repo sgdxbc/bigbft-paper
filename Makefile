@@ -7,7 +7,7 @@ SUPPL := suppl
 TEX := $(shell find ./ -type f -name "*.tex")
 CLS := $(shell find ./ -type f -name "*.cls" -o -name "*.sty")
 BIB := $(shell find ./ -type f -name "*.bib")
-FIG := $(shell find ./figures/ -type f -name "*.pdf") $(shell find ./graphs/ -type f -name "*.pdf")
+FIG := $(shell find ./figures ./graphs -type f \( -name "*.pdf" -or -name "*.png" \))
 
 PAPER_DEPS := $(TEX) $(CLS) $(BIB) $(FIG)
 
