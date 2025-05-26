@@ -10,7 +10,8 @@ The consensus layer guarantees to produce a consistent list of transactions on e
 The main goal of designing the storage layer is to ensure two properties: storage scalability (\autoref{sec:bg}) and availability (\autoref{sec:approach}).
 The former property requires the storage layer to store bounded number of shards of all versions at any time on every node.
 And the latter one means every node can either access every shard of the current version (so it can process arbitrary transaction against it), or it can access every shard of a newer version (because a supermajority of nodes has advanced to it), and it can verify the correctness of these shards and accept to skip to this version.
-For easy understanding, we iteratively describe the design.
+
+For easy understanding, we iteratively describe the design and reason about the desired properties for each iteration.
 We start with a simple design I1, refine its redundancy level with I2, combine I1 and I2 together into a generational design to amortize the coding overhead in I3, and finally combine a modified version of I1 with I2 as I4 for a better usability.
 
 % As the problem settings formulated in \autoref{sec:bg}, \sys is a BFT replication protocol from end to end.
@@ -20,18 +21,16 @@ We start with a simple design I1, refine its redundancy level with I2, combine I
 % \lijl{Before discussing the design overview, we should formally define the guarantees of the system.}
 % \gd{Done}
 
-
 \paragraph{I1: Sharding + plain replication.}
-Each shard is placed on $f+1$ nodes and the placement is assigned with consistent hashing.
-The load and store operations are amplified (\eg from key level) to shard level.
-
-Execution: for each shard involved in read set and write set, query $f+1$ nodes and wait for one reply with valid inclusion proof.
-Execute transaction and apply updates to the shards of write set.
-Append the updated shards (who should store locally according to the placement) into local storage, recalculate the inclusion proofs of all storing shards according to the updated shards, and bump state version.
+In the simplest design, each shard is placed on $f+1$ nodes and the placement (\ie which shard is stored by which nodes) is assigned by consistent hashing~\cite{karger1997consistent}.
+All the shards are organized into a Merkle tree~\cite{merkle1987digital}, and nodes maintain inclusion proofs for its storing shards.
+For each transaction, nodes first synchronize necessary shards of its current view, then process the transaction, update inclusion proofs of its stored shards and bump state version.
+To synchronize a shard, nodes may query $f+1$ nodes and wait for one reply with valid inclusion proof.
 The old version of the state, \ie the shards and their inclusion proofs, are not discarded immediately to serve future queries from other (slower) nodes.
 
-Safety: for each state version, every shard is served by $f+1$ nodes and at least $1$ of them will serve it correctly.
-All correct nodes have consistent views (\ie Merkle roots) of each version of the state, so they are able to verify remote shards, execute with correct shards, and keep going with the consistent views of the versions of the state.
+The availability can be easily argued: every version of every shard is served by $f+1$ nodes and at least $1$ of them will serve it correctly.
+Also, all correct nodes must have consistent views of each version of the state because they reach the version by processing identical sequence of transactions.
+So the inclusion proof produced by one node can be verified on another one \ie the shard that is valid to its storing node is valid to every node.
 
 \paragraph{Garbage collection.}
 \lijl{What is the guarantee of GC? No correct node needs the older version? The new version is available?}

@@ -1,7 +1,7 @@
-\section{Implementation}
+\section{Optimizations}
 \label{sec:impl}
 
-In this section we discuss the most significant performance boosters beyond the core protocol.
+In this section we discuss the most significant performance boosters that have not been covered by \autoref{sec:overview}.
 
 \paragraph{Cache shard and/or shard hashes.}
 Nodes are recommended to maintain a least-recent-used (LRU) cache of shards to exploit the skewness of shard access of the transactions and reduce the network overhead of shard synchronization.

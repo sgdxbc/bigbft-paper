@@ -56,8 +56,9 @@ Then, the consensus layer is not sharded and can be scaled up as a whole~\cite{g
 % Thus, the sharding design is fully \emph{decoupled} with the consistency guarantee and only need to ensure the availability of state shards.
 % \lijl{There seem to be an interesting principle here. We are arguing for a separation of responsibility. The storage layer is responsible for data availability. The consensus layer is responsible for consistency. This is an interesting insight that we should emphasize.}
 We emphasize that this \emph{separation of concern} is crucial to escape the dilemma between scalability and security, preventing the coupling of them in the case of processing sharding.
-The consensus layer can employ any off-the-shelf Byzantine atomic broadcast (BAB) or BFT protocol, while the storage layer should perform shard synchronization for the processed transactions.
-Notice that this introduces a new source of liveness violation: if storage layer fails to ensure the \emph{availability} of (some of) the state shards, nodes cannot process transaction any further even if they are agreed with each other for the processing order.
+
+In action, we can pick any off-the-shelf Byzantine atomic broadcast (BAB) or BFT protocol\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark} that features comparable scalability to the storage layer as the consensus layer, and the storage layer should synchronize necessary shards for processing transactions.
+Notice that this introduces a new source of liveness violation: if the storage layer fails to ensure the \emph{availability} of (some of) the state shards, nodes cannot process transaction any further even if they are agreed with each other for the processing order.
 
 % Independent scaling-out of state brings its unique challenges.
 % The storing nodes must disperse the relevant state shards efficiently prior processing, the other nodes must be able to verify the state shards independently, and most importantly, the state shards must be available even if Byzantine nodes participate in storing them.
@@ -89,5 +90,5 @@ Finally, in this work we present the preliminary results.
 In \autoref{sec:approach} we show the numerical analysis of the network overhead added by the shard synchronization procedure.
 As the number of nodes increases, synchronizing shard amplifies network traffic only by a constant factor.
 We also analyze the redundancy of \sys comparing to the other scaling approaches.
-The result shows that \sys not only consumes less storage to fully replicated baseline with any number of nodes that is more than 16, it also incurs the least redundancy compared to other sharding solutions.
+The result shows that \sys not only consumes less storage to fully replicated baseline with any number of nodes that is more than 16, it also improves the redundancy factor compared to the other sharded solutions: \XXX.
 In conclusion, \sys makes great improvement on the storage efficiency compared to all the previous works.
