@@ -4,20 +4,25 @@
 \lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
 \gd{Done.}
 
-In \autoref{sec:bg} we observe that, previous works attempt to scale out processing and storage at the same time and can only settle on the trade-offs among the three properties.
-Meanwhile, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
-At the same time, distributed databases have always been perfectly scalable and supporting to tolerate configurable faults with erasure coding~\cite{ec} techniques.
+In \autoref{sec:bg} we observe that, previous works attempt to scale processing and storage at the same time and have to settle on the trade-offs among the three properties.
+What if we don't scale them together?
+Indeed, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
+At the same time, being perfectly scalable on storage has always been among the top priorities of distributed databases. 
+They develop to leverage the erasure coding~\cite{ec} techniques to tolerate configurable number of faults without affecting the redundancy level.
 Base on this observation, we propose a novel idea on the BFT scalability
 \begin{quote}
-    The BFT protocols should be decomposed into dedicated \emph{storage} layer and \emph{consensus} layer, and the layers should be scaling out in different ways.
+    The BFT protocols should be decomposed into dedicated \emph{storage} and \emph{consensus} layers, each of whom should be scaling out in separate ways.
 \end{quote}
-While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), the idea is akin to the one behind recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn}, who decompose BFT protocols into delivery layer and consensus layer and independently scale the former one.
+As shown in \autoref{fig:approach-compare}, with decomposed storage and consensus layers, transaction processing is fully replicated to every node with a global consensus layer, while the state is sharded and partially stored on every node, managed by the storage layer.
+To process a transaction, nodes must synchronize the shards accessed by the transaction but not stored locally ahead of the time.
+These synchronized shards are only for supporting processing -- the nodes that are not obligated to store a shard (according to the storage layer) may discard it and synchronize it again from the obligated nodes later.
+While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), the idea is akin to the one behind recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn}, who decompose BFT protocols into delivery and consensus layers and independently scale the former one.
 
-The decomposition of architecture leads to the separation of concerns~\cite{reade1989elements}.
-The storage layer and the consensus layer each takes charges in different desirable properties: the safety is guaranteed by the consensus, the state scalability is guaranteed by the storage, while the liveness is concerned by both of them, in different aspects.
-On one hand, consensus layer must progress on make decisions of the transactions to be processed, which is the same to the liveness in a typical BFT protocol.
-On the other hand, storage layer must ensure the \emph{availability} of the state to support the nodes to process whatever transactions decided by the consensus.
-This is a unique thing to this work and lead to several challenges, which we will discuss later.
+Essentially, the decomposition of architecture leads to the separation of concerns~\cite{reade1989elements}.
+The storage and the consensus layers each take charge in different desirable properties: the safety is guaranteed by the consensus, the storage scalability is guaranteed by the storage, while the liveness is concerned by both of them, but in different aspects.
+On one hand, consensus layer must progress on ordering the transactions to be processed, as the vanilla ``liveness'' definition in a typical BFT protocol.
+On the other hand, storage layer must ensure the \emph{availability} of every individual state shard, or the processing cannot continue when some accessed shards are lost.
+This new source of liveness violation (\ie failing on availability) is unique to our new scaling approach, and is the main focus of the design later in \autoref{sec:overview}.
 
 % To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
 % This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
@@ -36,27 +41,32 @@ This is a unique thing to this work and lead to several challenges, which we wil
 
 \begin{figure}
     \includegraphics[width=0.75\linewidth]{graphs/network-overhead}
-    \caption{The network overhead brought by shard synchronization.
-    The y-axis shows the total network overhead of \sys, normalized to baseline BFT protocols that only transfer transactions and replies.}
+    \caption{The network traffic overhead brought by shard synchronization.
+    The y-axis shows the total network traffic of \sys, normalized to baseline BFT protocols that only transmit transactions and replies.}
     \label{fig:network-overhead}
 \end{figure}
 
-\paragraph{Network overhead.}
-At first glance this decomposition may be a costly approach that has to pay both extra bandwidth for nodes continuously synchronizing shards to each other and extra latency for ad-hoc synchronization.
-In fact, it is more practical than it seems like.
-As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards, so with sufficient number of shards, the amount of transferred data for processing one transaction will be acceptably small.
-Also, even in fully replicated systems, there's still a baseline bandwidth occupation for dispersing the transactions and replying the clients.
-The overhead of sending transactions and replies is on the same complexity of synchronizing shards, so additionally sending shards will not make bandwidth consumption dramatically worse.
-The synchronization latency can be masked with speculation (\autoref{sec:impl}).
-And last but not least, the real world workload are mostly skewed~\xxx{cite zipf}.
-By simply caching a small fraction of shards (\autoref{sec:impl}), the total amount of transferred data can be greatly reduced.
+\paragraph{Analysis on network traffic overhead.}
+At first glance this decomposition approach may be a costly approach in the sense of network traffic. 
+Nodes have to pay both extra bandwidth for continuously synchronizing shards from each other and extra latency because they can only start processing after the synchronization is done.
+In fact, it is more practical than it seems to be.
+As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards.
+By configuring a small shard size (\eg KB level), the network traffic can be kept within an acceptable budget.
+% Also, even in fully replicated systems, there's still a baseline bandwidth occupation for dispersing the transactions and replying the clients.
+% The overhead of sending transactions and replies is on the same complexity of synchronizing shards, so additionally sending shards will not make bandwidth consumption dramatically worse.
+The synchronization latency can be masked with speculative pushing (\autoref{sec:impl}).
+And last but not least, the real world workloads are mostly skewed~\cite{powerlaw}.
+By simply caching a small fraction of shards (\autoref{sec:impl}), the total network traffic can be greatly reduced~\cite{fan2011small}.
 
-To verify the above claims, we perform numerical analysis to project the total amount of data transferring under a realistic setup.
-The exact formula and parameter values are presented in appendix, and the result is shown in \autoref{fig:network-overhead}.
-When the number of nodes is smaller than the targeted redundancy, every node effectively stores a full copy of the state and \sys has the same network overhead to other BFT protocols.
-As the number of nodes goes more than the redundancy rate, \sys starts to pay network overhead for shard synchronization, but the overhead quickly converges to a constant factor of the baseline and the overhead of \sys is always below $2.5\times$ of the baseline overhead.
-This result proves that the network overhead of synchronizing shards indeed does not affect the bit complexity of network communication, but only affects the factor.
+To verify the above claims, we perform numerical analysis to project network traffic under a realistic setup.
+The exact plotted formula and parameter values are presented in appendix, and the result is shown in \autoref{fig:network-overhead}.
+When the number of nodes is smaller than the targeted redundancy, every node effectively stores a full copy of the state and \sys has the same network traffic to the other BFT protocols.
+As the number of nodes goes more than the redundancy rate, \sys starts to pay network traffic overhead for shard synchronization, but the overhead quickly converges to a constant amplifying factor to the baseline, and the network traffic of \sys never exceeds $2.5\times$ of the baseline traffic.
+This is because all the BFT protocols have to disperse transactions and reply client the processing results anyway.
+The network traffic of these increases linearly to the number of nodes, as well as the network traffic of shard synchronization.
+Thus, our approach does not worsen the scalability of network communication.
 
+\ifspace
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.
 
 \paragraph{C1: Garbage collection strategy.}
@@ -74,3 +84,4 @@ However, that leads to nontrivial design and safety reasoning, and also cause th
 Compare to operating on verbatim copies, operating encoded stats add significant encode overhead: every shard update have to update the parities, costing computation and (what's more concerning) amplifying read.
 At the same time, while systematic code \xxx{cite} can enjoy optimal read performance on happy path, faulty nodes can easily cause \emph{degraded read} by withholding the storing shards.
 As the result, the design must ensure off-the-path encoding, and must avoid degraded read as much as possible.
+\fi
