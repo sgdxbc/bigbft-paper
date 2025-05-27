@@ -41,13 +41,6 @@ To retrieve a shard that belongs to the stripe, we broadcast the request to the 
 Meanwhile, the redundancy is fixed regardless of the number of nodes as long as $k$ is proportional to $f$.
 We will elaborate on redundancy analysis and the details of employing erasure code in our system in \autoref{sec:overview}.
 
-\begin{figure}
-    \includegraphics[width=0.75\linewidth]{graphs/network-overhead}
-    \caption{The network traffic overhead brought by shard synchronization.
-    The y-axis shows the total network traffic of \sys, normalized to baseline BFT protocols that only transmit transactions and replies.}
-    \label{fig:network-overhead}
-\end{figure}
-
 \paragraph{Analysis on network traffic overhead.}
 At first glance this decomposition approach may be a costly approach in the sense of network traffic.
 Nodes have to pay both extra bandwidth for continuously synchronizing shards from each other and extra latency because they can only start processing after the synchronization is done.
@@ -59,14 +52,7 @@ By configuring a small shard size (\eg KB level), the network traffic can be kep
 The synchronization latency can be masked with speculative pushing (\autoref{sec:impl}).
 And last but not least, the real world workloads are mostly skewed~\cite{powerlaw}.
 By simply caching a small fraction of shards (\autoref{sec:impl}), the total network traffic can be greatly reduced~\cite{fan2011small}.
-
-To verify the above claims, we perform numerical analysis to project network traffic under a realistic setup.
-The result is shown in \autoref{fig:network-overhead}, whose exact plotting formula and parameter values are presented in appendix.
-When the number of nodes is smaller than the targeted redundancy, every node effectively stores a full copy of the state and \sys has the same network traffic to the other BFT protocols.
-As the number of nodes goes more than the redundancy rate, \sys starts to pay network traffic overhead for shard synchronization, but the overhead quickly converges to a constant amplifying factor to the baseline, and the network traffic of \sys never exceeds $2.5\times$ of the baseline traffic.
-This is because all the BFT protocols have to disperse transactions and reply client the processing results anyway.
-The network traffic of these increases linearly to the number of nodes, as well as the network traffic of shard synchronization.
-Thus, our approach does not worsen the scalability of network communication.
+The further analysis is presented in \autoref{sec:eval}.
 
 \ifspace
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.

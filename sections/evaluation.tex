@@ -1,0 +1,17 @@
+\section{Preliminary Results}
+\label{sec:eval}
+
+\begin{figure}
+    \includegraphics[width=0.75\linewidth]{graphs/network-overhead}
+    \caption{The network traffic overhead brought by shard synchronization.
+    The y-axis shows the total network traffic of \sys, normalized to baseline BFT protocols that only transmit transactions and replies.}
+    \label{fig:network-overhead}
+\end{figure}
+
+We perform numerical analysis to project network traffic under a realistic setup.
+The result is shown in \autoref{fig:network-overhead}, whose exact plotting formula and parameter values are presented in appendix.
+When the number of nodes is smaller than the targeted redundancy, every node effectively stores a full copy of the state and \sys has the same network traffic to the other BFT protocols.
+As the number of nodes goes more than the redundancy rate, \sys starts to pay network traffic overhead for shard synchronization, but the overhead quickly converges to a constant amplifying factor to the baseline, and the network traffic of \sys never exceeds $2.5\times$ of the baseline traffic.
+This is because all the BFT protocols have to disperse transactions and reply client the processing results anyway.
+The network traffic of these increases linearly to the number of nodes, as well as the network traffic of shard synchronization.
+Thus, our approach does not worsen the scalability of network communication.
