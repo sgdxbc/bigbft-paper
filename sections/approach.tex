@@ -1,7 +1,7 @@
 \section{Approach: Decouple Sharding from Processing}
 \label{sec:approach}
 
-In \autoref{sec:bg} we observe that, previous works attempt to scale processing and storage at the same time and have to settle on the trade-offs among the three properties.
+In \autoref{sec:bg} we observe that, previous works attempt to scale both processing and storage with processing sharding and have to settle on the trade-offs among the three properties.
 What if we don't scale them together?
 \lijl{Our key insight is that these two layers offer different properties, and these properties require different scaling solutions.}
 Indeed, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.

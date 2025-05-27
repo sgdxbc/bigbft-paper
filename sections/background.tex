@@ -101,7 +101,7 @@ Various previous works support to operate with nodes storing partial states in s
 In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb}, the state consists of multiple tables.
 Each table is stored by a subset of nodes and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are employed to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
 More general-purpose sharded blockchains group nodes into multiple \emph{committees} who are responsible for maintaining disjoint state shards.
-These works usually employ multiple instances of fully-replicated BFT protocols, one within each committee, and resolve the atomicity of cross-committee transactions with specialized strategies.
+These works usually employ multiple instances of fully-replicated BFT protocols (popular choices including PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and resolve the atomicity of cross-committee transactions with specialized strategies.
 
 % In common centralized distributed databases like~\cite{corbett2013spanner}, all nodes are centrally managed to collaboratively store the database states and each transaction is processed only once.
 % While in BFT systems the processing has to be replicated in order to tolerate faults, and multiple state copies reside on different nodes to support the replicated processing, resulting in high storage overhead.
@@ -128,6 +128,10 @@ While RapidChain is less storage-scalable (its committee size is $O(\log{number\
 Monoxide~\cite{wang2019monoxide} proposes asynchronous consensus zone, which can be treated as committees that can be arbitrarily sized (hence it achieves storage scalability).
 It proposes a novel PoW mining scheme that allow mining power to simultaneously work on multiple zones and tolerate up to $\frac{1}{2}$ faulty mining power globally.
 Finally, SharPer~\cite{amiri2021sharper} takes a different approach and exploits the per-determined fault-tolerant clusters to provide deterministic safety guarantees, contrary to the probabilistic ones by the aforementioned works.
+
+More recently, Estuary~\cite{jia2024estuary} dynamically adjusts the state distribution to minimize the cross-shard transaction overhead.
+Pyramid~\cite{hong2021pyramid} and MSSP~\cite{liu2025mssp} permit some nodes to store multiple shards \ie overlapping committees so the cross-shard transactions can be processed locally.
+Despite 
 
 \paragraph{The dilemma between security and scalability.}
 As shown in \autoref{tab:compare}, all previous works fail to achieve the safety, liveness and storage scalability properties at the same time.
