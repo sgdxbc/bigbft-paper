@@ -1,13 +1,12 @@
 \section{Approach: Decouple Sharding from Processing}
 \label{sec:approach}
 
-\lijl{We should have a dedicated ``Approach'' section that discusses our insights and design principles.}
-\gd{Done.}
-
 In \autoref{sec:bg} we observe that, previous works attempt to scale processing and storage at the same time and have to settle on the trade-offs among the three properties.
 What if we don't scale them together?
+\lijl{Our key insight is that these two layers offer different properties, and these properties require different scaling solutions.}
 Indeed, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
-At the same time, being perfectly scalable on storage has always been among the top priorities of distributed databases. 
+\lijl{This part is too vague.}
+At the same time, being perfectly scalable on storage has always been among the top priorities of distributed databases.
 They develop to leverage the erasure coding~\cite{ec} techniques to tolerate configurable number of faults without affecting the redundancy level.
 Base on this observation, we propose a novel idea on the BFT scalability
 \begin{quote}
@@ -23,6 +22,7 @@ The storage and the consensus layers each take charge in different desirable pro
 On one hand, consensus layer must progress on ordering the transactions to be processed, as the vanilla ``liveness'' definition in a typical BFT protocol.
 On the other hand, storage layer must ensure the \emph{availability} of every individual state shard, or the processing cannot continue when some accessed shards are lost.
 This new source of liveness violation (\ie failing on availability) is unique to our new scaling approach, and is the main focus of the design later in \autoref{sec:overview}.
+\lijl{One way to structure this argument: consensus is to establish a total order of transactions. State storage is to support the execution layer. We are basically offloading state management in the execution layer to distributed storage.}
 
 % To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
 % This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
@@ -47,7 +47,7 @@ This new source of liveness violation (\ie failing on availability) is unique to
 \end{figure}
 
 \paragraph{Analysis on network traffic overhead.}
-At first glance this decomposition approach may be a costly approach in the sense of network traffic. 
+At first glance this decomposition approach may be a costly approach in the sense of network traffic.
 Nodes have to pay both extra bandwidth for continuously synchronizing shards from each other and extra latency because they can only start processing after the synchronization is done.
 In fact, it is more practical than it seems to be.
 As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards.
