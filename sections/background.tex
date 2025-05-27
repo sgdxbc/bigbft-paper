@@ -12,16 +12,15 @@ In detail, \sys provides the safety and liveness properties following common BFT
     This is in the contrary of normal BFT protocols where the storage complexity is $O(state\ size\times{}number\ of\ node)$.
     \lijl{Either this definition, or that the overall state capacity scales with total storage size, while traditional replication is bounded by the node with the smallest storage.}
 \end{itemize}
-
 \sys operates with $3f+1$ nodes and can ensure the above properties when up to $f$ nodes are Byzantine faulty and behave arbitrarily.
-The required network model depends on the requirement of the employed atomic broadcast protocol (\autoref{sec:overview}).
-When working with most atomic broadcast protocols (\xxx{name some examples}), the system guarantees the above properties in asynchronous network while ensuring progress in the synchronous periods.
-\lijl{This part is a little vague. We should clearly specify if the storage protocol works in fully asynchronous settings.}
+Similar to many previous works, \sys these properties in partial synchrony network model.
+Beyond the period of synchrony, the protocol can be lack of progress, but safety and storage scalability are not violated.
+\lijl{This part is a little vague. We should clearly specify if the storage protocol works in fully asynchronous settings.} \gd{Done.}
 
-\gd{``Spoiler'' here or just mention in approach?}
-Unlike the previous works where the liveness property mostly concerns the network coordination (\eg continuous leader changes), in this work, the liveness additionally covers (and in fact focuses on) the \emph{availability} of the state.
-We discuss this in detail in \autoref{sec:approach}.
-\lijl{No need to discuss here.}
+% \gd{``Spoiler'' here or just mention in approach?}
+% Unlike the previous works where the liveness property mostly concerns the network coordination (\eg continuous leader changes), in this work, the liveness additionally covers (and in fact focuses on) the \emph{availability} of the state.
+% We discuss this in detail in \autoref{sec:approach}.
+% \lijl{No need to discuss here.}
 
 \lijl{Probably earlier in the paper, we should clearly define what ``state'' means.}
 We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
@@ -62,7 +61,7 @@ Blockchain is favored for its strict security guarantee, and has been widely res
 
 These big data blockchains can incur very large states.
 NASDAQ TotalView-ITCH, a dataset recorded at a trading matching engine, is reported to have 20 TB of total size and 4.13 GB per day~\cite{laughlin2014information}.
-\lijl{4 GB growth per day?}
+\lijl{4 GB growth per day?} \gd{Correct.}
 The dataset for high-frequency stock market can go as high as 20-40 GB per day~\cite{rabindrajit2024high}.
 Also, the medical records are usually in MB or even tens of MB scale~\cite{garcia2011mantisgrid} due to their multimodal contents, while public medical record datasets may contain up to 40,000-200,000 records~\cite{pollard2018eicu,johnson2023mimic} and occupy TB level storage.
 These are just the sizes of one-party datasets. In consortium blockchains, multiple participates (\eg exchanges or hospitals) contribute their data, each of which could be of a similar size of these datasets.
@@ -143,7 +142,7 @@ They can only tolerate a fraction of faulty nodes locally within each cluster, a
 With $\frac{1}{3}$ faulty nodes, randomly sampling fix-sized committees cannot secure honest supermajorities (\ie $\frac{2}{3}$) within them.
 On the other hand, if we modify the works by adaptively increasing the committee size to cope with higher faulty fraction, while the security is regained, the storage scalability becomes worse, and when the faulty fraction approaches $\frac{1}{3}$ the committee size is close to all the nodes and the works degrade into fully replicated systems.
 \lijl{Was this adaptive solution proposed before? The description is also not very clear.}
-Later works demend either TEE or synchronous network condition, and RapidChain additionally sacrifices storage scalability.
+Later works demand either TEE or synchronous network condition, and RapidChain additionally sacrifices storage scalability.
 Monoxide, while seems to secure the three properties at once.
 However, if we follow the assumption made by the work that professional mining facilities that simultaneously mine on every zone dominate the mining power, the storage scalability is lost because the nodes need to store states from every zone.
 If the nodes instead perform solo mining and work on single zones, individual zones can be subverted by faulty mining power, results in the loss of safety and liveness.
@@ -162,14 +161,13 @@ In the end, it still cannot pick all three properties.
 % Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
 
 \paragraph{Why processing sharding does not work out?}
+The failures of these previous works originate from a common pitfall: the processing of each transaction, \ie, the ordering and execution of it, is by the committee that only involves a subset of all nodes.
+Consequentially, the number of faults that the system can actually tolerate is decided by the committee size, while under BFT settings we demand to tolerate $\frac{1}{3}$ faulty nodes, the number of whom is decided by the total number of the nodes.
+If the committee size is irrelevant to the total number of the nodes, then we have sacrificed the security properties and can no longer tolerate faulty power that is proportional to the system scale (the rows where \emph{Safety?} and/or \emph{Liveness?} are \emph{No} in \autoref{tab:compare}).
+Otherwise, if the committee size grows are the system scales up, then the storage consumption grows as well and we lose storage scalability (the rows where \emph{Scalable storage?} isn't \emph{Yes}).
+In conclusion, with processing sharding we have to pick one from the two choices and end up with undesirable trade-offs among the properties.
 
-
-\paragraph{Conclusion.}
-In previous works, the storage scalability is achieved by restricting the management responsibility of the state shards to a subset of the nodes \ie the committees.
-However, such restriction unavoidable affects the safety and/or the liveness properties.
-In the end, none of the previous works succeed in securing all three properties.
-
-\lijl{Best if we could make some general statements here and explain why partitioning consensus processing will fundamentally impact safety and liveness.}
+\lijl{Best if we could make some general statements here and explain why partitioning consensus processing will fundamentally impact safety and liveness.} \gd{Done.}
 
 \iffalse
 \paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
