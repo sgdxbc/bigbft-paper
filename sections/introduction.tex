@@ -7,6 +7,7 @@ The high cost of state replication results in impractically expensive on-chain s
 On the other hand, big data applications are vastly deploying on to blockchains~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, whose states commonly scale up to TB or even PB level~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic}.
 The large scale deployments of permissioned and consortium blockchains, which consist of hundreds to thousands nodes and often be considered by the previous works~\cite{kokoris2018omniledger,zamani2018rapidchain,amiri2021sharper,gilad2017algorand,gueta2019sbft,yin2019hotstuff}, will be extremely storage-demanding.
 To cope with this issue, it is crucial to realize \emph{storage scalability}: scaling up the number of nodes with constant overall storage consumption.
+\lijl{This last sentence is not very clear.}
 
 Sharded blockchains, nodes in what can operate while storing only part of the states, are extensively studied by the previous works~\cite{ruan2021blockchains,luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide,amiri2021sharper}.
 While these works indeed achieve scalable storage demand, the drawback is the trade-offs between storage scalability and the security properties \ie safety and liveness~\cite{pbft}.
@@ -44,13 +45,10 @@ In the end, there is no previous sharding solution that can achieve storage scal
     \label{fig:approach-compare}
 \end{figure}
 
-% Can blockchains scale out to more storage nodes like databases while deterministically tolerate $\frac{1}{3}$ Byzantine faults as BFT protocols?
-% \lijl{I think earlier paragraphs should center around this goal.}
-% \gd{Done}
-In this work, we propose a new approach that \emph{decompose} BFT protocol into consensus layer that orders and processes the transactions and storage layer that manages the replicated states and possesses them to consensus layer for transaction processing (\autoref{fig:approach-compare}).
+\lijl{Before introducing the approach, should first provide insights which lead to this approach.}
+In this work, we propose a new approach that \emph{decomposes} BFT protocol into consensus layer that orders and processes the transactions and storage layer that manages the replicated states and possesses them to consensus layer for transaction processing (\autoref{fig:approach-compare}).
 Then, the consensus layer is not sharded and can be scaled up as a whole~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, and the storage layer, which is not responsible for consistency, can be simply scaled up with sharding without affecting the security properties.
-\lijl{Should motivate why only scaling storage, and not performance, is desirable.}
-\gd{Need to think about how to mention performance.}
+\lijl{After reading the previous sentence, still not clear why storage can be scaled without impacting security. The key insight about scaling storage is not clearly conveyed.}
 % As in regular databases, the storage layer shards the state and each node preserves only a subset of the shards.
 % At the same time, the global consensus (\ie Byzantine atomic broadcast) and processing are retained, and the accessed shards are made available by the storage layer prior to transaction processing on all nodes, create the ``illusion'' of the shards are stored by every node.
 % Thus, the sharding design is fully \emph{decoupled} with the consistency guarantee and only need to ensure the availability of state shards.
@@ -65,10 +63,12 @@ Notice that this introduces a new source of liveness violation: if the storage l
 % We organize the state shards into self-certifying data structures (like Merkle tree), allowing their integrity to be proved and verified in a lightweight and scalable fashion.
 
 With this decomposition approach we design \sys, a BFT protocol with scalable storage demand.
+\lijl{Either here or earlier, properly define the scalability requirement.}
 The main challenge of designing \sys is to roll out a storage layer that can ensure the availability of state shards in the presence of $\frac{1}{3}$ Byzantine faulty nodes, aligning with the setup of the consensus layer.
-Our storage layer is further decomposed into an on-path \emph{active layer} and an off-path \emph{archive layer}.
+\lijl{Before introducing our design, discuss why data availability could be done in a scalable way, and motivate why we need two separate layers.}
+Our storage layer is further decomposed into an on-path \emph{active layer} and an off-path \emph{archival layer}.
 The active layer maintains constant number of verbatim copies of the shards on randomly selected nodes, ensuring the shards are efficiently accessible with high probability.
-The archive layer employs erasure code~\cite{ec}, encoding the shards and dispersing the shards and the parities to a sufficiently wide range of nodes in the background, to provide the fallback deterministic availability guarantee.
+The archival layer employs erasure code~\cite{ec}, encoding the shards and dispersing the shards and the parities to a sufficiently wide range of nodes in the background, to provide the fallback deterministic availability guarantee.
 Both layers store constant redundancy of the state, so the design achieves the goal of storage scalability.
 
 % To cope the Byzantine storing nodes, we deploy erasure code to disseminate the state shards to more than $\frac{2}{3}$ of all the nodes with a constant overall redundancy (\ie about 3x).
@@ -88,6 +88,7 @@ Both layers store constant redundancy of the state, so the design achieves the g
 
 Finally, in this work we present the preliminary results.
 In \autoref{sec:approach} we show the numerical analysis of the network overhead added by the shard synchronization procedure.
+\lijl{Not sure if synchronization is the best terminology?}
 As the number of nodes increases, synchronizing shard amplifies network traffic only by a constant factor.
 We also analyze the redundancy of \sys comparing to the other scaling approaches.
 The result shows that \sys not only consumes less storage to fully replicated baseline with any number of nodes that is more than 16, it also improves the redundancy factor compared to the other sharded solutions: \XXX.
