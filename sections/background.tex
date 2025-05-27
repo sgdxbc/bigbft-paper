@@ -86,9 +86,10 @@ This property would be the key to enable blockchains to operate giant big data s
     Fully replicated        & Yes           & Yes           & No                \\
     \textit{BlockchainDB}   & No            & No            & Yes               \\
     OmniLedger              & No            & No            & Yes               \\
-    OmniLedger (Adaptive)   & Yes           & Yes           & No                \\
+    OmniLedger (adaptive)   & Yes           & Yes           & No                \\
     RapidChain              & Yes           & No            & Suboptimal        \\
-    Monoxide                & No            & No            & No                \\
+    Monoxide                & Yes           & Yes           & No                \\
+    Monoxide (solo mining)  & No            & No            & Yes               \\
     SharPer                 & No            & No            & Yes               \\
     \sys                    & Yes           & Yes           & Yes               \\
     \bottomrule
@@ -143,8 +144,10 @@ With $\frac{1}{3}$ faulty nodes, randomly sampling fix-sized committees cannot s
 On the other hand, if we modify the works by adaptively increasing the committee size to cope with higher faulty fraction, while the security is regained, the storage scalability becomes worse, and when the faulty fraction approaches $\frac{1}{3}$ the committee size is close to all the nodes and the works degrade into fully replicated systems.
 \lijl{Was this adaptive solution proposed before? The description is also not very clear.}
 Later works demend either TEE or synchronous network condition, and RapidChain additionally sacrifices storage scalability.
-Monoxide seems to secure all three properties, but actually fails all of them: its safety depends on the assumption of professional mining facilities dominating the mining power (otherwise, individual asynchronous consensus zone can be overwhelmed by faulty mining power), and it cannot secure the liveness of cross-zone transactions if the transaction is rejected or censored by some involved zones.
-It requires mining power to take part in multiple if not all zones, and the storage scalability vanishes as the nodes storing state for many zones.
+Monoxide, while seems to secure the three properties at once.
+However, if we follow the assumption made by the work that professional mining facilities that simultaneously mine on every zone dominate the mining power, the storage scalability is lost because the nodes need to store states from every zone.
+If the nodes instead perform solo mining and work on single zones, individual zones can be subverted by faulty mining power, results in the loss of safety and liveness.
+In the end, it still cannot pick all three properties.
 
 % The downside for the nodes to store less state data is that, in sharded blockchains only a subset of nodes can participate the processing of each transaction.
 % This has to result in some trade-offs around the resiliency to the faulty processing nodes.
@@ -157,6 +160,9 @@ It requires mining power to take part in multiple if not all zones, and the stor
 % Besides degraded security, cross shard transactions also bring additional coordination challenges.
 % They either pose performance penalty and complicate the reasoning of safety (potentially relying on the client~\cite{kokoris2018omniledger} or TEE~\xxx{cite}), or the sharded blockchains give up atomicity and relax the linearizable guarantee~\cite{luu2016secure} or even completely overlook cross shard transactions~\cite{li2020polyshard}.
 % Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
+
+\paragraph{Why processing sharding does not work out?}
+
 
 \paragraph{Conclusion.}
 In previous works, the storage scalability is achieved by restricting the management responsibility of the state shards to a subset of the nodes \ie the committees.

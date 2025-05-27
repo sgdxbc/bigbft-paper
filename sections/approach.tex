@@ -1,43 +1,45 @@
-\section{Approach: Decouple Sharding from Processing}
+\section{A Decomposing Approach}
 \label{sec:approach}
 
-In \autoref{sec:bg} we observe that, previous works attempt to scale both processing and storage with processing sharding and have to settle on the trade-offs among the three properties.
-What if we don't scale them together?
-\lijl{Our key insight is that these two layers offer different properties, and these properties require different scaling solutions.}
-Indeed, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
-\lijl{This part is too vague.}
-At the same time, being perfectly scalable on storage has always been among the top priorities of distributed databases.
-They develop to leverage the erasure coding~\cite{ec} techniques to tolerate configurable number of faults without affecting the redundancy level.
-Base on this observation, we propose a novel idea on the BFT scalability
-\begin{quote}
-    The BFT protocols should be decomposed into dedicated \emph{storage} and \emph{consensus} layers, each of whom should be scaling out in separate ways.
-\end{quote}
-As shown in \autoref{fig:approach-compare}, with decomposed storage and consensus layers, transaction processing is fully replicated to every node with a global consensus layer, while the state is sharded and partially stored on every node, managed by the storage layer.
-To process a transaction, nodes must synchronize the shards accessed by the transaction but not stored locally ahead of the time.
-These synchronized shards are only for supporting processing -- the nodes that are not obligated to store a shard (according to the storage layer) may discard it and synchronize it again from the obligated nodes later.
-While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), the idea is akin to the one behind recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn}, who decompose BFT protocols into delivery and consensus layers and independently scale the former one.
+The sharding in BFT protocols unavoidably affects safety and liveness properties.
+Next, let's break down the BFT protocols into consensus and execution layers and analyze the affection of sharding against them individually.
 
-Essentially, the decomposition of architecture leads to the separation of concerns~\cite{reade1989elements}.
-The storage and the consensus layers each take charge in different desirable properties: the safety is guaranteed by the consensus, the storage scalability is guaranteed by the storage, while the liveness is concerned by both of them, but in different aspects.
-On one hand, consensus layer must progress on ordering the transactions to be processed, as the vanilla ``liveness'' definition in a typical BFT protocol.
-On the other hand, storage layer must ensure the \emph{availability} of every individual state shard, or the processing cannot continue when some accessed shards are lost.
-This new source of liveness violation (\ie failing on availability) is unique to our new scaling approach, and is the main focus of the design later in \autoref{sec:overview}.
-\lijl{One way to structure this argument: consensus is to establish a total order of transactions. State storage is to support the execution layer. We are basically offloading state management in the execution layer to distributed storage.}
+Sharding the consensus layer degrades the safety and liveness of the system, which is theoretically impossible to overcome.
+Thus, keeping the goal of achieving these properties in mind, we should avoid sharding the consensus layer.
 
-% To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
-% This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
-% \begin{quote}
-%     The processing layer and the storage layer of BFT protocols should be considered separately.
-%     The processing layer is responsible for \emph{consistency}, and should not be sharded to maximize the safety guarantee;
-%     the storage layer is only responsible for \emph{availability} and can employ arbitrarily sharding scheme just as in distributed databases.
-% \end{quote}
-% % Combining the two considerations outputs the famous principle:
-% % \begin{quote}
-% %     Instead of bringing execution to data, bring data to execution.\xxx{Should be able to cite something}
-% % \end{quote}
-% However, the design combination of state sharding with global processing is rarely explored.
-% Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
-% \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
+Shall we decompose the BFT protocols and solely shard the execution layer?
+Unfortunately, a sharded execution layer can still affect both safety and liveness properties substantially.
+In BFT protocols, client must wait for receiving $f+1$ matching replies from different nodes before committing the transaction to tolerate up to $f$ Byzantine faults.
+In sharded blockchains, a specific transaction is always executed by only fixed number of nodes (so the storage scalability is achieved), so only fixed number of Byzantine faults can be tolerated as well.
+With sufficient nodes in total, the $\frac{1}{3}$ faulty nodes can overwhelm the committee and cause safety (\eg send the same incorrect reply) and liveness (\eg not reply) issues.
+
+Although neither consensus layer nor the execution layer as a whole is suitable for sharding, we can further decompose the execution layer and \emph{extract} the state since, after all, all we care about the storage scalability is the storage occupied by the (replicated) state.
+Luckily, as long as all nodes still execute every transaction (and reply the client), sharding state will not affect the safety property anymore.
+Interestingly, while the sharded state is unrelated to common liveness issues considered by the ordinary BFT protocols (leader rotation, reply withholding, etc.), it may cause a new kind of liveness issue when the nodes cannot access the necessary state shards and the execution is blocked.
+This essentially means that the liveness property now additionally depends on the \emph{availability} of (any shard of) the state.
+The state availability is trivial for most BFT protocols, whose execution layer holds all the states that are relevant to the execution locally at the nodes.
+However, when a sharded state is paired with an execution layer that is not sharded, the execution layer cannot execute all transactions only with the locally-stored shards, and the liveness of execution relies on whether the remote shards are available to the nodes.
+
+Now we present our approach as shown in the bottom of \autoref{fig:approach-compare}.
+A storage layer is decomposed from the execution layer and is dedicated to state management.
+While each transaction is executed by every node, the state shard(s) accessed by its execution are stored only on a subset of the nodes.
+The storage layer of the other nodes synchronizes the shards to support the local execution.
+These synchronized shards may be discarded after executing the transaction, and the storage layer synchronizes them again on the next access.
+
+In the end, the decomposition design achieves the separation of concerns~\cite{reade1989elements}.
+The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf BAB and BFT protocols can fulfill the requirements of these layers.
+On the other hand, the storage layer does not need to care about safety at all -- it is fed with an ordered list of transactions which is guaranteed to be consistent on every (correct) nodes.
+It only needs to manage the state shards in a way that satisfies storage scalability -- the overall storage consumption per shard only depends on the shard size but not the number of nodes, and availability -- every state shard must be available on every node.
+While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} take a similar approach that decomposes a delivery layer (reliable broadcast) away from the consensus and execution layers and independently scales it up to achieve optimal throughput.
+
+\paragraph{Can we achieve storage scalability and availability under the BFT settings?}
+To accomplish both properties, we must distribute the occupied storage (\ie the \emph{redundancy}) of each shard and the responsibility of storing it to a sufficiently wide range of nodes to mask $f$ failures among them, while occupy a fixed amount of redundancy across all these nodes.
+Following the practice of sophisticated distributed databases, we employ erasure code~\cite{ec} for this purpose, which is designed for masking configurable number of failures within fixed redundancy budget.
+To mask $f$ failures, we can use a EC$(k+2f,k)$ scheme, that is, generate $2f$ \emph{parities} for every $k$ shards (which is called a shard \emph{stripe}), and any combination of $k$ shards and parities can reconstruct the stripe.
+We then store the stripe on $k+2f$ disjoint nodes.
+To retrieve a shard that belongs to the stripe, we broadcast the request to the $k+2f$ nodes, and at least $k+f$ nodes will respond to the request, and at least $k$ responses will be correct, from what the stripe can be reconstructed.
+Meanwhile, the redundancy is fixed regardless of the number of nodes as long as $k$ is proportional to $f$.
+We will elaborate on redundancy analysis and the details of employing erasure code in our system in \autoref{sec:overview}.
 
 \begin{figure}
     \includegraphics[width=0.75\linewidth]{graphs/network-overhead}
@@ -84,4 +86,44 @@ However, that leads to nontrivial design and safety reasoning, and also cause th
 Compare to operating on verbatim copies, operating encoded stats add significant encode overhead: every shard update have to update the parities, costing computation and (what's more concerning) amplifying read.
 At the same time, while systematic code \xxx{cite} can enjoy optimal read performance on happy path, faulty nodes can easily cause \emph{degraded read} by withholding the storing shards.
 As the result, the design must ensure off-the-path encoding, and must avoid degraded read as much as possible.
+\fi
+
+\iffalse
+In \autoref{sec:bg} we observe that, previous works attempt to scale both processing and storage with processing sharding and have to settle on the trade-offs among the three properties.
+What if we don't scale them together?
+\lijl{Our key insight is that these two layers offer different properties, and these properties require different scaling solutions.}
+Indeed, recent works have made noticeable progress on just improve the processing scalability~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, reaching near optimal performance without sacrificing safety and liveness properties.
+\lijl{This part is too vague.}
+At the same time, being perfectly scalable on storage has always been among the top priorities of distributed databases.
+They develop to leverage the erasure coding~\cite{ec} techniques to tolerate configurable number of faults without affecting the redundancy level.
+Base on this observation, we propose a novel idea on the BFT scalability
+\begin{quote}
+    The BFT protocols should be decomposed into dedicated \emph{storage} and \emph{consensus} layers, each of whom should be scaling out in separate ways.
+\end{quote}
+As shown in \autoref{fig:approach-compare}, with decomposed storage and consensus layers, transaction processing is fully replicated to every node with a global consensus layer, while the state is sharded and partially stored on every node, managed by the storage layer.
+To process a transaction, nodes must synchronize the shards accessed by the transaction but not stored locally ahead of the time.
+These synchronized shards are only for supporting processing -- the nodes that are not obligated to store a shard (according to the storage layer) may discard it and synchronize it again from the obligated nodes later.
+While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), the idea is akin to the one behind recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn}, who decompose BFT protocols into delivery and consensus layers and independently scale the former one.
+
+Essentially, the decomposition of architecture leads to the separation of concerns~\cite{reade1989elements}.
+The storage and the consensus layers each take charge in different desirable properties: the safety is guaranteed by the consensus, the storage scalability is guaranteed by the storage, while the liveness is concerned by both of them, but in different aspects.
+On one hand, consensus layer must progress on ordering the transactions to be processed, as the vanilla ``liveness'' definition in a typical BFT protocol.
+On the other hand, storage layer must ensure the \emph{availability} of every individual state shard, or the processing cannot continue when some accessed shards are lost.
+This new source of liveness violation (\ie failing on availability) is unique to our new scaling approach, and is the main focus of the design later in \autoref{sec:overview}.
+\lijl{One way to structure this argument: consensus is to establish a total order of transactions. State storage is to support the execution layer. We are basically offloading state management in the execution layer to distributed storage.}
+
+To summarize, what we have seen from previous works is that state sharding is always accomplished with processing sharding, while processing sharding leads to undesirable security guarantee.
+This leads us to think about \emph{the separation of concern}~\xxx{cite} and come up with our approach:
+\begin{quote}
+    The processing layer and the storage layer of BFT protocols should be considered separately.
+    The processing layer is responsible for \emph{consistency}, and should not be sharded to maximize the safety guarantee;
+    the storage layer is only responsible for \emph{availability} and can employ arbitrarily sharding scheme just as in distributed databases.
+\end{quote}
+% Combining the two considerations outputs the famous principle:
+% \begin{quote}
+%     Instead of bringing execution to data, bring data to execution.\xxx{Should be able to cite something}
+% \end{quote}
+However, the design combination of state sharding with global processing is rarely explored.
+Quote a survey of sharding replication systems from 2023~\cite{solat2023sharding}:
+\emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding.}
 \fi
