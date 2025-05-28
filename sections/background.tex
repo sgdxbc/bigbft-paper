@@ -76,8 +76,9 @@ This property would be the key to enable blockchains to operate giant big data s
 
 \begin{table}
 \caption{Comparison of BFT works.
-\emph{Safety?} and \emph{Liveness?} shows whether the work can maintain safety or liveness properties (deterministically or probabilistically) in the presence of $\frac{1}{3}$ faulty nodes globally.
-\emph{Scalable storage?} shows whether the work can maintain constant storage redundancy regardless of number of nodes.}
+\emph{Safety?} shows whether the systems can guarantee consistency with $\frac{1}{3}$ faulty nodes.
+\emph{Liveness?} shows whether the systems can guarantee progress with $\frac{1}{3}$ faulty nodes under partial synchrony networks.
+\emph{Scalable storage?} shows whether the overall storage consumption does not depend on the number of nodes.}
 \label{tab:compare}
 \begin{tabular}{llll}
     \toprule
@@ -87,7 +88,7 @@ This property would be the key to enable blockchains to operate giant big data s
     Pre-determined clusters & No            & No            & Yes               \\
     Randomized committees   & No            & No            & Yes               \\
     \quad adaptive          & Yes           & Yes           & No                \\
-    \quad synchronous       & Yes           & No            & Suboptimal        \\
+    \quad synchronous       & Yes           & No            & Yes               \\
     Monoxide                & Yes           & Yes           & No                \\
     \quad solo mining       & No            & No            & Yes               \\
     \sys                    & Yes           & Yes           & Yes               \\
@@ -122,14 +123,18 @@ As the result, \textsc{Elastico} achieves storage scalability: its redundancy eq
 
 Following the success of \textsc{Elastico}, OmniLedger~\cite{kokoris2018omniledger} improves on several security aspects, including replacing the PoW-based committee assignment scheme with RandHound~\cite{syta2017scalable}, a decentralized randomness solution based on verifiable random function (VRF).
 This allows OmniLedger to significantly prolong the epoch duration (to \eg one day) and reduce the storage overhead of nodes more practically than \textsc{Elastico}.
-The later work~\cite{dang2019towards} further employs trusted execution environment (TEE) to assist the intra-committee consensus for smaller committee size ($2f+1$ instead of $3f+1$ to tolerate $f$ Byzantine faults), and dramatically reduces the redundancy and improve the storage scalability.
-Alternative to TEE, RapidChain~\cite{zamani2018rapidchain} employs synchronous BFT protocol for stronger resiliency.
-While RapidChain is less storage-scalable (its committee size is $O(\log{number\ of\ nodes})$), it explicitly claims to tolerate $\frac{1}{3}$ Byzantine faults on par with typical BFT protocols.
+The later work~\cite{dang2019towards} further employs trusted execution environment (TEE) to assist intra-committee consensus with stronger resiliency.
+Alternative to TEE, RapidChain~\cite{zamani2018rapidchain} employs synchronous BFT protocol for stronger resiliency, and explicitly claims to tolerate $\frac{1}{3}$ Byzantine faults on par with ordinary BFT protocols.
+Both of the works achieve $\frac{1}{2}$ resiliency within the committees, which allow them to dramatically reduce the committee size while providing same probabilistic security guarantees (\eg 60 vs. 800 nodes for $\frac{1}{4}$ faulty nodes and $2^{-20}$ probability of faulty committee~\cite{dang2019towards}).
+GearBox~\cite{david2022gearbox} explores flexible liveness resiliency to minimize the committee size.
+It starts with small committees that always ensure safety but only ensure liveness when most or all members are correct.
+Then it continuously monitors the liveness of the committees, and enlarge them when they are lack of progress.
+These works have the similar backbone to \textsc{Elastico} but accomplish lower redundancy and better storage scalability by replacing the intra-committee consensus or committee formation machinery.
 
-Beside securing committee formation through randomization, some sharded blockchains need not specify the formation to achieve their security properties, such as the blockchain database works listed above.
+What's more, some sharded blockchains need not specify the formation to achieve their security properties.
+This includes the aforementioned blockchain database works, and SharPer~\cite{amiri2021sharper} and \textsc{ByShard}~\cite{hellings2021byshard} who exploit the per-determined fault-tolerant clusters to provide deterministic safety guarantees, contrary to the probabilistic ones by the aforementioned works.
 Monoxide~\cite{wang2019monoxide} proposes asynchronous consensus zone, which can be treated as committees that can be arbitrarily sized.
 It proposes a novel PoW mining scheme that allow mining power to simultaneously work on multiple zones and tolerate up to $\frac{1}{2}$ faulty mining power globally.
-SharPer~\cite{amiri2021sharper} and \textsc{ByShard}~\cite{hellings2021byshard} take a different approach and exploits the per-determined fault-tolerant clusters to provide deterministic safety guarantees, contrary to the probabilistic ones by the aforementioned works.
 
 % More recently, Estuary~\cite{jia2024estuary} dynamically adjusts the state distribution to minimize the cross-shard transaction overhead.
 % Pyramid~\cite{hong2021pyramid} and MSSP~\cite{liu2025mssp} permit some nodes to store multiple shards \ie overlapping committees so the cross-shard transactions can be processed locally.
@@ -140,7 +145,7 @@ As shown in \autoref{tab:compare}, all previous works fail to achieve the safety
 Ordinary BFT protocols and some blockchain databases~\cite{peng2020falcondb} fully replicate their states to all nodes, ensuring safety and liveness but with no storage scalability.
 \textit{BlockchainDB} and SharPer require pre-determined fault-tolerant clusters.
 They can only tolerate a fraction of faulty nodes locally within each cluster, and fail when the total number of faulty nodes can overwhelm any individual cluster.
-\textsc{Elastico} and OmniLedger's fixed-sized randomly-sampled committee is designed to cope with low global faulty rates (\eg $\frac{1}{4}$).
+\textsc{Elastico}, OmniLedger and GearBox's fixed-sized randomly-sampled committee is designed to cope with low global faulty rates (\eg $\frac{1}{4}$).
 Lifting faulty fraction without adjusting committee size leads to immediate failure on safety and liveness.
 To persist these properties, we have to adaptively increase the committee size according to the actual faulty fraction, ensuring the committees consist of no more than $\frac{1}{3}$ with high probability.
 For example, for a $\frac{1}{4}$ faulty probability sampling \XXX nodes is sufficient, while a $\frac{3}{10}$ faulty probability at least \XXX samplings are required for the same probabilistic safety and liveness guarantees.
@@ -169,7 +174,7 @@ In the end, it still cannot pick all three properties.
 \paragraph{Why processing sharding does not work out?}
 The failures of these previous works originate from a common crux: the number of faults that the system can tolerate is decided by the committee size, while under BFT settings we demand to tolerate $\frac{1}{3}$ faulty nodes, the number of whom is decided by the total number of the nodes.
 If the committee size is irrelevant to the total number of the nodes, then we have sacrificed the security properties and can no longer tolerate faulty power that is proportional to the system scale (the rows where \emph{Safety?} and/or \emph{Liveness?} are \emph{No} in \autoref{tab:compare}).
-Otherwise, if the committee size grows as the system scales up, then the storage consumption grows as well, and we lose storage scalability (the rows where \emph{Scalable storage?} isn't \emph{Yes}).
+Otherwise, if the committee size grows as the system scales up, then the storage consumption grows as well, and we lose storage scalability (the rows where \emph{Scalable storage?} is \emph{No}).
 In conclusion, with processing sharding we have to pick one from the two choices and end up with undesirable trade-offs among the properties.
 
 \lijl{Best if we could make some general statements here and explain why partitioning consensus processing will fundamentally impact safety and liveness.} \gd{Done.}
