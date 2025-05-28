@@ -46,7 +46,8 @@ Besides, OLAP workload that scans over large number of shards can be performed o
     \label{fig:states-grow}
 \end{figure}
 
-\paragraph{The cases of big blockchain states~\cite{deepa2022survey,yang2017big} \gd{and the justification of storage scalability?}.}
+% \paragraph{The cases of big blockchain states~\cite{deepa2022survey,yang2017big} \gd{and the justification of storage scalability?}.}
+\paragraph{How much storage space a blockchain may consume?}
 It's already not news that popular permissionless blockchains are managing rapidly growing states.
 From 2019 to present, Bitcoin and Ethereum blockchain states are growing from both about 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}} respectively (\autoref{fig:states-grow}).
 Given the large number of nodes of these blockchains (22275 for Bitcoin\footnote{\url{https://bitnodes.io/}}, 11251 for Ethereum\footnote{\url{https://etherscan.io/nodetracker}}), both of whose nodes have been consuming around 15 PB storage totally.
@@ -98,9 +99,9 @@ This property would be the key to enable blockchains to operate giant big data s
 \paragraph{Blockchain systems with scalable storage (\autoref{tab:compare}).}
 Various previous works support to operate with nodes storing partial states in several ways.
 % In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb} and FalconDB~\cite{peng2020falcondb}, the state consists of multiple tables.
-In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb}, the state consists of multiple tables.
-Each table is stored by a subset of nodes and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are employed to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
-More general-purpose sharded blockchains group nodes into multiple \emph{committees} who are responsible for maintaining disjoint state shards.
+In blockchain databases\cite{ruan2021blockchains} like \textit{BlockchainDB}~\cite{el2019blockchaindb} and \textsc{GriDB}~\cite{hong2024gridb}, the state consists of multiple tables.
+Each table (or finer-grained table partition) is stored by a subset of nodes and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are employed to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
+More general-purpose sharded blockchains follow this pattern, group nodes into multiple \emph{committees} who are responsible for maintaining disjoint state shards.
 These works usually employ multiple instances of fully-replicated BFT protocols (popular choices including PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and resolve the atomicity of cross-committee transactions with specialized strategies.
 
 % In common centralized distributed databases like~\cite{corbett2013spanner}, all nodes are centrally managed to collaboratively store the database states and each transaction is processed only once.

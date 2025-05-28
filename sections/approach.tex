@@ -22,14 +22,14 @@ The state availability is trivial for most BFT protocols, whose execution layer 
 However, when a sharded state is paired with an execution layer that is not sharded, the execution layer cannot execute all transactions only with the locally-stored shards, and the liveness of execution relies on whether the remote shards are available to the nodes.
 
 Now we present our approach as shown in the bottom of \autoref{fig:approach-compare}.
-A storage layer is decomposed from the execution layer and is dedicated to state management.
+A state management system (SMS) is decomposed from the execution layer and is dedicated as the state storage on the nodes.
 While each transaction is executed by every node, the state shard(s) accessed by its execution are stored only on a subset of the nodes.
-The storage layer of the other nodes synchronizes the shards to support the local execution.
-These synchronized shards may be discarded after executing the transaction, and the storage layer synchronizes them again on the next access.
+The SMS of the other nodes is responsible for synchronizing the shards to support the local execution.
+These synchronized shards may be discarded after executing the transaction, and SMS synchronizes them again on the next access.
 
 In the end, the decomposition design achieves the separation of concerns~\cite{reade1989elements}.
-The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf BAB and BFT protocols can fulfill the requirements of these layers.
-On the other hand, the storage layer does not need to care about safety at all -- it is fed with an ordered list of transactions which is guaranteed to be consistent on every (correct) nodes.
+The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf BAB and BFT protocols can be adapted to fulfill the requirements of these layers.
+On the other hand, SMS does not need to care about safety at all -- it is fed with an ordered list of transactions which is guaranteed to be consistent on every (correct) nodes.
 It only needs to manage the state shards in a way that satisfies storage scalability -- the overall storage consumption per shard only depends on the shard size but not the number of nodes, and availability -- every state shard must be available on every node.
 While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} take a similar approach that decomposes a delivery layer (reliable broadcast) away from the consensus and execution layers and independently scales it up to achieve optimal throughput.
 
@@ -40,10 +40,10 @@ To mask $f$ failures, we can use a EC$(k+2f,k)$ scheme, that is, generate $2f$ \
 We then store the stripe on $k+2f$ disjoint nodes.
 To retrieve a shard that belongs to the stripe, we broadcast the request to the $k+2f$ nodes, and at least $k+f$ nodes will respond to the request, and at least $k$ responses will be correct, from what the stripe can be reconstructed.
 Meanwhile, the redundancy is fixed regardless of the number of nodes as long as $k$ is proportional to $f$.
-We will elaborate on redundancy analysis and the details of employing erasure code in our system in \autoref{sec:overview}.
+We will revisit the employment of erasure code and redundancy analysis in details in \autoref{sec:overview}.
 
 \paragraph{Analysis on network traffic overhead.}
-At first glance this decomposition approach may be a costly approach in the sense of network traffic.
+At first glance this decomposition approach may be costly regarding network traffic.
 Nodes have to pay both extra bandwidth for continuously synchronizing shards from each other and extra latency because they can only start processing after the synchronization is done.
 In fact, it is more practical than it seems to be.
 As previously mentioned in the problem settings (\autoref{sec:bg}), most transactions are expected to access only single or few shards.
@@ -53,7 +53,7 @@ By configuring a small shard size (\eg KB level), the network traffic can be kep
 The synchronization latency can be masked with speculative pushing (\autoref{sec:impl}).
 And last but not least, the real world workloads are mostly skewed~\cite{powerlaw}.
 By simply caching a small fraction of shards (\autoref{sec:impl}), the total network traffic can be greatly reduced~\cite{fan2011small}.
-The further analysis is presented in \autoref{sec:eval}.
+Further analysis is presented in \autoref{sec:eval}.
 
 \ifspace
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.
