@@ -81,16 +81,15 @@ This property would be the key to enable blockchains to operate giant big data s
 \label{tab:compare}
 \begin{tabular}{llll}
     \toprule
-    Work                    & Safety?       & Liveness?     & Scalable storage? \\
+    Approach                & Safety?       & Liveness?     & Scalable storage? \\
     \midrule
     Fully replicated        & Yes           & Yes           & No                \\
     Pre-determined clusters & No            & No            & Yes               \\
-    Randomized committee
-                            & No            & No            & Yes               \\
-    \quad adaptive   & Yes           & Yes           & No                \\
-    \quad synchronous              & Yes           & No            & Suboptimal        \\
+    Randomized committees   & No            & No            & Yes               \\
+    \quad adaptive          & Yes           & Yes           & No                \\
+    \quad synchronous       & Yes           & No            & Suboptimal        \\
     Monoxide                & Yes           & Yes           & No                \\
-    \quad solo mining  & No            & No            & Yes               \\
+    \quad solo mining       & No            & No            & Yes               \\
     \sys                    & Yes           & Yes           & Yes               \\
     \bottomrule
 \end{tabular}
@@ -127,7 +126,7 @@ The later work~\cite{dang2019towards} further employs trusted execution environm
 Alternative to TEE, RapidChain~\cite{zamani2018rapidchain} employs synchronous BFT protocol for stronger resiliency.
 While RapidChain is less storage-scalable (its committee size is $O(\log{number\ of\ nodes})$), it explicitly claims to tolerate $\frac{1}{3}$ Byzantine faults on par with typical BFT protocols.
 
-Beside securing committee formation through randomization, some sharded blockchains need not specify the formation for their security properties, such as the blockchain database works listed above.
+Beside securing committee formation through randomization, some sharded blockchains need not specify the formation to achieve their security properties, such as the blockchain database works listed above.
 Monoxide~\cite{wang2019monoxide} proposes asynchronous consensus zone, which can be treated as committees that can be arbitrarily sized.
 It proposes a novel PoW mining scheme that allow mining power to simultaneously work on multiple zones and tolerate up to $\frac{1}{2}$ faulty mining power globally.
 SharPer~\cite{amiri2021sharper} and \textsc{ByShard}~\cite{hellings2021byshard} take a different approach and exploits the per-determined fault-tolerant clusters to provide deterministic safety guarantees, contrary to the probabilistic ones by the aforementioned works.
@@ -145,7 +144,7 @@ They can only tolerate a fraction of faulty nodes locally within each cluster, a
 Lifting faulty fraction without adjusting committee size leads to immediate failure on safety and liveness.
 To persist these properties, we have to adaptively increase the committee size according to the actual faulty fraction, ensuring the committees consist of no more than $\frac{1}{3}$ with high probability.
 For example, for a $\frac{1}{4}$ faulty probability sampling \XXX nodes is sufficient, while a $\frac{3}{10}$ faulty probability at least \XXX samplings are required for the same probabilistic safety and liveness guarantees.
-As the faulty probability approaching desired $\frac{1}{3}$, the sampling nodes come close to all nodes, and the system degrades into fully replicated one and losses storage scalability.
+As the faulty probability approaching the desired $\frac{1}{3}$, the required sampling nodes come close to all nodes, and the system degrades into fully replicated one and losses storage scalability.
 % With $\frac{1}{3}$ faulty nodes, randomly sampling fix-sized committees cannot secure honest supermajorities (\ie $\frac{2}{3}$) within them.
 % On the other hand, if we modify the works by adaptively increasing the committee size to cope with higher faulty fraction, while the security is regained, the storage scalability becomes worse, and when the faulty fraction approaches $\frac{1}{3}$ the committee size is close to all the nodes and the works degrade into fully replicated systems.
 \lijl{Was this adaptive solution proposed before? The description is also not very clear.} \gd{Done.}
@@ -168,10 +167,9 @@ In the end, it still cannot pick all three properties.
 % Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
 
 \paragraph{Why processing sharding does not work out?}
-The failures of these previous works originate from a common pitfall: the processing of each transaction, \ie, the ordering and execution of it, is by the committee that only involves a subset of all nodes.
-Consequentially, the number of faults that the system can actually tolerate is decided by the committee size, while under BFT settings we demand to tolerate $\frac{1}{3}$ faulty nodes, the number of whom is decided by the total number of the nodes.
+The failures of these previous works originate from a common crux: the number of faults that the system can tolerate is decided by the committee size, while under BFT settings we demand to tolerate $\frac{1}{3}$ faulty nodes, the number of whom is decided by the total number of the nodes.
 If the committee size is irrelevant to the total number of the nodes, then we have sacrificed the security properties and can no longer tolerate faulty power that is proportional to the system scale (the rows where \emph{Safety?} and/or \emph{Liveness?} are \emph{No} in \autoref{tab:compare}).
-Otherwise, if the committee size grows are the system scales up, then the storage consumption grows as well and we lose storage scalability (the rows where \emph{Scalable storage?} isn't \emph{Yes}).
+Otherwise, if the committee size grows as the system scales up, then the storage consumption grows as well, and we lose storage scalability (the rows where \emph{Scalable storage?} isn't \emph{Yes}).
 In conclusion, with processing sharding we have to pick one from the two choices and end up with undesirable trade-offs among the properties.
 
 \lijl{Best if we could make some general statements here and explain why partitioning consensus processing will fundamentally impact safety and liveness.} \gd{Done.}
