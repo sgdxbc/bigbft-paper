@@ -71,7 +71,7 @@ With $k=1$ the redundancy is $2f+1$ and this essentially is the plain replicatio
 With $k=pf$ where $p\in(0,\frac{f+1}{f}]$, the redundancy is $\frac{p+2}{p}$ and remain constant with varying state size and total storage capacity, achieving the scalability goal.
 
 However, this also means that when $f$ increases (\ie more nodes joining), $k$ increases as well, and we have to dynamically adjust the number of shards of a stripe.
-Thanks to convertible code, we are able to merge multiple stripes into single one (with multiplied $k$) with lightweight computation by merging the parities of the original stripes, mitigate the overhead of massive transcoding.
+Thanks to works including convertible code~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth} and StripeMerge~\cite{yao2021stripemerge}, we are able to merge multiple stripes into single one (with multiplied $k$) with lightweight computation by merging the parities of the original stripes, mitigate the overhead of massive transcoding.
 \lijl{This should be part of the reconfiguration protocol?}
 
 Note that even if $k$ is not adjusted according to increasing $f$, the safety is not violated, and we are just paying for additional redundancy overhead.

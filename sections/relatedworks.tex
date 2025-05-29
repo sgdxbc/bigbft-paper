@@ -3,22 +3,59 @@
 
 \paragraph{Availability of historical transactions \ie blocks.}
 Alternative to the previous works we discussed in \autoref{sec:bg} that maintain partial states on the nodes, some other works offer availability solutions for the historical transactions.
-In such systems storing the processing state explicitly is not necessary.
-All committed transactions are made available for a prolonged time and the state (either the current version of any historical one) can be reconstructed by replaying them.
+All committed transactions are made available for a prolonged time and the state (either the current version of any historical one) can always be reconstructed by replaying the transactions.
 
 In public blockchains, \emph{archival nodes} volunteer to provision the historical blocks for auditing or analysis purposes.
-BFT-store~\cite{qi2020bft} proposes to let the replication nodes collaboratively store the blocks and the design can tolerate $f$ faulty nodes out of the $3f+1$ total ones.
-Under permissionless setting, layer-2 \emph{rollups} \xxx{cite} submit their historical transactions to Ethereum's blocks.
-EIP-4844~\cite{eip4844} is proposed to extend Ethereum's blocks with \emph{blobs}, which are erasure coded and collaboratively stored by the nodes.
-These works have similar designs to \sys, only the blocks instead of the state become the data in interest.
-While the historical blocks are an immutable append-only data structure, the processing state is not and poses unique challenges to our work.
+BFT-store~\cite{qi2020bft} is a space-efficient block-availability solution for permissioned blockchains. 
+The blocks are erasure coded and distributed across the nodes for storage scalability, and the work proves that it can tolerate $f$ faulty nodes out of the $3f+1$ total ones while ensuring block availability.
+% Under permissionless setting, layer-2 \emph{rollups} \xxx{cite} submit their historical transactions to Ethereum's blocks.
+Danksharding~\cite{eip4844} is proposed to extend Ethereum's blocks with \emph{blobs}, which are erasure coded and collaboratively stored by the nodes.
+Unlike BFT-store, Ethereum guarantees the availability of blobs only for a certain duration (\eg 18 days currently), because the purpose of storing blobs is for auditing instead of archiving.
+% These works have similar designs to \sys, only the blocks instead of the state become the data in interest.
+% While the historical blocks are an immutable append-only data structure, the processing state is not and poses unique challenges to our work.
 
-\XXX
+On one hand, block availability is easier to scale up than state availability.
+The historical blocks are immutable and certainly structured in an append-only list, while the state is a piece of multi-version data that is both added with new content and modified in place.
+Thus, block storage is a simpler approach than state management system on reasoning about the availability.
+On the other hand, the block data is much more than the state and also increases much faster.
+It's infeasible to store the whole block history forever by the operating nodes of the blockchains.
+Also, many blockchain systems require to \emph{validate} transactions before proposing them in the network.
+The validators still need to store the whole states, and a scalable state management solution is still required if the state size is beyond the validators' storage capacities.
 
 \paragraph{Stateless blockchains.}
+There are various approaches that propose to make the nodes store \emph{no} state.
+The storage overhead on each node is constant regardless of the state size.
+Piperine~\cite{lee2020replicated} purpose to offload the state and the execution to an external untrusted prover.
+The state is organized with ADS, and prover produces succinct proofs for execution which can be verified by the nodes.
+Thus, nodes ``execute'' the transaction by verifying.
+\textsf{SlimChain}~\cite{xu2021slimchain} leverages verifiable computation~\cite{ben2014succinct,costan2016intel} to support general transaction workloads and efficient storage sharding.
+Under permissionless setup, rollups~\cite{ethereum_scaling_docs} is the primary scaling solution for Ethereum.
+These rollups store the state and execution transactions off-chain, and periodically submit the state commitments and the executed transactions to the blockchain.
+The security is either guaranteed by verifiable computation or crowdsourced auditing, along with the security of the blockchain itself \ie the agreement on the submitted commitments and transactions.
+
+While stateless blockchains can achieve ideal storage scalability on the nodes, they introduce additional component to the system.
+The nodes can no longer secure the liveness by themselves, but rely on external executors.
+Some approaches offload the ordering externally as well as the execution.
+In such case, the nodes need to additionally defend the external \emph{sequencers} discriminating the transactions such as censorship.
+Nonetheless, and \sys can be utilized to decentralize the rollups as well, who are relatively centralized nowadays.
 
 \paragraph{Decomposing the consensus and execution layers.}
-% \paragraph{Execute-order-validate blockchains.}
-% \paragraph{Sharded blockchains.}
+Execute-order-validate blockchains~\cite{kapritsos2012all,androulaki2018hyperledger} decompose the consensus with execution and feature stateless consensus nodes.
+In Fabric, a \emph{chaincode} is deployed on a subset of the execution peers, and only these peers store the state operated by the chaincode.
+Under permissionless settings, \textsc{OHIE}~\cite{yu2020ohie} purposes a sharded consensus layer with a unified execution layer, to increase the throughput of consensus without sacrificing security.
+These works fall into the dilemma between security and scalability (\autoref{sec:bg}) as well.
+Fabric favors storage scalability, but its security is restricted by the number of execution peers and does not scale.
+\textsc{OHIE} instead does not sacrifice security, but each node need to maintain the whole state and be prepared to join any subchain, and has no storage scalability.
+Just as we discussed in \autoref{sec:approach}, decomposing the consensus and execution layers and applying different sharding strategies to them does not yield all three properties \sys achieves.
+
+\paragraph{Transcoding in distributed storage.}
+Morph~\cite{kim2024morph} is a distributed storage that employs \emph{transcoding} for optimal redundancy and storage consumption throughout the data lifetime.
+At the beginning the data is stored with a hybrid scheme of replication and erasure coding, and later convert into ``wider'' erasure coding schemes that incur less storage overhead while tolerating same amount of failures, \ie, retain the availability property.
+The scheme conversion, \ie, transcoding, is optimized with the convertible codes for minimal computation and network overhead.
+The system achieves similar storage scalability and availability to \sys, but it is centrally managed, plain data store, so it is not designed for tolerating Byzantine faults, and it does not care about the safety or liveness properties of any execution layer operating on top of it.
 
 \paragraph{Byzantine fault tolerance databases.}
+BigchainDB~\cite{mcconaghy2016bigchaindb} and blockchain relational databases~\cite{nathan2019blockchain} are works that start with a distributed database and add blockchain features to it (the "out-of-database blockchain" approach in \cite{ruan2021blockchains}).
+On the contrary of the sharded blockchains in \autoref{sec:bg}, which inherit safety and liveness properties from blockchains and shard to achieve storage scalability, these works may inherit storage scalability and design for safety and liveness.
+While this could be a reasonable alternative approach, these works do not focus on ensuring all three properties but rather high-level database functions.
+BigchainDB has a vague security model and both of them fully replicate the database on each node.

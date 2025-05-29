@@ -133,6 +133,7 @@ These works have the similar backbone to \textsc{Elastico} but accomplish lower 
 
 What's more, some sharded blockchains need not specify the formation to achieve their security properties.
 This includes the aforementioned blockchain database works, and SharPer~\cite{amiri2021sharper} and \textsc{ByShard}~\cite{hellings2021byshard} who exploit the per-determined fault-tolerant clusters to provide deterministic safety guarantees, contrary to the probabilistic ones by the aforementioned works.
+\textsc{GeoBFT}~\cite{gupta2020resilientdb} further optimizes for geo-distributed clusters and improves the performance of worldwide deployment of blockchains.
 Monoxide~\cite{wang2019monoxide} proposes asynchronous consensus zone, which can be treated as committees that can be arbitrarily sized.
 It proposes a novel PoW mining scheme that allow mining power to simultaneously work on multiple zones and tolerate up to $\frac{1}{2}$ faulty mining power globally.
 
@@ -143,7 +144,7 @@ It proposes a novel PoW mining scheme that allow mining power to simultaneously 
 \paragraph{The dilemma between security and scalability.}
 As shown in \autoref{tab:compare}, all previous works fail to achieve the safety, liveness and storage scalability properties at the same time.
 Ordinary BFT protocols and some blockchain databases~\cite{peng2020falcondb} fully replicate their states to all nodes, ensuring safety and liveness but with no storage scalability.
-\textit{BlockchainDB} and SharPer require pre-determined fault-tolerant clusters.
+\textit{BlockchainDB}, SharPer and \textsc{GeoBFT} require pre-determined fault-tolerant clusters.
 They can only tolerate a fraction of faulty nodes locally within each cluster, and fail when the total number of faulty nodes can overwhelm any individual cluster.
 \textsc{Elastico}, OmniLedger and GearBox's fixed-sized randomly-sampled committee is designed to cope with low global faulty rates (\eg $\frac{1}{4}$).
 Lifting faulty fraction without adjusting committee size leads to immediate failure on safety and liveness.
