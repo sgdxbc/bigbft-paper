@@ -28,7 +28,7 @@ The SMS of the other nodes is responsible for synchronizing the shards to suppor
 These synchronized shards may be discarded after executing the transaction, and SMS synchronizes them again on the next access.
 
 In the end, the decomposition design achieves the separation of concerns~\cite{reade1989elements}.
-The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf BAB and BFT protocols can be adapted to fulfill the requirements of these layers.
+The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf BAB and BFT protocols~\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark} can be adapted to fulfill the requirements of these layers.
 On the other hand, SMS does not need to care about safety at all -- it is fed with an ordered list of transactions which is guaranteed to be consistent on every (correct) nodes.
 It only needs to manage the state shards in a way that satisfies storage scalability -- the overall storage consumption per shard only depends on the shard size but not the number of nodes, and availability -- every state shard must be available on every node.
 While this design space is rarely explored (quote a survey on sharding replication systems from 2023~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), recent high throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} take a similar approach that decomposes a delivery layer (reliable broadcast) away from the consensus and execution layers and independently scales it up to achieve optimal throughput.
