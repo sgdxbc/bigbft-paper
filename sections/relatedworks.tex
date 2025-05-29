@@ -42,10 +42,10 @@ Nonetheless, and \sys can be utilized to decentralize the rollups as well, who a
 \paragraph{Decomposing the consensus and execution layers.}
 Execute-order-validate blockchains~\cite{kapritsos2012all,androulaki2018hyperledger} decompose the consensus with execution and feature stateless consensus nodes.
 In Fabric, a \emph{chaincode} is deployed on a subset of the execution peers, and only these peers store the state operated by the chaincode.
-Under permissionless settings, \textsc{OHIE}~\cite{yu2020ohie} purposes a sharded consensus layer with a unified execution layer, to increase the throughput of consensus without sacrificing security.
+Under permissionless settings, \textsc{Ohie}~\cite{yu2020ohie} purposes a sharded consensus layer with a unified execution layer, to increase the throughput of consensus without sacrificing security.
 These works fall into the dilemma between security and scalability (\autoref{sec:bg}) as well.
 Fabric favors storage scalability, but its security is restricted by the number of execution peers and does not scale.
-\textsc{OHIE} instead does not sacrifice security, but each node need to maintain the whole state and be prepared to join any subchain, and has no storage scalability.
+\textsc{Ohie} instead does not sacrifice security, but each node need to maintain the whole state and be prepared to join any subchain, and has no storage scalability.
 Just as we discussed in \autoref{sec:approach}, decomposing the consensus and execution layers and applying different sharding strategies to them does not yield all three properties \sys achieves.
 
 \paragraph{Transcoding in distributed storage.}
