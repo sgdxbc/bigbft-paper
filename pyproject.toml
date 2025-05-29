@@ -6,4 +6,5 @@ dependencies = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.3",
     "polars>=1.30.0",
+    "scipy>=1.15.3",
 ]
