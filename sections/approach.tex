@@ -36,9 +36,9 @@ While this design space is rarely explored (quote a survey on sharding replicati
 \paragraph{Can we achieve storage scalability and availability under the BFT settings?}
 To accomplish both properties, we must distribute the occupied storage (\ie the \emph{redundancy}) of each shard and the responsibility of storing it to a sufficiently wide range of nodes to mask $f$ failures among them, while occupy a fixed amount of redundancy across all these nodes.
 Following the practice of sophisticated distributed databases, we employ erasure code~\cite{ec} for this purpose, which is designed for masking configurable number of failures within fixed redundancy budget.
-To mask $f$ failures, we can use a EC$(k+2f,k)$ scheme, that is, generate $2f$ \emph{parities} for every $k$ shards (which is called a shard \emph{stripe}), and any combination of $k$ shards and parities can reconstruct the stripe.
+To mask $f$ failures, we can use a EC$(k+2f,k)$ scheme, that is, generate $2f$ \emph{parities} for every $k$ shards\footnote{In this work we consider systematic code like RS code~\cite{reed1960polynomial}.} (which is called a shard \emph{stripe}), and any combination of $k$ shards and parities can reconstruct the stripe.
 We then store the stripe on $k+2f$ disjoint nodes.
-To retrieve a shard that belongs to the stripe, we broadcast the request to the $k+2f$ nodes, and at least $k+f$ nodes will respond to the request, and at least $k$ responses will be correct, from what the stripe can be reconstructed.
+Any $2f+1$ supermajority will intersect these $k+2f$ nodes with at least $k+f$ nodes, out of whom $k$ must be correct, and the stripe can be reconstructed from the shards and stripes stored by them.
 Meanwhile, the redundancy is fixed regardless of the number of nodes as long as $k$ is proportional to $f$.
 We will revisit the employment of erasure code and redundancy analysis in details in \autoref{sec:overview}.
 
