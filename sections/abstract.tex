@@ -1,5 +1,11 @@
 \begin{abstract}
 
-\cite{bft}
+Storage scalability is crucial in the age of big data blockchain.
+While previous works extensively employ sharding techniques to achieve storage scalability, they compromise on the safety and liveness properties.
+In this work we present \sys, a novel BFT protocol whose overall storage consumption does not depend on the number of node and can tolerate $f$ Byzantine faulty nodes out of $3f+1$ nodes in a partial synchrony network.
+The main design of \sys is a state management system that is decomposed from the execution layer.
+The state management system is sharded to guarantee state availability with scalable storage consumption, while the global consensus and execution layers ensure genuine security properties.
+We analyze the redundancy and network traffic overhead of \sys,
+The preliminary results show \sys achieves the best storage scalability compared to previous works while incurring acceptable network overhead.
 
 \end{abstract}
