@@ -1,21 +1,21 @@
 \section{Optimizations}
 \label{sec:impl}
 
-In this section we discuss the most significant performance boosters that have not been covered by \autoref{sec:overview}.
+In this section, we will discuss the most impactful performance enhancements that have not yet been addressed in \autoref{sec:overview}.
 
-\paragraph{Cache shard and/or shard hashes.}
-Nodes are recommended to maintain a least-recent-used (LRU) cache of shards to exploit the skewness of shard access of the transactions and reduce the network overhead of shard synchronization.
-At the same time, nodes are recommended to cache the hashes of all shards for the latest view it has.
-This allows the nodes to replace the verification of inclusion proof with a direct hash comparison upon receiving remote shards, which is much more lightweight.
-Thanks to the decomposition of storage and consensus layer (\autoref{sec:approach}), caching shard hashes does not require any additional communication -- the nodes obtain all the hashes from its local processing.
+\paragraph{Caching Shards and/or Shard Hashes.}
+To leverage the skewed access patterns of transactions and minimize the network overhead of shard synchronization, nodes are advised to maintain a least-recently-used (LRU) cache of shards.
+Additionally, nodes should cache the hashes of all shards for their latest state view.
+This enables nodes to replace the verification of inclusion proofs with a more efficient direct hash comparison when receiving remote shards.
+Thanks to the decomposition design separating state management and execution (\autoref{sec:approach}), caching shard hashes requires no additional communication, as nodes obtain all necessary hashes through their local processing.
 
-\paragraph{Speculative push shards.}
-The active layer by default works in pull mode -- the nodes fetch the remote copies of the shards on demand -- to minimize network overhead.
-However, the ad-hoc fetching is on the critical path and add latency overhead.
-So other than serve the pulling, one of the storing node from the active layer is designated as the pushing node, who actively broadcast the storing shard to the other nodes upon processing.
-Furthermore, the pushing can be advanced to even before the associated transaction is committed.
-In many BFT protocols there is a time interval between the transactions are proposed to committed, and the proposed transactions are likely to be committed soon.
-By speculatively pushing the shards for the proposed transactions, the shard dispersing can be concurrent to the transaction dispersing and mask the latency penalty by the remote storing shards.
+\paragraph{Speculative Shard Pushing.}
+The active layer primarily operates in a pull-based manner, where nodes fetch remote shard copies on demand to minimize network overhead.
+However, this on-demand fetching lies on the critical path and introduces latency.
+To mitigate this, in addition to serving pull requests, one of the nodes storing a shard in the active layer is designated as the pushing node. This node proactively broadcasts the shard to other relevant nodes upon processing a transaction that modifies it.
+Furthermore, this pushing can be performed speculatively, even before the associated transaction is committed.
+Many BFT protocols have a time window between transaction proposal and commitment, during which proposed transactions have a high likelihood of being committed.
+By speculatively pushing the shards modified by these proposed transactions, shard dissemination can occur concurrently with transaction dissemination, effectively masking the latency associated with retrieving remote shards.
 
 \iffalse
 \paragraph{Skip processing.}
