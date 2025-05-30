@@ -64,11 +64,11 @@ Furthermore, OLAP workloads involving scans across a large number of shards can 
 % \paragraph{The cases of big blockchain states~\cite{deepa2022survey,yang2017big} \gd{and the justification of storage scalability?}.}
 \paragraph{Blockchain Storage Consumption.}
 The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
-From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{[https://www.blockchain.com/explorer/charts/blocks-size](https://www.blockchain.com/explorer/charts/blocks-size)}} and 1410 GB\footnote{\url{[https://etherscan.io/chartsync/chaindefault](https://etherscan.io/chartsync/chaindefault)}}, respectively (\autoref{fig:states-grow}).
-Considering the substantial number of nodes in these blockchains (22,275 for Bitcoin\footnote{\url{[https://bitnodes.io/](https://bitnodes.io/)}}, 11,251 for Ethereum\footnote{\url{[https://etherscan.io/nodetracker](https://etherscan.io/nodetracker)}}), the aggregate storage consumed by their nodes is around 15 PB.
+From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\autoref{fig:states-grow}).
+Considering the substantial number of nodes in these blockchains (22,275 for Bitcoin\footnote{\url{https://bitnodes.io/}}, 11,251 for Ethereum\footnote{\url{https://etherscan.io/nodetracker}}), the aggregate storage consumed by their nodes is around 15 PB.
 Given the exorbitant cost of on-chain storage~\cite{balduf2022dude} (3.28 ETH per MB~\cite{palau2018storing}, exceeding 8000 USD at current exchange rates), the aforementioned blockchain states likely exhibit the \emph{slowest} rate of increase.
 The growth in state size significantly outpaces the reduction in storage media costs.
-SSD prices in 2019 were only $1.3\text{--}2\times$ higher than in 2025\footnote{\url{[https://www.qootec.com/news/2025](https://www.qootec.com/news/2025)\%20ssd\%20price\%20trends.html}}, whereas state sizes in 2025 are $3.6\text{--}7.8\times$ larger than in 2019, exacerbating the decreasing affordability of operating blockchain nodes.
+SSD prices in 2019 were only $1.3\text{--}2\times$ higher than in 2025\footnote{\url{https://www.qootec.com/news/2025\%20ssd\%20price\%20trends.html}}, whereas state sizes in 2025 are $3.6\text{--}7.8\times$ larger than in 2019, exacerbating the decreasing affordability of operating blockchain nodes.
 \lijl{For permissionless blockchains, we can use barrier of entry as an argument.}
 
 Although permissioned or consortium blockchains in data centers have greater storage capacity, they require even larger blockchain states.
