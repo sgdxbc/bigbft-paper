@@ -12,10 +12,10 @@ Thanks to the decomposition design separating state management and execution (\a
 \paragraph{Speculative Shard Pushing.}
 The active layer primarily operates in a pull-based manner, where nodes fetch remote shard copies on demand to minimize network overhead.
 However, this on-demand fetching lies on the critical path and introduces latency.
-To mitigate this, in addition to serving pull requests, one of the nodes storing a shard in the active layer is designated as the pushing node. This node proactively broadcasts the shard to other relevant nodes upon processing a transaction that modifies it.
+To mitigate this, in addition to serving pull requests, one of the nodes storing a shard in the active layer is designated as the pushing node. This node proactively broadcasts the shard to other relevant nodes upon processing a transaction that accesses it.
 Furthermore, this pushing can be performed speculatively, even before the associated transaction is committed.
-Many BFT protocols have a time window between transaction proposal and commitment, during which proposed transactions have a high likelihood of being committed.
-By speculatively pushing the shards modified by these proposed transactions, shard dissemination can occur concurrently with transaction dissemination, effectively masking the latency associated with retrieving remote shards.
+Many BFT protocols have a time window between transaction proposal and commitment, and after which proposed transactions have a high likelihood of being committed.
+By speculatively pushing the shards accessed by these proposed transactions, shard dissemination can occur concurrently with transaction dissemination, effectively masking the latency associated with retrieving remote shards.
 
 \iffalse
 \paragraph{Skip processing.}

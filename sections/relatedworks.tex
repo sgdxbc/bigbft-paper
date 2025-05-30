@@ -12,7 +12,7 @@ Danksharding~\cite{eip4844} proposes augmenting Ethereum's blocks with \emph{blo
 Distinct from BFT-store, Ethereum ensures blob availability only for a defined period (\eg currently 18 days), as the rationale for blob storage pertains to auditing rather than archival.
 
 On one hand, scaling block storage solutions is simpler than scaling state storage solutions.
-The historical blocks are immutable and certainly structured in an append-only list, while the state is a piece of multi-version data that is both added with new content and modified in place.
+The historical blocks are immutable and certainly structured in an append-only list, while the state is a piece of arbitrary data that is both added with new content and modified in place.
 Thus, collaborative block storage is a simpler approach than state management system on reasoning about the availability.
 On the other hand, the block data is much more than the state and also increases much faster.
 It's infeasible to store the whole block history forever by the operating nodes of the blockchains.
@@ -26,7 +26,7 @@ Piperine~\cite{lee2020replicated} aims to delegate state storage and execution t
 The state is structured using ADS, and the prover generates succinct execution proofs verifiable by the nodes.
 Consequently, nodes effectively "execute" transactions through verification.
 \textsf{SlimChain}~\cite{xu2021slimchain} employs verifiable computation~\cite{ben2014succinct,costan2016intel} to accommodate diverse transaction workloads and facilitate efficient storage sharding.
-Within a permissionless framework, rollups~\cite{ethereum_scaling_docs} represent the primary scaling solution for Ethereum.
+Within permissionless scenarios, rollups~\cite{ethereum_scaling_docs} represent the primary scaling solution for Ethereum.
 These rollups store state and execution transactions off-chain, periodically submitting state commitments and executed transactions to the blockchain.
 Security is ensured either through verifiable computation or decentralized auditing, in conjunction with the inherent security of the blockchain itself, i.e., the consensus on submitted commitments and transactions.
 
