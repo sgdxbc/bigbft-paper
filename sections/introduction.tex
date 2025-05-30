@@ -41,11 +41,11 @@ The active layer maintains a fixed number of shard replicas on a randomized node
 Both layers exhibit bounded storage redundancy, enabling the SMS to achieve storage scalability.
 
 We present our preliminary results on \sys.
-We analyze the network overhead added by the shard synchronization procedure, showing it amplifies network traffic only by a constant factor.
-\lijl{Not sure if synchronization is the best terminology?}
+We analyze the network overhead added by the shard loading, showing it amplifies network traffic only by a constant factor.
+\lijl{Not sure if synchronization is the best terminology?} \gd{Done.}
 We also analyze the redundancy of \sys comparing to the other scaling approaches.
 The result shows that, thanks to storage scalability, \sys not only consumes less storage than a fully replicated baseline with any number of nodes exceeding 16, it also improves the redundancy factor by $9.88\times$ compared to the state of the art.
-In conclusion, \sys achieves substantial enhancements in storage efficiency compared to all prior work.
+In conclusion, \sys achieves substantial enhancements in storage efficiency compared to all prior work with uncompromised security.
 
 \iffalse
 There is a dilemma between scaling out the database state and blockchain's replicated execution.
