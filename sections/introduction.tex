@@ -18,13 +18,13 @@ Ultimately, no prior sharding method achieves storage scalability without impact
 
 \begin{figure}
     \includegraphics[width=0.9\linewidth]{figures/approach-compare}
-    \caption{Comparison of BFT scaling approaches.
+    \caption{Comparison of BFT scalability approaches.
     Each rounded rectangle represents a replicated node.}
     \label{fig:approach-compare}
 \end{figure}
 
 The trade-off between security and scalability arises from the prevalent \emph{processing sharding} methodology employed by prior research, as depicted in \autoref{fig:approach-compare}.
-The entirety of processing, encompassing consensus and execution, is partitioned, with only a limited set of nodes (i.e., the committee) involved in transaction processing.
+The entirety of processing, encompassing consensus and execution, is partitioned, with only a limited set of nodes (\ie, the committee) involved in transaction processing.
 This leads to diminished resilience against safety and liveness attacks.
 Conversely, storage scalability is attained by partitioning the state, without necessitating the fragmentation of other components.
 Based on this observation, we introduce a novel approach: we decouple a state management system (SMS) from the execution layer to handle a sharded state, while maintaining global consensus and execution layers.
@@ -34,7 +34,7 @@ Concurrently, the consensus and execution layers can focus on security attribute
 Based on this framework, we present \sys, a BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes, while providing storage scalability.
 The consensus and execution layers of \sys can integrate existing Byzantine atomic broadcast protocols.
 We carefully design an SMS that places a fixed redundancy level (storage consumption) for each state shard on a subset of nodes.
-Nodes without a local copy of a shard must synchronize it before access, and the SMS ensures its availability.
+Nodes without a local copy of a shard must load it before access, and the SMS ensures its availability.
 The architecture of \sys comprises two tiers.
 The archive layer utilizes erasure coding to offer a deterministic availability guarantee.
 The active layer maintains a fixed number of shard replicas on a randomized node group, ensuring efficient access with high probability.
