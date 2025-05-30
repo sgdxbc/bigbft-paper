@@ -11,7 +11,7 @@ Addressing this challenge requires the achievement of \emph{storage scalability}
 
 Sharded blockchains, wherein nodes can function by maintaining only a segment of the state, have been the subject of considerable prior research~\cite{ruan2021blockchains,luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide,amiri2021sharper}.
 Although these endeavors attain scalable storage requirements, they introduce compromises between storage scalability and security attributes, specifically safety and liveness~\cite{pbft}.
-Consequently, these approaches fail to uphold the standard security assurance of blockchains, namely Byzantine fault tolerance (BFT)~\cite{bft} replication, which deterministically accommodates any $f$ Byzantine faulty nodes within a total of $3f+1$ nodes.
+Consequently, these approaches fail to uphold the conventional security assurance of blockchains, also known as Byzantine fault tolerance (BFT)~\cite{bft} replication, which deterministically accommodates any $f$ Byzantine faulty nodes within a total of $3f+1$ nodes.
 They may rely on probabilistic safety guarantees, proposing to tolerate only $\frac{1}{4}$ faulty nodes~\cite{luu2016secure,kokoris2018omniledger} or impose supplementary prerequisites such as trusted hardware~\cite{dang2019towards} or synchronous networks~\cite{zamani2018rapidchain}.
 Other solutions necessitate pre-defined fault-tolerant clusters and can only manage $\frac{1}{3}$ Byzantine faults locally within each committee~\cite{ruan2021blockchains,amiri2021sharper,gupta2020resilientdb}.
 Ultimately, no prior sharding method achieves storage scalability without impacting safety and liveness properties.
