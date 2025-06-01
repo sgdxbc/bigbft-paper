@@ -2,7 +2,7 @@
 \label{sec:bg}
 
 \paragraph{Problem Settings.}
-Our work functions as a replicated service for arbitrary state machines, exhibiting tolerance to Byzantine faults akin to conventional BFT protocols while sustaining a favorable storage overhead comparable to distributed databases.
+Our work functions as a replicated service for arbitrary state machines, exhibiting tolerance to Byzantine faults akin to conventional BFT protocols while sustaining a favorable storage overhead comparable to distributed databases \lijl{storage overhead is a weird metric to compare}.
 Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft} and a bounded redundancy property analogous to distributed storage systems~\cite{corbett2013spanner}.
 \begin{itemize}
     \item Safety: The replicated service adheres to linearizability~\cite{herlihy1987axioms}, functioning equivalently to a centralized implementation that processes transactions atomically and sequentially.
@@ -10,12 +10,11 @@ Specifically, \sys ensures safety and liveness properties consistent with conven
     \item Storage scalability: The total storage resources required for system operation are $O(\text{state size})$.
     The number of nodes within the system does not influence storage consumption.
     This contrasts with typical BFT protocols where the storage complexity is $O(\text{state size} \times \text{number of nodes})$.
-    \lijl{Either this definition, or that the overall state capacity scales with total storage size, while traditional replication is bounded by the node with the smallest storage.} \gd{Will discuss later when motivate storage scalability}
+    \lijl{Need to first define state size.}
 \end{itemize}
 \sys operates with $3f+1$ nodes and guarantees the aforementioned properties when up to $f$ nodes exhibit Byzantine faults and behave arbitrarily.
 Similar to numerous prior studies, \sys achieves these properties under a partially synchronous network model.
 Outside the period of synchrony, the protocol may experience a lack of progress, but safety and storage scalability remain uncompromised.
-\lijl{This part is a little vague. We should clearly specify if the storage protocol works in fully asynchronous settings.} \gd{Done.}
 
 % \gd{``Spoiler'' here or just mention in approach?}
 % Unlike the previous works where the liveness property mostly concerns the network coordination (\eg continuous leader changes), in this work, the liveness additionally covers (and in fact focuses on) the \emph{availability} of the state.
@@ -24,6 +23,7 @@ Outside the period of synchrony, the protocol may experience a lack of progress,
 
 This work centers on the storage capacity utilized for maintaining the blockchain state, the data component manipulated by state machine replication~\cite{lamport1978implementation}.
 Alternative methodologies that externalize state storage or partition block storage are examined in \autoref{sec:rel}.
+\lijl{I don't fully understand the differences among these concepts by reading the previous two sentences.}
 We assume that the replicated state and transactions that interact with it support sharding~\cite{corbett2013spanner}.
 The state should be divisible into a specific number of shards
 \footnote{
@@ -152,7 +152,7 @@ It proposes a novel PoW mining scheme that enables mining power to concurrently 
 
 % More recently, Estuary~\cite{jia2024estuary} dynamically adjusts the state distribution to minimize the cross-shard transaction overhead.
 % Pyramid~\cite{hong2021pyramid} and MSSP~\cite{liu2025mssp} permit some nodes to store multiple shards \ie overlapping committees so the cross-shard transactions can be processed locally.
-% Despite 
+% Despite
 
 \paragraph{The Trade-off Between Security and Scalability.}
 As illustrated in \autoref{tab:compare}, all prior systems fail to simultaneously achieve safety, liveness, and storage scalability.
