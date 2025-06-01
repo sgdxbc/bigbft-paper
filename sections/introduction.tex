@@ -3,11 +3,12 @@
 
 Blockchain state size is undergoing considerable augmentation.
 Prevailing permissionless distributed ledgers~\cite{buterin2014next, nakamoto2008bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:states-grow}), the duplication of which across over ten thousand nodes necessitates petabytes of cumulative storage.
+\lijl{Why is cumulative storage an issue?}
 The considerable financial burden linked to state replication renders on-chain data storage economically unviable~\cite{balduf2022dude}.
 Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes frequently attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic}.
 Large-scale deployments of permissioned and consortium blockchains, encompassing hundreds to thousands of nodes and frequently considered in prior investigations~\cite{kokoris2018omniledger,zamani2018rapidchain,amiri2021sharper,gilad2017algorand,gueta2019sbft,yin2019hotstuff}, will impose substantial storage requirements if the state is fully replicated at each node.
-Addressing this challenge requires the achievement of \emph{storage scalability}: the total storage utilization should correlate solely with the state size, irrespective of the number of nodes.
-\lijl{This last sentence is not very clear.} \gd{Done.}
+Addressing this challenge requires the achievement of \emph{storage scalability}: the total storage utilization should correlate solely with the state size \lijl{The meaning of ``total storage utilization'' is not very clear}, irrespective of the number of nodes.
+\lijl{Still think that the above definition of scalability is not intuitive.}
 
 Sharded blockchains, wherein nodes can function by maintaining only a segment of the state, have been the subject of considerable prior research~\cite{ruan2021blockchains,luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide,amiri2021sharper}.
 Although these endeavors attain scalable storage requirements, they introduce compromises between storage scalability and security attributes, specifically safety and liveness~\cite{pbft}.
@@ -26,25 +27,25 @@ Ultimately, no prior sharding method achieves storage scalability without impact
 The trade-off between security and scalability arises from the prevalent \emph{processing sharding} methodology employed by prior research, as depicted in \autoref{fig:approach-compare}.
 The entirety of processing, encompassing consensus and execution, is partitioned, with only a limited set of nodes (\ie, the committee) involved in transaction processing.
 This leads to diminished resilience against safety and liveness attacks.
-Conversely, storage scalability is attained by partitioning the state, without necessitating the fragmentation of other components.
+Conversely, storage scalability is attained by partitioning the state, without necessitating the fragmentation of other components \lijl{what does this sentence mean?}.
 Based on this observation, we introduce a novel approach: we decouple a state management system (SMS) from the execution layer to handle a sharded state, while maintaining global consensus and execution layers.
 This innovative methodology achieves a clear \emph{separation of concerns}: the SMS solely addresses storage scalability and availability, which can be effectively managed using advanced erasure coding~\cite{ec} techniques.
 Concurrently, the consensus and execution layers can focus on security attributes without concerns about impacting storage scalability.
+\lijl{Can summarize the challenges of this decoupling approach.}
 
 Based on this framework, we present \sys, a BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes, while providing storage scalability.
 The consensus and execution layers of \sys can integrate existing Byzantine atomic broadcast protocols.
-We carefully design an SMS that places a fixed redundancy level (storage consumption) for each state shard on a subset of nodes.
-Nodes without a local copy of a shard must load it before access, and the SMS ensures its availability.
+We carefully design an SMS that places a fixed redundancy level (storage consumption) for each state shard on a subset of nodes \lijl{This sentence is not very clear}.
+Nodes without a local copy of a shard must load it before access \lijl{Should clarify that it is the execution layer that does the access}, and the SMS ensures its availability.
 The architecture of \sys comprises two tiers.
 The archive layer utilizes erasure coding to offer a deterministic availability guarantee.
 The active layer maintains a fixed number of shard replicas on a randomized node group, ensuring efficient access with high probability.
-Both layers exhibit bounded storage redundancy, enabling the SMS to achieve storage scalability.
+Both layers exhibit bounded storage redundancy \lijl{unclear why ``bounded'' leads to scalability}, enabling the SMS to achieve storage scalability.
 
 We present our preliminary results on \sys.
 We analyze the network overhead added by the shard loading, showing it amplifies network traffic only by a constant factor.
-\lijl{Not sure if synchronization is the best terminology?} \gd{Done.}
 We also analyze the redundancy of \sys comparing to the other scaling approaches.
-The result shows that, thanks to storage scalability, \sys not only consumes less storage than a fully replicated baseline with any number of nodes exceeding 16, it also improves the redundancy factor by $9.88\times$ compared to the state of the art.
+The result shows that, thanks to storage scalability, \sys not only consumes less storage than a fully replicated baseline with any number of nodes exceeding 16, it also improves the redundancy factor by $9.88\times$ compared to the state-of-the-art \lijl{need to cite SOTA}.
 In conclusion, \sys achieves substantial enhancements in storage efficiency compared to all prior work with uncompromised security.
 
 \iffalse
