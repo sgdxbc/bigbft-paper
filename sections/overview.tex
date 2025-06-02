@@ -17,6 +17,8 @@ The latter approach requires the node to perform additional verification, which 
 For clarity, we will describe the design iteratively and analyze the desired properties at each stage.
 We begin with a basic design, I1, then refine its redundancy level with I2. We subsequently merge I1 and I2 into a generational design, I3, to amortize the coding overhead. Finally, we combine a modified version of I1 with I2 to create I4, which offers improved usability.
 
+\lijl{The design details are generally okay. For the workshop, can leave most of the availability, liveness, and redundancy analysis to the appendix. Main text just need to summarize those points.}
+
 % As the problem settings formulated in \autoref{sec:bg}, \sys is a BFT replication protocol from end to end.
 % However, its consistent ordering property can be achieved by any off-the-shelf Byzantine atomic broadcast (BAB) protocols~\XXX{cite some}, so the following description focuses on the processing part which will be integrated into existing BAB protocols.
 % We will describe that given a consistently ordered list of transactions available on every correct node, how to execute on the nodes that do not persist the whole state locally.
