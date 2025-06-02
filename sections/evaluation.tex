@@ -19,6 +19,7 @@ The results demonstrate that \sys achieves superior storage scalability.
 \sys incurs a storage overhead of at most $16\times$ the state size, irrespective of the number of nodes in the system.
 RapidChain and \textsc{Elastico} can also achieve storage scalability but with significantly larger upper bounds on storage overhead ($158\times$ and $378\times$ the state size, respectively).
 This is because their design disables sharding with committee sizes smaller than these bounds, meaning they can only start to shard once they reach these scales.
+\lijl{Can remind that these designs also compromise security and liveness.}
 Finally, full replication exhibits unbounded storage consumption, growing linearly with the number of nodes.
 
 \begin{figure}
@@ -29,10 +30,12 @@ Finally, full replication exhibits unbounded storage consumption, growing linear
 \end{figure}
 
 We perform numerical analysis to project network traffic under realistic conditions.
+\lijl{Can summarize these conditions. Are the results workload dependent?}
 Figure \ref{fig:network-overhead} presents the findings when the system incurs $10\times$ and $16\times$ state size storage.
 The specific plotting equation and parameter values are provided in the appendix.
 When the number of nodes is less than the target redundancy, each node effectively stores a complete state copy, and the system exhibits equivalent network traffic to other BFT protocols.
 As the node count exceeds the redundancy rate, the system begins to incur network traffic overhead for loading shards; however, this overhead rapidly converges to a constant multiplicative factor relative to the baseline, and the system's network traffic never surpasses $2.5\times$ the baseline traffic.
 This occurs because all BFT protocols must disseminate transactions and reply results to client.
 The network traffic associated with these activities increases linearly with the number of nodes, as does the network traffic associated with loading shards.
+\lijl{Given the fact that normalized traffic converges, can we conclude that network traffic for shard loading also grows linearly?}
 Therefore, our approach does not negatively impact the scalability of network communication.
