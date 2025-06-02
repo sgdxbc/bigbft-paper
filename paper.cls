@@ -64,6 +64,7 @@
 \RequirePackage{tikz}
 \RequirePackage{amsthm}
 \RequirePackage{comment}
+\RequirePackage{pifont}
 \ifacm
 \else
 \RequirePackage{amsmath}

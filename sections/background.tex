@@ -2,15 +2,20 @@
 \label{sec:bg}
 
 \paragraph{Problem Settings.}
-Our work functions as a replicated service for arbitrary state machines~\cite{smr}, exhibiting tolerance to Byzantine faults akin to conventional BFT protocols while sustaining a favorable storage overhead comparable to distributed databases \lijl{storage overhead is a weird metric to compare}.
-Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft} and a bounded redundancy property analogous to distributed storage systems~\cite{corbett2013spanner}.
+Our work functions as a replicated service for arbitrary state machines~\cite{lamport1978implementation} exhibiting tolerance to Byzantine faults akin to conventional BFT protocols.
+The main focus is on the space consumed on participating nodes for storing the \emph{state}, the data component manipulated by the replicated state machine.
+\lijl{storage overhead is a weird metric to compare} \gd{Done}.
+Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft}, and its state storage consumption is scalable to the number of nodes analogous to distributed storage systems~\cite{corbett2013spanner}.
 \begin{itemize}
     \item Safety: The replicated service adheres to linearizability~\cite{herlihy1987axioms}, functioning equivalently to a centralized implementation that processes transactions atomically and sequentially.
     \item Liveness: Clients eventually receive responses to their submitted transactions.
-    \item Storage scalability: The total storage resources required for system operation are $O(\text{state size})$.
-    The number of nodes within the system does not influence storage consumption.
-    This contrasts with typical BFT protocols where the storage complexity is $O(\text{state size} \times \text{number of nodes})$.
-    \lijl{Need to first define state size.}
+    \item Storage scalability: 
+    % The total storage resources required for system operation are $O(\text{state size})$.
+    % The number of nodes within the system does not influence storage consumption.
+    % This contrasts with typical BFT protocols where the storage complexity is $O(\text{state size} \times \text{number of nodes})$.
+    \lijl{Need to first define state size.} \gd{Done without state size.}
+    As the number of nodes increases, \sys demands \emph{less} state storage from each node, which is inversely proportional to the node count.
+    This is in the contrary of conventional fully-replicated BFT protocols where the state storage remains the same regardless of the node count, and the maximum state size solely depends on the storage resource of a \emph{single} node, rendering the lack of scalability.
 \end{itemize}
 \sys operates with $3f+1$ nodes and guarantees the aforementioned properties when up to $f$ nodes exhibit Byzantine faults and behave arbitrarily.
 Similar to numerous prior studies, \sys achieves these properties under a partially synchronous network model.
@@ -21,9 +26,13 @@ Outside the period of synchrony, the protocol may experience a lack of progress,
 % We discuss this in detail in \autoref{sec:approach}.
 % \lijl{No need to discuss here.}
 
-This work centers on the storage capacity utilized for maintaining the blockchain state, the data component manipulated by state machine replication~\cite{lamport1978implementation}.
-Alternative methodologies that externalize state storage or partition block storage are examined in \autoref{sec:rel}.
-\lijl{I don't fully understand the differences among these concepts by reading the previous two sentences.}
+% This work centers on the storage capacity utilized for maintaining the blockchain state, the data component manipulated by state machine replication~\cite{lamport1978implementation}.
+% Alternative methodologies that externalize state storage or partition block storage are examined in \autoref{sec:rel}.
+\lijl{I don't fully understand the differences among these concepts by reading the previous two sentences.} \gd{Updated.}
+We remark that one way to achieve storage scalability is to store the state external to the nodes, or even not store it at all.
+In \autoref{sec:rel}, we discuss the trade-offs of these alternative approaches.
+Here we discuss the solutions that internally store the state with the nodes.
+
 We assume that the replicated state and transactions that interact with it support sharding~\cite{corbett2013spanner}.
 The state should be divisible into a specific number of shards
 \footnote{
@@ -99,14 +108,14 @@ This characteristic is crucial for enabling blockchains to handle massive big da
     \toprule
     Approach                & Safety?       & Liveness?     & Scalable storage? \\
     \midrule
-    Fully replicated        & Yes           & Yes           & No                \\
-    Pre-determined clusters & No            & No            & Yes               \\
-    Randomized committees   & No            & No            & Yes               \\
-    \quad adaptive          & Yes           & Yes           & No                \\
-    \quad synchronous       & Yes           & No            & Yes               \\
-    Monoxide                & Yes           & Yes           & No                \\
-    \quad solo mining       & No            & No            & Yes               \\
-    \sys                    & Yes           & Yes           & Yes               \\
+    Fully replicated        & \yes          & \yes          & \no               \\
+    Pre-determined clusters & \no           & \no           & \yes              \\
+    Randomized committees   & \no           & \no           & \yes              \\
+    \quad adaptive          & \yes          & \yes          & \no               \\
+    \quad synchronous       & \yes          & \no           & \yes              \\
+    Monoxide                & \yes          & \yes          & \no               \\
+    \quad solo mining       & \no           & \no           & \yes              \\
+    \sys                    & \yes          & \yes          & \yes              \\
     \bottomrule
 \end{tabular}
 \end{table}
@@ -115,9 +124,9 @@ This characteristic is crucial for enabling blockchains to handle massive big da
 Several prior works enable operation with nodes storing partial states through various mechanisms.
 In blockchain databases~\cite{ruan2021blockchains} such as \textit{BlockchainDB}~\cite{el2019blockchaindb} and \textsc{GriDB}~\cite{hong2024gridb}, the state is composed of multiple tables.
 Each table (or more granular table partition) is stored by a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables (e.g., join operations)~\cite{zhang2015integridb,hong2024gridb}.
-More general-purpose sharded blockchains adopt this model, organizing nodes into multiple \emph{committees} responsible for maintaining distinct state shards.
-These approaches typically employ multiple instances of fully-replicated BFT protocols (common choices include PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and address the atomicity of transactions spanning committees using specialized strategies.
-\lijl{Specialized strategies meaning 2PC + 2PL?}
+More general-purpose sharded blockchains~\cite{luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide} adopt this model, organizing nodes into multiple \emph{committees} responsible for maintaining distinct state shards.
+These approaches typically employ multiple instances of fully-replicated BFT protocols (common choices include PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and address the atomicity of transactions spanning committees using specialized strategies (\eg, two-phase commit).
+\lijl{Specialized strategies meaning 2PC + 2PL?} \gd{Some is, some not. Each with own trade-offs. Would rather not elaborate}
 
 % In common centralized distributed databases like~\cite{corbett2013spanner}, all nodes are centrally managed to collaboratively store the database states and each transaction is processed only once.
 % While in BFT systems the processing has to be replicated in order to tolerate faults, and multiple state copies reside on different nodes to support the replicated processing, resulting in high storage overhead.
@@ -129,14 +138,15 @@ These approaches typically employ multiple instances of fully-replicated BFT pro
 % \xxx{Summarize the results.}
 
 Next, we elaborate on these sharded blockchain systems.
-\lijl{Why are the following works not cited in the previous paragraph?}
+\lijl{Why are the following works not cited in the previous paragraph?} \gd{Done.}
 \textsc{Elastico}~\cite{luu2016secure} establishes the groundwork for scalable sharded blockchains.
 It employs epoch-based randomization of committees.
 At the start of each epoch, every node computes a proof-of-work (PoW) to acquire membership in a random committee.
 Subsequently, the members of each committee execute a permissioned BFT protocol locally to achieve agreement on the shard they manage and then disseminate the consensus result to other committees to attain global agreement.
 Since each committee randomly selects the minimum number of nodes required to ensure an honest supermajority with high probability, the committee size remains constant irrespective of the total node count.
-Consequently, \textsc{Elastico} achieves storage scalability: its redundancy is equivalent to the committee size and is unaffected by the number of nodes.
-\lijl{How does it management shard state across epochs?}
+\gd{Updated.}
+Consequently, \textsc{Elastico} achieves storage scalability: the number of committees is proportional to the number of nodes, so the states size managed by the nodes of each committee decrease correspondingly.
+\lijl{How does it management shard state across epochs?} \gd{Transfer to committees of next epoch. No space to mention.}
 
 Building upon the advancements of \textsc{Elastico}, OmniLedger~\cite{kokoris2018omniledger} enhances several security features by substituting the PoW-based committee assignment with RandHound~\cite{syta2017scalable}, a decentralized randomness solution utilizing verifiable random functions (VRFs).
 This allows OmniLedger to extend the epoch duration considerably (e.g., to one day) and reduce the storage overhead for nodes more practically than \textsc{Elastico}.
@@ -166,7 +176,7 @@ Conventional BFT protocols and certain blockchain databases~\cite{peng2020falcon
 They can only tolerate a fraction of faulty nodes within each cluster and fail when the total number of faulty nodes overwhelms any single cluster.
 \textsc{Elastico}, OmniLedger, and GearBox's fixed-size, randomly-sampled committees are designed to handle low global fault rates (\eg, $\frac{1}{4}$).
 Increasing the fault fraction without adjusting the committee size leads to immediate safety and liveness failures.
-To maintain these properties \lijl{what properties?}, the committee size must be adaptively increased based on the actual fault fraction to ensure that committees contain no more than $\frac{1}{3}$ faulty members with high probability.
+To maintain the same security level \lijl{what properties?} \gd{Done.}, the committee size must be adaptively increased based on the actual fault fraction to ensure that committees contain no more than $\frac{1}{3}$ faulty members with high probability.
 For instance, with a $\frac{1}{4}$ fault probability, sampling 378 nodes from 1000 is required to achieve a $10^{-6}$ faulty committee probability, whereas a $\frac{3}{10}$ fault probability necessitates sampling at least 798 nodes for the same probabilistic safety and liveness guarantees\footnote{These numbers are derived with hypergeometric distribution~\cite{hypergeometric-distr} as formulated in the original works.}.
 As the fault probability approaches the desired $\frac{1}{3}$, the required number of sampled nodes nears the total number of nodes, and the system reverts to a fully replicated architecture, losing storage scalability.
 The other systems employing randomized committees rely on additional assumptions for their safety guarantees, such as trusted hardware or synchronous network conditions.
@@ -177,7 +187,7 @@ Ultimately, no prior system can simultaneously achieve all three properties.
 
 \paragraph{Limitations of Processing Sharding.}
 The shortcomings of these prior systems stem from a fundamental challenge: the fault tolerance of the system is determined by the committee size, whereas conventional BFT settings mandate tolerating $\frac{1}{3}$ faulty nodes, the quantity of which is a function of the total node count.
-If the committee size is independent of the total number of nodes, then security properties are compromised, and the system can no longer tolerate a number of faults proportional to the system's scale (as indicated by \emph{No} in the \emph{Safety?} and/or \emph{Liveness?} columns of \autoref{tab:compare}) \lijl{I think this sentence does not provide enough rationale to be convincing.}.
+If the committee size is independent of the total number of nodes, then security properties are compromised because the resiliency cannot scale up with the number of nodes (as indicated by \emph{No} in the \emph{Safety?} and/or \emph{Liveness?} columns of \autoref{tab:compare}). \lijl{I think this sentence does not provide enough rationale to be convincing.} \gd{Refined}
 Conversely, if the committee size increases with system growth, then storage consumption also rises, and storage scalability is lost (as indicated by \emph{No} in the \emph{Scalable storage?} column).
 In essence, processing sharding necessitates a choice between these two options, resulting in undesirable trade-offs among the desired properties.
 
