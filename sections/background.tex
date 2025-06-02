@@ -4,16 +4,14 @@
 \paragraph{Problem Settings.}
 Our work functions as a replicated service for arbitrary state machines~\cite{lamport1978implementation} exhibiting tolerance to Byzantine faults akin to conventional BFT protocols.
 The main focus is on the space consumed on participating nodes for storing the \emph{state}, the data component manipulated by the replicated state machine.
-\lijl{storage overhead is a weird metric to compare} \gd{Done}.
 Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft}, and its state storage consumption is scalable to the number of nodes analogous to distributed storage systems~\cite{corbett2013spanner}.
 \begin{itemize}
     \item Safety: The replicated service adheres to linearizability~\cite{herlihy1987axioms}, functioning equivalently to a centralized implementation that processes transactions atomically and sequentially.
     \item Liveness: Clients eventually receive responses to their submitted transactions.
-    \item Storage scalability: 
+    \item Storage scalability:
     % The total storage resources required for system operation are $O(\text{state size})$.
     % The number of nodes within the system does not influence storage consumption.
     % This contrasts with typical BFT protocols where the storage complexity is $O(\text{state size} \times \text{number of nodes})$.
-    \lijl{Need to first define state size.} \gd{Done without state size.}
     As the number of nodes increases, \sys demands \emph{less} state storage from each node, which is inversely proportional to the node count.
     This is in the contrary of conventional fully-replicated BFT protocols where the state storage remains the same regardless of the node count, and the maximum state size solely depends on the storage resource of a \emph{single} node, rendering the lack of scalability.
 \end{itemize}
@@ -28,11 +26,12 @@ Outside the period of synchrony, the protocol may experience a lack of progress,
 
 % This work centers on the storage capacity utilized for maintaining the blockchain state, the data component manipulated by state machine replication~\cite{lamport1978implementation}.
 % Alternative methodologies that externalize state storage or partition block storage are examined in \autoref{sec:rel}.
-\lijl{I don't fully understand the differences among these concepts by reading the previous two sentences.} \gd{Updated.}
+\lijl{Can omit in workshop paper.}
 We remark that one way to achieve storage scalability is to store the state external to the nodes, or even not store it at all.
 In \autoref{sec:rel}, we discuss the trade-offs of these alternative approaches.
 Here we discuss the solutions that internally store the state with the nodes.
 
+\lijl{Can omit in workshop paper.}
 We assume that the replicated state and transactions that interact with it support sharding~\cite{corbett2013spanner}.
 The state should be divisible into a specific number of shards
 \footnote{
@@ -42,6 +41,7 @@ The state should be divisible into a specific number of shards
 We do not impose restrictions on the shard count, although a sufficient number of shards (i.e., significantly exceeding the node count) can enhance load balancing.
 Common state structures, such as key-value stores and (Merkle) Patricia Tries~\cite{mpt} employed by Ethereum~\cite{buterin2014next}, can be partitioned into an arbitrary number of shards.
 
+\lijl{Can summarize in just 1-2 sentences.}
 Our methodology accommodates diverse transaction workloads and particularly excels with workloads where transactions access single or few shards, i.e., online transaction processing (OLTP) workloads, rather than online analytical processing (OLAP), in terms of performance.
 Numerous blockchain applications generate OLTP workloads, such as token transfers between two accounts or status updates for specific goods in a supply chain.
 Furthermore, OLAP workloads involving scans across a large number of shards can be executed off-chain using a verified state checkpoint (\autoref{sec:overview}).
@@ -72,6 +72,7 @@ Furthermore, OLAP workloads involving scans across a large number of shards can 
 
 % \paragraph{The cases of big blockchain states~\cite{deepa2022survey,yang2017big} \gd{and the justification of storage scalability?}.}
 \paragraph{Blockchain Storage Consumption.}
+\lijl{Many of these facts and trends are important motivations for the paper. But can cut quite a bit of text in the workshop paper.}
 The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
 From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\autoref{fig:states-grow}).
 Considering the substantial number of nodes in these blockchains (22,275 for Bitcoin\footnote{\url{https://bitnodes.io/}}, 11,251 for Ethereum\footnote{\url{https://etherscan.io/nodetracker}}), the aggregate storage consumed by their nodes is around 15 PB.
@@ -121,6 +122,7 @@ This characteristic is crucial for enabling blockchains to handle massive big da
 \end{table}
 
 \paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
+\lijl{The descriptions of prior solutions are too detailed. Can give high-level idea of the general approach, and briefly describe each system.}
 Several prior works enable operation with nodes storing partial states through various mechanisms.
 In blockchain databases~\cite{ruan2021blockchains} such as \textit{BlockchainDB}~\cite{el2019blockchaindb} and \textsc{GriDB}~\cite{hong2024gridb}, the state is composed of multiple tables.
 Each table (or more granular table partition) is stored by a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables (e.g., join operations)~\cite{zhang2015integridb,hong2024gridb}.
