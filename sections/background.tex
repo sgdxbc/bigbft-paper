@@ -2,7 +2,7 @@
 \label{sec:bg}
 
 \paragraph{Problem Settings.}
-Our work functions as a replicated service for arbitrary state machines, exhibiting tolerance to Byzantine faults akin to conventional BFT protocols while sustaining a favorable storage overhead comparable to distributed databases \lijl{storage overhead is a weird metric to compare}.
+Our work functions as a replicated service for arbitrary state machines~\cite{smr}, exhibiting tolerance to Byzantine faults akin to conventional BFT protocols while sustaining a favorable storage overhead comparable to distributed databases \lijl{storage overhead is a weird metric to compare}.
 Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft} and a bounded redundancy property analogous to distributed storage systems~\cite{corbett2013spanner}.
 \begin{itemize}
     \item Safety: The replicated service adheres to linearizability~\cite{herlihy1987axioms}, functioning equivalently to a centralized implementation that processes transactions atomically and sequentially.
