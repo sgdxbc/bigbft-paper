@@ -1,11 +1,10 @@
 \section{A Decomposing Approach}
 \label{sec:approach}
 
-As previously discussed in \autoref{sec:bg}, implementing sharding in BFT protocols significantly impacts safety and liveness properties.
-Next, we will decompose BFT protocols into consensus and execution layers and analyze the effects of sharding on each layer separately.
-\lijl{No need to preview the solution.}
-
-Sharding the consensus layer degrades the safety and liveness of the system.
+As previously discussed in \autoref{sec:bg}, processing sharding, a sharding strategy that globally affects the consensus and execution layers, impacts safety and liveness properties.
+% Next, we will decompose BFT protocols into consensus and execution layers and analyze the effects of sharding on each layer separately.
+\lijl{No need to preview the solution.}\gd{Done.}
+Actually, sharding the consensus layer alone can substantially degrade the safety and liveness of the system.
 It is theoretically impossible~\cite{bracha1985asynchronous} to tolerate $f$ Byzantine faults with less than $3f+1$ nodes without the help from synchronous network condition~\cite{zamani2018rapidchain}, trusted hardware~\cite{dang2019towards}, PoW puzzles~\cite{wang2019monoxide}, etc.
 Thus, keeping the goal of achieving these properties in mind, we should avoid sharding the consensus layer.
 
