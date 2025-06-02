@@ -3,6 +3,7 @@
 
 As previously discussed in \autoref{sec:bg}, implementing sharding in BFT protocols significantly impacts safety and liveness properties.
 Next, we will decompose BFT protocols into consensus and execution layers and analyze the effects of sharding on each layer separately.
+\lijl{No need to preview the solution.}
 
 Sharding the consensus layer degrades the safety and liveness of the system.
 It is theoretically impossible~\cite{bracha1985asynchronous} to tolerate $f$ Byzantine faults with less than $3f+1$ nodes without the help from synchronous network condition~\cite{zamani2018rapidchain}, trusted hardware~\cite{dang2019towards}, PoW puzzles~\cite{wang2019monoxide}, etc.
@@ -26,23 +27,29 @@ A state management system (SMS) is separated from the execution layer and serves
 While every transaction is executed by all nodes, the state shard(s) accessed during its execution are stored only on a subset of the nodes.
 The SMS of the remaining nodes is responsible for loading the required shards on demand to facilitate local execution.
 These loaded shards may be discarded after the transaction is executed, and the SMS will reload them upon the next access.
+\lijl{A better way is to first describe how SMS partitions state across nodes and its interface, then how the execution layer uses the SMS interface to access state when executing transactions.}
 
 Ultimately, this decomposition design achieves a separation of concerns~\cite{reade1989elements}.
 The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf Byzantine Atomic Broadcast (BAB) and BFT protocols~\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark} can be adapted to fulfill the requirements of these layers.
-Conversely, the SMS does not need to consider safety at all—it receives an ordered list of transactions guaranteed to be consistent across all correct nodes.
+Conversely, the SMS does not need to consider safety at all --- it receives an ordered list of transactions guaranteed to be consistent across all correct nodes.
+\lijl{SMS shouldn't receive transactions?}
 Its sole responsibility is to manage the state shards in a manner that satisfies storage scalability -- the overall storage consumption per shard depends only on the shard size, not the number of nodes -- and availability -- every state shard must be accessible to every node.
+\lijl{We should properly define these properties somewhere.}
 While this design space has rarely been explored (quoting a 2023 survey on sharding replication systems~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), recent high-throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} adopt a similar approach, decoupling a delivery layer (reliable broadcast) from the consensus and execution layers and independently scaling it up to achieve optimal throughput.
 
 \paragraph{Achieving Storage Scalability and Availability in BFT Settings.}
 To achieve both storage scalability and availability, we must distribute the storage overhead (i.e., the \emph{redundancy}) of each shard and the responsibility for storing it across a sufficiently large set of nodes to tolerate $f$ failures among them, while maintaining a fixed amount of redundancy across all these nodes.
 Drawing upon techniques from advanced distributed databases, we utilize erasure codes~\cite{ec} for this purpose, which are designed to mask a configurable number of failures within a fixed redundancy budget.
-To tolerate $f$ failures, we can employ an EC$(k+2f,k)$ scheme, which generates $2f$ \emph{parity} shards for every $k$ original state shards\footnote{In this work, we consider systematic codes like Reed-Solomon (RS) codes~\cite{reed1960polynomial}.}, forming a shard \emph{stripe}. Any combination of $k$ state shards and parity shards can reconstruct the original $k$ state shards.
+To tolerate $f$ failures, we can employ an EC$(k+2f,k)$ scheme, which generates $2f$ \emph{parity} shards for every $k$ original state shards\footnote{In this work, we consider systematic codes like Reed-Solomon (RS) codes~\cite{reed1960polynomial}.}, forming a shard \emph{stripe}.
+Any combination of $k$ state shards and parity shards can reconstruct the original $k$ state shards.
 We then store the $k+2f$ shards of the stripe on $k+2f$ distinct nodes.
 Any supermajority of $2f+1$ nodes will intersect this set of $k+2f$ nodes with at least $k+f$ nodes, of which at least $k$ must be correct, allowing the stripe to be reconstructed from the shards they store.
 Concurrently, the redundancy remains fixed regardless of the total number of nodes, provided that $k$ is proportional to $f$.
+\lijl{Maybe add some intuition why we can achieve constant redundancy. By only reading the text here, reviewers might wonder that the redundancy relates to $f$ which increases with more nodes in the system. The key is that we will do transcoding to also increase $k$.}
 We will revisit the application of erasure codes and the detailed redundancy analysis in \autoref{sec:overview}.
 
 \paragraph{Analysis of Network Traffic Overhead.}
+\lijl{I suggest remove this paragraph, and instead, list a set of challenges arose from our state sharding approach (including this one). The next section then addresses those challenges.}
 Initially, this decomposition approach might appear expensive concerning network traffic.
 Nodes seemingly incur both additional bandwidth for continuously loading shards from each other and increased latency due to the necessity of on-demand loading before processing can commence.
 However, in practice, it is more feasible than it initially appears.
@@ -52,6 +59,7 @@ The latency associated with on-demand loading can be mitigated through speculati
 Furthermore, real-world workloads are predominantly skewed~\cite{powerlaw}.
 By simply caching a small proportion of shards (\autoref{sec:impl}), the total network traffic can be significantly reduced~\cite{fan2011small}.
 A more detailed analysis is provided in \autoref{sec:eval}.
+
 
 \ifspace
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.
