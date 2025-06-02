@@ -1,6 +1,8 @@
 \section{Introduction}
 \label{sec:intro}
 
+\lijl{As a general rule of thumb, we should target ~2 pages for introduction + background/motivation, 2 pages for approach + design, and ~1 page for evaluation + conclusion.}
+
 Blockchain state size is undergoing considerable augmentation.
 Prevailing permissionless distributed ledgers~\cite{buterin2014next, nakamoto2008bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:states-grow}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
 % , the duplication of which across over ten thousand nodes necessitates petabytes of cumulative storage.
@@ -8,7 +10,7 @@ Prevailing permissionless distributed ledgers~\cite{buterin2014next, nakamoto200
 % The considerable financial burden linked to state replication renders on-chain data storage economically unviable~\cite{balduf2022dude}.
 Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes frequently attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic}.
 Large-scale deployments of permissioned and consortium blockchains, encompassing hundreds to thousands of nodes and frequently considered in prior investigations~\cite{kokoris2018omniledger,zamani2018rapidchain,amiri2021sharper,gilad2017algorand,gueta2019sbft,yin2019hotstuff}, will impose substantial storage requirements at each node if the state is fully replicated.
-Addressing this challenge requires the achievement of \emph{storage scalability}: 
+Addressing this challenge requires the achievement of \emph{storage scalability}:
 % the total storage utilization should correlate solely with the state size \lijl{The meaning of ``total storage utilization'' is not very clear}, irrespective of the number of nodes.
 \lijl{Still think that the above definition of scalability is not intuitive.} \gd{Done.}
 the storage consumption on each node must decrease proportionally to the increase of node count.
