@@ -24,17 +24,22 @@ However, when a sharded state is coupled with a non-sharded execution layer, the
 
 We now present our approach, as illustrated in the bottom section of \autoref{fig:approach-compare}.
 A state management system (SMS) is separated from the execution layer and serves as the dedicated state storage on the nodes.
-While every transaction is executed by all nodes, the state shard(s) accessed during its execution are stored only on a subset of the nodes.
-The SMS of the remaining nodes is responsible for loading the required shards on demand to facilitate local execution.
-These loaded shards may be discarded after the transaction is executed, and the SMS will reload them upon the next access.
-\lijl{A better way is to first describe how SMS partitions state across nodes and its interface, then how the execution layer uses the SMS interface to access state when executing transactions.}
+% SMS is responsible for possessing the state to the execution layer.
+When execution layer need to access shards for executing transactions, it retrieves them from SMS.
+SMS guarantees the availability of the state: the retrieval will always be successful.
+Behind the scene, SMS must distribute shards across the nodes and cannot store all shards on each node, to achieve storage scalability.
+So, SMS may need to load the accessed shards from other nodes upon retrieval, and the loading must succeed as well to guarantee availability.
+% While every transaction is executed by all nodes, the state shard(s) accessed during its execution are stored only on a subset of the nodes.
+% The SMS of the remaining nodes is responsible for loading the required shards on demand to facilitate local execution.
+% These loaded shards may be discarded after the transaction is executed, and the SMS will reload them upon the next access.
+\lijl{A better way is to first describe how SMS partitions state across nodes and its interface, then how the execution layer uses the SMS interface to access state when executing transactions.} \gd{Done.}
 
 Ultimately, this decomposition design achieves a separation of concerns~\cite{reade1989elements}.
 The global consensus and execution layers are responsible for ensuring safety and liveness, and any off-the-shelf Byzantine Atomic Broadcast (BAB) and BFT protocols~\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark} can be adapted to fulfill the requirements of these layers.
-Conversely, the SMS does not need to consider safety at all --- it receives an ordered list of transactions guaranteed to be consistent across all correct nodes.
-\lijl{SMS shouldn't receive transactions?}
-Its sole responsibility is to manage the state shards in a manner that satisfies storage scalability -- the overall storage consumption per shard depends only on the shard size, not the number of nodes -- and availability -- every state shard must be accessible to every node.
-\lijl{We should properly define these properties somewhere.}
+Conversely, the SMS does not need to consider safety at all --- without even accessing the transactions, it cannot affect safety at all.
+\lijl{SMS shouldn't receive transactions?} \gd{Done.}
+Its sole responsibility is to manage the state shards in a storage-scalable manner that satisfies availability declared previously.
+\lijl{We should properly define these properties somewhere.} \gd{Done above.}
 While this design space has rarely been explored (quoting a 2023 survey on sharding replication systems~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), recent high-throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} adopt a similar approach, decoupling a delivery layer (reliable broadcast) from the consensus and execution layers and independently scaling it up to achieve optimal throughput.
 
 \paragraph{Achieving Storage Scalability and Availability in BFT Settings.}
@@ -44,10 +49,13 @@ To tolerate $f$ failures, we can employ an EC$(k+2f,k)$ scheme, which generates 
 Any combination of $k$ state shards and parity shards can reconstruct the original $k$ state shards.
 We then store the $k+2f$ shards of the stripe on $k+2f$ distinct nodes.
 Any supermajority of $2f+1$ nodes will intersect this set of $k+2f$ nodes with at least $k+f$ nodes, of which at least $k$ must be correct, allowing the stripe to be reconstructed from the shards they store.
-Concurrently, the redundancy remains fixed regardless of the total number of nodes, provided that $k$ is proportional to $f$.
-\lijl{Maybe add some intuition why we can achieve constant redundancy. By only reading the text here, reviewers might wonder that the redundancy relates to $f$ which increases with more nodes in the system. The key is that we will do transcoding to also increase $k$.}
+% Concurrently, the redundancy remains fixed regardless of the total number of nodes, provided that $k$ is proportional to $f$.
+Concurrently, as the number of nodes increases, we have the opportunity to increase $k$ accordingly through \emph{transcoding}, increasing the stripe size while reducing the average per-shard storage consumption on each node through less parity shards, in order to achieve storage scalability.
+\lijl{Maybe add some intuition why we can achieve constant redundancy. By only reading the text here, reviewers might wonder that the redundancy relates to $f$ which increases with more nodes in the system. The key is that we will do transcoding to also increase $k$.} \gd{Done.}
 We will revisit the application of erasure codes and the detailed redundancy analysis in \autoref{sec:overview}.
 
+\gd{Removed.}
+\iffalse
 \paragraph{Analysis of Network Traffic Overhead.}
 \lijl{I suggest remove this paragraph, and instead, list a set of challenges arose from our state sharding approach (including this one). The next section then addresses those challenges.}
 Initially, this decomposition approach might appear expensive concerning network traffic.
@@ -59,7 +67,7 @@ The latency associated with on-demand loading can be mitigated through speculati
 Furthermore, real-world workloads are predominantly skewed~\cite{powerlaw}.
 By simply caching a small proportion of shards (\autoref{sec:impl}), the total network traffic can be significantly reduced~\cite{fan2011small}.
 A more detailed analysis is provided in \autoref{sec:eval}.
-
+\fi
 
 \ifspace
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.
