@@ -86,11 +86,14 @@ Beyond well-known financial uses~\cite{qi2021bidl,lokhava2019fast}, prior work h
 Blockchain's strong security makes it ideal and widely researched for securing different phases of processing large volumes of data, such as data collection~\cite{bodkhe2020blockchain,liu2018blockchain}, sharing~\cite{xu2018making}, management~\cite{kim2021two,jeong2020design,sun2020blockchain,li2019edurss}, and analytics~\cite{shen2019secure,salah2019blockchain}, as well as protecting privacy during processing~\cite{hirtan2018blockchain, sharma2018blockchain} in environments with unreliable or mutually distrusting participants.
 
 These extensive data blockchains can accumulate very large states.
-NASDAQ TotalView-ITCH, a dataset recorded at a trading matching engine, reportedly has a total size of 20 TB and grows at 4.13 GB per day~\cite{laughlin2014information}.
-High-frequency stock market data can accumulate as much as 20-40 GB daily~\cite{rabindrajit2024high}.
-\lijl{Need to confirm: these are state size, not historical trading data.}
-Furthermore, medical records typically range from MB to tens of MB in size~\cite{garcia2011mantisgrid} due to their multimodal content, while public medical record collections can contain 40,000-200,000 entries~\cite{pollard2018eicu,johnson2023mimic} and occupy terabytes of storage.
-These represent the dimensions of single-party datasets. In consortium blockchains, multiple participants (e.g., exchanges or hospitals) contribute their data, each potentially comparable in size to these datasets.
+% NASDAQ TotalView-ITCH, a dataset recorded at a trading matching engine, reportedly has a total size of 20 TB and grows at 4.13 GB per day~\cite{laughlin2014information}.
+% High-frequency stock market data can accumulate as much as 20-40 GB daily~\cite{rabindrajit2024high}.
+% \lijl{Need to confirm: these are state size, not historical trading data.}
+\gd{Updated.}
+Google reports 4, 20 and 70 TB data sizes respectively for personalized search, processed Google Analytics and Google Earth images data, dates back to 2006~\cite{chang2008bigtable}.
+Also, medical records typically range from MB to tens of MB in size~\cite{garcia2011mantisgrid} due to their multimodal content, while public medical record collections can contain 40,000-200,000 entries~\cite{pollard2018eicu,johnson2023mimic} and occupy terabytes of storage.
+These represent the dimensions of single-party databases.
+In consortium blockchains, multiple participants (e.g., exchanges or hospitals) contribute their data, each potentially comparable in size to these datasets.
 Consequently, this can lead to blockchain states of terabyte or even petabyte scale, exceeding the storage capabilities of individual blockchain nodes.
 
 The essential point is that achieving storage scalability is critical for blockchains in diverse settings, alleviating the requirement for individual nodes to host the entire state.

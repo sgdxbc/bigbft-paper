@@ -67,6 +67,13 @@ Furthermore, real-world workloads are predominantly skewed~\cite{powerlaw}.
 By simply caching a small proportion of shards (\autoref{sec:impl}), the total network traffic can be significantly reduced~\cite{fan2011small}.
 A more detailed analysis is provided in \autoref{sec:eval}.
 \fi
+Implementing an SMS is challenging despite its logical appeal.
+While state sharding borrows from distributed databases, SMS operates in a fundamentally different environment and faces distinct constraints.
+Specifically, SMS must support independent execution on every node, with each node making progress at a different rate.
+Thus, SMS must concurrently manage multiple state versions and quickly identify discardable historical versions to avoid unbounded storage.
+Erasure coding, while used, is computationally expensive and can degrade performance if not carefully employed.
+Most importantly, the design must tolerate $f$ faulty nodes, necessitating quorum-based communication (often supermajority), and we must examine that the additional network traffic brought by them is acceptable.
+In the following section, we present our design of \sys and demonstrate how it tackles these challenges.
 
 \ifspace
 Despite this positive result, the availability of state is still challenging for designing the storage layer, which is summarized as the following C1-C3.

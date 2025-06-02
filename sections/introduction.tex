@@ -39,7 +39,8 @@ We observe that only the sharding of the state is crucial for blockchains to ach
 Based on this observation, we introduce a novel approach: we decouple a state management system (SMS) from the execution layer to handle a sharded state, while maintaining global consensus and execution layers.
 This innovative methodology achieves a clear \emph{separation of concerns}: the SMS solely addresses storage scalability and availability, which can be effectively managed using advanced erasure coding~\cite{ec} techniques.
 Concurrently, the consensus and execution layers can focus on security attributes without concerns about impacting storage scalability.
-\lijl{Can summarize the challenges of this decoupling approach.}
+\lijl{Can summarize the challenges of this decoupling approach.}\gd{Done.}
+However, the decoupled SMS also introduces the new challenge of supporting execution at different speeds across nodes. This necessitates managing multiple state versions concurrently and efficiently identifying historical versions that are safe to dispose of. And, needless to say, SMS must accomplish this while tolerating $f$ faulty nodes.
 
 \gd{Updated.}
 Based on this framework, we present \sys, a BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes, while providing storage scalability.
