@@ -3,6 +3,7 @@
 
 In this section, we detail the design of the state management system (SMS) within \sys.
 SMS considers the managed state as multi-versioned data, with each transaction execution generating a new state version.
+On shard level, in each new version a fraction of shards is updated by the interleaving transaction, and the other unmodified shards ``fall through''.
 It exposes three interfaces to the execution layer:
 \begin{itemize}
     \item \texttt{get}(shard indexes) returns state shards of current version.

@@ -126,7 +126,7 @@ In storage-scalable blockchains like \sys, the maximum operational state size de
 When more nodes join the system, the storage overhead can \emph{scale out} to their storage resources, reducing storage pressure on existing nodes and enabling the system to manage larger states, similar to conventional distributed databases~\cite{corbett2013spanner}.
 This characteristic is crucial for enabling blockchains to handle massive big data states, akin to distributed databases.
 \else
-In storage-scalable blockchains like \sys, the storage overhead can \emph{scale out} to arbitrary storage node, and the maximum state size that \sys can operate depends on the collaborative storage supply by all nodes, rather than the storage capacity of each individual node.
+In storage-scalable blockchains like \sys, the storage overhead can \emph{scale out} to arbitrary number of storage nodes, and the maximum state size that \sys can operate depends on the collaborative storage supply by all nodes, rather than the storage capacity of each individual node.
 Thus, storage scalability is crucial for enabling blockchains to act like distributed databases and handle massive big data states.
 \fi
 
@@ -221,6 +221,9 @@ Monoxide~\cite{wang2019monoxide} introduces the concept of asynchronous consensu
 \paragraph{Limitations of Processing Sharding.}
 \ifspace\else
 As summarized in \autoref{tab:compare}, all prior systems fail to simultaneously achieve safety, liveness, and storage scalability.
+For the randomized committee approach, we admit that some works inherently target lower failure rate (\eg, $\frac{1}{4}$~\cite{luu2016secure,kokoris2018omniledger}), and further examine them with \emph{adaptive} committee sizes, adjusted according to the $\frac{1}{3}$ failure rate.
+As the result, most of the works~\cite{luu2016secure,kokoris2018omniledger,amiri2021sharper,hellings2021byshard,gupta2020resilientdb,zamani2018rapidchain,david2022gearbox,dang2019towards} compromise safety and/or liveness except adaptive randomized committee and Monoxide~\cite{wang2019monoxide}, who would actually enforce the nodes to store full state and loss storage scalability like fully replicated blockchains.
+While Monoxide claims that the solo miners can enjoy scalable storage consumption, it cannot secure the security properties if nodes perform solo mining.
 Due to the lack of space, we defer the detailed examination to appendix.
 \fi
 The shortcomings of these prior systems stem from a fundamental challenge: the fault tolerance of the system is determined by the committee size, whereas conventional BFT settings mandate tolerating $\frac{1}{3}$ faulty nodes, the quantity of which is a function of the total node count.

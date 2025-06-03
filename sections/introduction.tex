@@ -37,7 +37,7 @@ This leads to diminished resilience against safety and liveness attacks.
 We observe that only the sharding of the state is crucial for blockchains to achieve storage scalability, while sharding the other components is unnecessary while posing undesirable consequences.
 Based on this observation, we introduce a novel approach: we decouple a state management system (SMS) from the execution layer to handle a sharded state, while maintaining global consensus and execution layers.
 This innovative methodology achieves a clear \emph{separation of concerns}: the SMS solely addresses storage scalability and availability, which can be effectively managed using advanced erasure coding~\cite{ec} techniques.
-Concurrently, the consensus and execution layers can focus on security attributes without concerns about impacting storage scalability.
+Concurrently, the consensus and execution layers can focus on security attributes without concerning about impacting storage scalability.
 \lijl{Can summarize the challenges of this decoupling approach.}\gd{Done.}
 Meanwhile, the decoupled SMS also introduces the new challenge of supporting execution at different speeds across nodes.
 This necessitates managing multiple state versions concurrently and efficiently identifying historical versions that are safe to dispose of.
