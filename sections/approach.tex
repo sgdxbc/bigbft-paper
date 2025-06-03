@@ -49,7 +49,7 @@ Any combination of $k$ state shards and parity shards can reconstruct the origin
 We then store the $k+2f$ shards of the stripe on $k+2f$ distinct nodes.
 Any supermajority of $2f+1$ nodes will intersect this set of $k+2f$ nodes with at least $k+f$ nodes, of which at least $k$ must be correct, allowing the stripe to be reconstructed from the shards they store.
 % Concurrently, the redundancy remains fixed regardless of the total number of nodes, provided that $k$ is proportional to $f$.
-Concurrently, as the number of nodes increases, we have the opportunity to increase $k$ accordingly through \emph{transcoding}, increasing the stripe size while reducing the average per-shard storage consumption on each node through less parity shards, in order to achieve storage scalability.
+Concurrently, as the number of nodes increases, we have the opportunity to increase $k$ accordingly through efficient \emph{transcoding}~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth,yao2021stripemerge}, increasing the stripe size while reducing the average per-shard storage consumption on each node through less parity shards, in order to achieve storage scalability.
 \lijl{Maybe add some intuition why we can achieve constant redundancy. By only reading the text here, reviewers might wonder that the redundancy relates to $f$ which increases with more nodes in the system. The key is that we will do transcoding to also increase $k$.} \gd{Done.}
 We will revisit the application of erasure codes and the detailed redundancy analysis in \autoref{sec:overview}.
 

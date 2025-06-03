@@ -1,0 +1,29 @@
+\section{Availability and Storage Scalability of Archive Layer}
+
+\texttt{get} shards for versions that have not been garbage collected always succeeds because out of the $k+2f$ queried nodes, at least $k+f$ are correct.
+Since any $k$ correct nodes holding any $k$ pieces of the stripe (state or parity shards) can reconstruct the original $k$ data shards, the queried stripes can always be reconstructed.
+
+The garbage collection process requires a bump quorum of only $2f+1$ participating nodes.
+As mentioned in \autoref{sec:approach}, for each stripe, the $k+2f$ nodes responsible for serving it must overlap with this $2f+1$ quorum by at least $k$ correct nodes.
+These $k$ correct nodes will possess enough state and parity shards to reconstruct the entire stripe.
+The following reasoning is similar to the one in I1 design in \autoref{sec:overview}.
+
+\paragraph{Redundancy Analysis.}
+The redundancy introduced by the EC$(k+2f,k)$ erasure code is $\frac{k+2f}{k}$.
+When $k=1$, the redundancy becomes $2f+1$, which is equivalent to the plain replication design I1.
+By setting $k=pf$, where $p$ is a constant in the range $(0,\frac{f+1}{f}]$, the redundancy becomes $\frac{pf+2f}{pf} = \frac{p+2}{p}$. This redundancy factor remains constant regardless of the state size and total storage capacity, thus achieving the desired storage scalability property.
+
+However, this also implies that as $f$ increases (\ie, more nodes join the system), $k$ should ideally increase as well to maintain a target redundancy ratio.
+This necessitates dynamically adjusting the number of shards within a stripe.
+% Fortunately, advancements in convertible codes~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth} and StripeMerge~\cite{yao2021stripemerge} offer a solution.
+Fortunately, we can employ a specialized erasure code~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth,yao2021stripemerge} that allows merging multiple stripes into a single larger stripe (with a proportionally increased $k$) through efficient computation by combining the parity shards of the original stripes.
+This approach mitigates the significant overhead of massive transcoding operations.
+
+It's important to note that even if $k$ is not adjusted immediately with an increasing $f$, the safety of the system is not compromised; we would simply incur a higher redundancy overhead than necessary.
+Conversely, when $f$ decreases, $k$ must be reduced, and the stripes need to be reconstructed promptly.
+
+Nevertheless, when the total number of nodes $n$ increases, the potential number of faults $f$ also increases, but an immediate increase in $k$ is not strictly required.
+Conversely, when $n$ decreases, $f$ does not necessarily need to be decreased immediately (except for potential liveness considerations), and the administrator can choose an opportune time to decrease $f$ and consequently $k$.
+In summary, $k$ does not require immediate adjustment regardless of whether $n$ is increasing or decreasing.
+In future work, we will design a comprehensive reconfiguration protocol leveraging these techniques to achieve low-overhead scaling up/down.
+\lijl{I assume this should be part of the full paper?}\gd{Yes}

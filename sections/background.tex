@@ -155,8 +155,12 @@ Thus, storage scalability is crucial for enabling blockchains to act like distri
 \paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
 \lijl{The descriptions of prior solutions are too detailed. Can give high-level idea of the general approach, and briefly describe each system.}
 Several prior works enable operation with nodes storing partial states through various mechanisms.
+\ifspace
 In blockchain databases~\cite{ruan2021blockchains} such as \textit{BlockchainDB}~\cite{el2019blockchaindb} and \textsc{GriDB}~\cite{hong2024gridb}, the state is composed of multiple tables.
 Each table (or more granular table partition) is stored by a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables (e.g., join operations)~\cite{zhang2015integridb,hong2024gridb}.
+\else
+In blockchain databases~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb}, each table (or more granular table partition) is stored by a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables~\cite{zhang2015integridb,hong2024gridb}.
+\fi
 More general-purpose sharded blockchains~\cite{luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide} adopt this model, organizing nodes into multiple \emph{committees} responsible for maintaining distinct state shards.
 These approaches typically employ multiple instances of fully-replicated BFT protocols (common choices include PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and address the atomicity of transactions spanning committees using specialized strategies (\eg, two-phase commit).
 \lijl{Specialized strategies meaning 2PC + 2PL?} \gd{Some is, some not. Each with own trade-offs. Would rather not elaborate}
