@@ -8,13 +8,13 @@ Prevailing permissionless distributed ledgers~\cite{buterin2014next, nakamoto200
 % , the duplication of which across over ten thousand nodes necessitates petabytes of cumulative storage.
 \lijl{Why is cumulative storage an issue?} \gd{Done.}
 % The considerable financial burden linked to state replication renders on-chain data storage economically unviable~\cite{balduf2022dude}.
-Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes frequently attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic}.
+Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes frequently attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic,chang2008bigtable}.
 Large-scale deployments of permissioned and consortium blockchains, encompassing hundreds to thousands of nodes and frequently considered in prior investigations~\cite{kokoris2018omniledger,zamani2018rapidchain,amiri2021sharper,gilad2017algorand,gueta2019sbft,yin2019hotstuff}, will impose substantial storage requirements at each node if the state is fully replicated.
 Addressing this challenge requires the achievement of \emph{storage scalability}:
 % the total storage utilization should correlate solely with the state size \lijl{The meaning of ``total storage utilization'' is not very clear}, irrespective of the number of nodes.
 \lijl{Still think that the above definition of scalability is not intuitive.} \gd{Done.}
 the storage consumption on each node must decrease proportionally to the increase of node count.
-Only by realizing storage scalability, the storage resource contributed by the newly-joined nodes can help blockchains to operate larger state size.
+Only by realizing storage scalability, the state storage pressure can scale out to the storage resource contributed by the newly-joined nodes, and the state size is not constrained by the storage capabilities of individual nodes.
 
 Sharded blockchains, wherein nodes can function by maintaining only a segment of the state, have been the subject of considerable prior research~\cite{ruan2021blockchains,luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide,amiri2021sharper}.
 Although these endeavors attain scalable storage requirements, they introduce compromises between storage scalability and security attributes, specifically safety and liveness~\cite{pbft}.
@@ -45,6 +45,7 @@ This necessitates managing multiple state versions concurrently and efficiently 
 And, needless to say, SMS must accomplish this while tolerating $f$ faulty nodes.
 Luckily, through the careful employment of erasure coding\cite{ec}, we demonstrate that this difficulty can be practically addressed.
 
+\ifspace
 \gd{Updated.}
 Based on this framework, we present \sys, a storage-scalable BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes.
 The consensus and execution layers of \sys can integrate existing Byzantine atomic broadcast protocols.
@@ -62,6 +63,12 @@ We analyze the network overhead added by the shard loading, showing it amplifies
 We also analyze the redundancy of \sys comparing to the other scaling approaches.
 The result shows that, thanks to storage scalability, \sys not only consumes less storage than a fully replicated baseline with any number of nodes exceeding 16, it also improves the redundancy factor by $9.88\times$ compared to the state-of-the-art~\cite{zamani2018rapidchain}. \lijl{need to cite SOTA} \gd{Done}
 In conclusion, \sys achieves substantial enhancements in storage efficiency compared to all prior work with uncompromised security.
+\else
+Based on this framework, we present \sys, a storage-scalable BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes.
+The consensus and execution layers of \sys can integrate existing Byzantine atomic broadcast protocols, and SMS is responsible to support the retrieval and update of state shards, behaving as the full state is maintained on every node.
+We present a novel SMS with two-tier architecture that can guarantee successful retrieval with scalable storage consumption.
+We reason about the availability of SMS in detail, and preliminary results show \sys not only consumes less storage than a fully replicated baseline, it also improves the redundancy factor by $9.88\times$ compared to the state-of-the-art~\cite{zamani2018rapidchain}.
+\fi
 
 \iffalse
 There is a dilemma between scaling out the database state and blockchain's replicated execution.
