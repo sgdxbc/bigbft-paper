@@ -224,6 +224,12 @@ If the committee size is independent of the total number of nodes, then security
 Conversely, if the committee size increases with system growth, then storage consumption also rises, and storage scalability is lost (as indicated by \emph{No} in the \emph{Scalable storage?} column).
 In essence, processing sharding necessitates a choice between these two options, resulting in undesirable trade-offs among the desired properties.
 
+\ifspace\else
+\paragraph{Other approaches.}
+Due to the space limit, we omit the discussion of works that strive for block availability~\cite{qi2020bft,eip4844}, externalize the state manipulation~\cite{lee2020replicated,xu2021slimchain,ethereum_scaling_docs} or build BFT features on top of conventional distributed databases~\cite{mcconaghy2016bigchaindb,nathan2019blockchain}.
+These works are applied to other problem settings that not fully align with ours.
+\fi
+
 \iffalse
 \paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
 In blockchain databases, clients \emph{outsource} the database storage to the blockchain, which consists of the nodes with abundant storage capacity but are mutually untrusted to each other.

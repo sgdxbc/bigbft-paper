@@ -28,9 +28,9 @@ This fact allows us to reason about the liveness of \sys: nodes can always make 
 For clarity, we will describe the design iteratively and analyze the desired semantics of the interfaces are fulfilled at each stage.
 We begin with a basic design, I1, then refine its redundancy level with I2. We subsequently merge I1 and I2 into a generational design, I3, to amortize the coding overhead. Finally, we combine a modified version of I1 with I2 to create I4, which offers improved usability.
 
-\lijl{The design details are generally okay. For the workshop, can leave most of the availability, liveness, and redundancy analysis to the appendix. Main text just need to summarize those points.}\gd{Done.}
+\lijl{The design details are generally okay. For the workshop, can leave most of the availability, liveness, and redundancy analysis to the appendix. Main text just need to summarize those points.}
 
-\lijl{Overall, the state versioning is not particularly clear in this section. This can be better clarified in the beginning of the section.}
+\lijl{Overall, the state versioning is not particularly clear in this section. This can be better clarified in the beginning of the section.}\gd{Done.}
 
 \paragraph{I1: Sharding + Plain Replication.}
 In the most basic design, consistent hashing~\cite{karger1997consistent} assigns each shard to $f+1$ nodes.
@@ -145,7 +145,7 @@ This limitation is addressed in the subsequent design.
 \paragraph{I4: Achieving Constant Redundancy with Probabilistic (Fast Path) Availability.}
 In this design, we capitalize on the fact that the archive layer can solely ensure robust availability on its own.
 And we introduce a \emph{relaxed} availability guarantee for the active layer.
-Drawing inspiration from \cite{qi2020bft}\footnote{Their work focuses on the availability of blocks rather than state, as discussed in \autoref{sec:rel}.}, we repurpose the young generation as a fast path with probabilistic availability.
+Drawing inspiration from \cite{qi2020bft}\footnote{Their work focuses on the availability of blocks rather than state.}, we repurpose the young generation as a fast path with probabilistic availability.
 Instead of maintaining $f+1$ replicas, the young generation stores a fixed number $c$ of copies for each shard, distributed across uniformly random nodes, irrespective of $f$.
 Moreover, the young generation retains copies of \emph{all} active shards, representing the latest version of every shard, even if that version has also been moved to the old generation.
 Thus, we henceforth refer to the young and old generations as the \emph{active} and \emph{archive} layers, respectively.
