@@ -1,0 +1,19 @@
+\ifspace
+\paragraph{The Trade-off Between Security and Scalability.}
+\else
+\section{The Trade-off Between Security and Scalability.}
+\fi
+As illustrated in \autoref{tab:compare}, all prior systems fail to simultaneously achieve safety, liveness, and storage scalability.
+Conventional BFT protocols and certain blockchain databases~\cite{peng2020falcondb} fully replicate their states across all nodes, ensuring safety and liveness but lacking storage scalability.
+\textit{BlockchainDB}, SharPer, and \textsc{GeoBFT} necessitate pre-defined fault-tolerant clusters.
+They can only tolerate a fraction of faulty nodes within each cluster and fail when the total number of faulty nodes overwhelms any single cluster.
+\textsc{Elastico}, OmniLedger, and GearBox's fixed-size, randomly-sampled committees are designed to handle low global fault rates (\eg, $\frac{1}{4}$).
+Increasing the fault fraction without adjusting the committee size leads to immediate safety and liveness failures.
+To maintain the same security level \lijl{what properties?} \gd{Done.}, the committee size must be adaptively increased based on the actual fault fraction to ensure that committees contain no more than $\frac{1}{3}$ faulty members with high probability.
+For instance, with a $\frac{1}{4}$ fault probability, sampling 378 nodes from 1000 is required to achieve a $10^{-6}$ faulty committee probability, whereas a $\frac{3}{10}$ fault probability necessitates sampling at least 798 nodes for the same probabilistic safety and liveness guarantees\footnote{These numbers are derived with hypergeometric distribution~\cite{hypergeometric-distr} as formulated in the original works.}.
+As the fault probability approaches the desired $\frac{1}{3}$, the required number of sampled nodes nears the total number of nodes, and the system reverts to a fully replicated architecture, losing storage scalability.
+The other systems employing randomized committees rely on additional assumptions for their safety guarantees, such as trusted hardware or synchronous network conditions.
+Monoxide appears to secure all three properties concurrently.
+However, if we adhere to the work's assumption that professional mining facilities mining across all zones dominate the mining power, storage scalability is lost because nodes must store states from every zone.
+Conversely, if nodes engage in solo mining~\cite{bitcoin_solo_mining} and operate on single zones, individual zones become susceptible to subversion by faulty mining power, resulting in the loss of safety and liveness.
+Ultimately, no prior system can simultaneously achieve all three properties.
