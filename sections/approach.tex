@@ -15,11 +15,16 @@ In sharded blockchains, a transaction is invariably executed by a limited set of
 Given a sufficient number of nodes, the $\frac{1}{3}$ faulty nodes can overwhelm the committee and induce safety issues (\eg, sending identical incorrect responses) and liveness issues (\eg, non-responsiveness).
 
 While neither the consensus layer nor the execution layer in its entirety is amenable to sharding, we can further decompose the execution layer and \emph{extract} the state, considering that storage scalability primarily concerns the storage occupied by the (replicated) state.
-Fortunately, as long as all nodes continue to execute every transaction (and respond to the client), sharding the state will no longer compromise the safety property.
+Fortunately, since all nodes continue to execute every transaction (and respond to the client), sharding the state will no longer compromise protocol safety.
+However, the approach needs to ensure \emph{availability} of all the state shards;
+otherwise, the execution layer can be blocked accessing some state, violating liveness.
+
+\iffalse
 Interestingly, although a sharded state is unrelated to typical liveness issues addressed by standard BFT protocols (leader rotation, reply withholding, etc.), it can introduce a novel liveness concern if nodes cannot obtain the required state shards, leading to execution being blocked.
 This implies that the liveness property now additionally hinges on the \emph{availability} of any shard of the state.
 State availability is a non-issue for most BFT protocols, where the execution layer maintains all relevant states locally at the nodes.
 However, when a sharded state is coupled with a non-sharded execution layer, the execution layer cannot process all transactions using only local shards, and the liveness of execution depends on the accessibility of remote shards.
+\fi
 
 We now present our approach, as illustrated in the bottom section of \autoref{fig:approach-compare}.
 A state management system (SMS) is separated from the execution layer and serves as the dedicated state storage on the nodes.
