@@ -1,23 +1,21 @@
-\section{A Decomposing Approach}
+\section{Decoupling State from Execute}
 \label{sec:approach}
 
-As previously discussed in \autoref{sec:bg}, processing sharding, a sharding strategy that globally affects the consensus and execution layers, impacts safety and liveness properties.
-% Next, we will decompose BFT protocols into consensus and execution layers and analyze the effects of sharding on each layer separately.
-\lijl{No need to preview the solution.}\gd{Done.}
-Actually, sharding the consensus layer alone can substantially degrade the safety and liveness of the system.
-It is theoretically impossible~\cite{bracha1985asynchronous} to tolerate $f$ Byzantine faults with less than $3f+1$ nodes without the help from synchronous network condition~\cite{zamani2018rapidchain}, trusted hardware~\cite{dang2019towards}, PoW puzzles~\cite{wang2019monoxide}, etc.
-Thus, keeping the goal of achieving these properties in mind, we should avoid sharding the consensus layer.
+As previously discussed in \autoref{sec:bg}, prior sharding approaches impacts safety and liveness properties.
+If we dissect a blockchain protocol, it consists of a \emph{consensus} layer, which produces a total order of transactions, and an \emph{execution} layer, which applies those transactions and updates blockchain state.
+%Actually, sharding the consensus layer alone can substantially degrade the safety and liveness of the system.
+For consensus, it is theoretically impossible~\cite{bracha1985asynchronous} to tolerate $f$ Byzantine faults with less than $3f+1$ nodes without the help from synchronous network condition~\cite{zamani2018rapidchain}, trusted hardware~\cite{dang2019towards}, PoW puzzles~\cite{wang2019monoxide}, etc.
+%Thus, keeping the goal of achieving these properties in mind, we should avoid sharding the consensus layer.
+%Should we decompose the BFT protocols and solely shard the execution layer?
+%Regrettably, a sharded execution layer can still significantly impact both safety and liveness properties.
+For execution, a client must await $f+1$ identical responses from distinct nodes to tolerate up to $f$ Byzantine faults.
+Since $f$ grows with increasing system size, it seems that neither layer could be sharded without impacting security guarantees.
+%In sharded blockchains, a transaction is invariably executed by a limited set of nodes (thus achieving storage scalability), limiting the number of Byzantine faults that can be tolerated.
+%Given a sufficient number of nodes, the $\frac{1}{3}$ faulty nodes can overwhelm the committee and induce safety issues (\eg, sending identical incorrect responses) and liveness issues (\eg, non-responsiveness).
 
-Should we decompose the BFT protocols and solely shard the execution layer?
-Regrettably, a sharded execution layer can still significantly impact both safety and liveness properties.
-In BFT protocols, a client must await $f+1$ identical responses from distinct nodes before committing a transaction to tolerate up to $f$ Byzantine faults.
-In sharded blockchains, a transaction is invariably executed by a limited set of nodes (thus achieving storage scalability), limiting the number of Byzantine faults that can be tolerated.
-Given a sufficient number of nodes, the $\frac{1}{3}$ faulty nodes can overwhelm the committee and induce safety issues (\eg, sending identical incorrect responses) and liveness issues (\eg, non-responsiveness).
-
-While neither the consensus layer nor the execution layer in its entirety is amenable to sharding, we can further decompose the execution layer and \emph{extract} the state, considering that storage scalability primarily concerns the storage occupied by the (replicated) state.
-Fortunately, since all nodes continue to execute every transaction (and respond to the client), sharding the state will no longer compromise protocol safety.
-However, the approach needs to ensure \emph{availability} of all the state shards;
-otherwise, the execution layer can be blocked accessing some state, violating liveness.
+Our key insight is that the execution layer could be further decomposed into transaction execution and state management.
+By only sharding the state, not the execution nor the consensus, protocol safety is always preserved.
+The approach only needs to ensure \emph{availability} of all the state shards to guarantee progress (liveness) of transaction execution.
 
 \iffalse
 Interestingly, although a sharded state is unrelated to typical liveness issues addressed by standard BFT protocols (leader rotation, reply withholding, etc.), it can introduce a novel liveness concern if nodes cannot obtain the required state shards, leading to execution being blocked.
@@ -26,8 +24,7 @@ State availability is a non-issue for most BFT protocols, where the execution la
 However, when a sharded state is coupled with a non-sharded execution layer, the execution layer cannot process all transactions using only local shards, and the liveness of execution depends on the accessibility of remote shards.
 \fi
 
-We now present our approach, as illustrated in the bottom section of \autoref{fig:approach-compare}.
-A state management system (SMS) is separated from the execution layer and serves as the dedicated state storage on the nodes.
+As illustrated in the bottom of \autoref{fig:approach-compare}, a state management system (SMS) is separated from the execution layer and serves as the dedicated state storage on the nodes.
 % SMS is responsible for possessing the state to the execution layer.
 When execution layer need to access shards for executing transactions, it retrieves them from SMS.
 SMS guarantees the availability of the state: the retrieval will always be successful.
@@ -44,7 +41,9 @@ Conversely, the SMS does not need to consider safety at all --- without even acc
 \lijl{SMS shouldn't receive transactions?} \gd{Done.}
 Its sole responsibility is to manage the state shards in a storage-scalable manner that satisfies availability declared previously.
 \lijl{We should properly define these properties somewhere.} \gd{Done above.}
-While this design space has rarely been explored (quoting a 2023 survey on sharding replication systems~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding}), recent high-throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} adopt a similar approach, decoupling a delivery layer (reliable broadcast) from the consensus and execution layers and independently scaling it up to achieve optimal throughput.
+While this design space has rarely been explored, recent high-throughput BFT protocols~\cite{danezis2022narwhal,giridharan2024autobahn} adopt a similar approach, decoupling a delivery layer (reliable broadcast) from the consensus and execution layers and scaling it independently.
+
+%(quoting a 2023 survey on sharding replication systems~\cite{solat2023sharding}: \emph{To the best of our knowledge, actually there is no protocol that uses storage sharding without processing sharding})
 
 \paragraph{Achieving Storage Scalability and Availability in BFT Settings.}
 To achieve both storage scalability and availability, we must distribute the storage overhead (i.e., the \emph{redundancy}) of each shard and the responsibility for storing it across a sufficiently large set of nodes to tolerate $f$ failures among them, while maintaining a fixed amount of redundancy across all these nodes.
@@ -56,7 +55,7 @@ Any supermajority of $2f+1$ nodes will intersect this set of $k+2f$ nodes with a
 % Concurrently, the redundancy remains fixed regardless of the total number of nodes, provided that $k$ is proportional to $f$.
 Concurrently, as the number of nodes increases, we have the opportunity to increase $k$ accordingly through efficient \emph{transcoding}~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth,yao2021stripemerge}, increasing the stripe size while reducing the average per-shard storage consumption on each node through less parity shards, in order to achieve storage scalability.
 \lijl{Maybe add some intuition why we can achieve constant redundancy. By only reading the text here, reviewers might wonder that the redundancy relates to $f$ which increases with more nodes in the system. The key is that we will do transcoding to also increase $k$.} \gd{Done.}
-We will revisit the application of erasure codes and the detailed redundancy analysis in \autoref{sec:overview}.
+%We will revisit the application of erasure codes and the detailed redundancy analysis in \autoref{sec:overview}.
 
 \gd{Removed.}
 \iffalse
@@ -73,7 +72,7 @@ By simply caching a small proportion of shards (\autoref{sec:impl}), the total n
 A more detailed analysis is provided in \autoref{sec:eval}.
 \fi
 
-\gd{Updated.}
+\ifspace
 Implementing an SMS is challenging despite its logical appeal.
 While state sharding borrows from distributed databases, SMS operates in a fundamentally different environment and faces distinct constraints.
 Specifically, SMS must support independent execution on every node, with each node making progress at a different rate.
@@ -81,6 +80,7 @@ Thus, SMS must concurrently manage multiple state versions and quickly identify 
 Erasure coding, while used, is computationally expensive and can degrade performance if not carefully employed.
 Most importantly, the design must tolerate $f$ faulty nodes, necessitating quorum-based communication (often supermajority), and we must examine that the additional network traffic brought by them is acceptable.
 In the following section, we present our design of \sys and demonstrate how it tackles these challenges.
+\fi
 
 \iffalse
 In \autoref{sec:bg} we observe that, previous works attempt to scale both processing and storage with processing sharding and have to settle on the trade-offs among the three properties.

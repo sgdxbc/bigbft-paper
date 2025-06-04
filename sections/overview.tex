@@ -1,4 +1,4 @@
-\section{System Design: An Iterative Refinement}
+\section{System Design}
 \label{sec:overview}
 
 We now detail the design of the state management system (SMS).
@@ -9,28 +9,27 @@ It exposes three interfaces to the execution layer:
     \item \texttt{get}(shard indexes) returns state shards of current version.
     \item \texttt{update}(shard indexes, shards) update the shards and bump (\ie, increment) the state version.
     \item \texttt{skip}() fast-forward the state version and returns the number of skipped versions.
-    We will elaborate on this later.
 \end{itemize}
 % The SMS is tasked with loading the necessary shards of the current state version to execute transactions, storing all versions of the shards that the nodes are responsible for maintaining, and responding to the load requests from other nodes.
 \lijl{We should clearly define the SMS interface and its properties.} \gd{Done.}
 
-SMS guarantees availability (\autoref{sec:approach}), i.e., all \texttt{get} will return the desired shards successfully (with the exception described later).
-On the other hand, execution layer should guarantee safety to SMS, which means the correct nodes will call \texttt{update} with identical sequence of shard indexes and shards.
-If so, then SMS guarantees that \texttt{get} returns identical shards on all correct nodes.
+SMS guarantees availability (\autoref{sec:approach}), i.e., all \texttt{get} will return the desired shards successfully.
+If all correct nodes call \texttt{update} with identical sequence of shard indexes and shards (guaranteed by consensus and execution), SMS ensures that \texttt{get} returns identical shards on all correct nodes.
 Conceptually, SMS behaves as the full state is maintained on every node.
 
-However, to accomplish scalable storage consumption, SMS cannot store all shards on all nodes and the nodes have to load some shards remotely upon \texttt{get}.
-If a node lags behind a $2f+1$ supermajority, it is possible that the loaded shard is \emph{garbage collected} through the procedure detailed later, and \texttt{get} returns null.
-In such case, the node can call \texttt{skip} to catch the pace, fast-forward its version and skip execution for the intermediate transactions.
-In another word, SMS guarantees the availability of a \emph{sliding window} of state versions, and the nodes fall behind this window can always catch up by calling \texttt{skip}.
+However, to scale state, SMS only stores a subset of shards on each node;
+\texttt{get} might need to fetch data from a remote node.
+If a node lags behind a $2f+1$ quorum, the target shard could be \emph{garbage collected}, and \texttt{get} returns null.
+In such cases, the node can call \texttt{skip} to fast-forward its version and skip execution for the intermediate transactions.
+Equivalently, SMS guarantees the availability of a \emph{sliding window} of state versions, and the nodes behind this window can always catch up by calling \texttt{skip}.
 This fact allows us to reason about the liveness of \sys: nodes can always make progress on the state version (given that there are new versions ahead) either by calling \texttt{update} followed by \texttt{get} that is guaranteed to succeed or by calling \texttt{skip}.
 
 \ifspace
 For clarity, we will describe the design iteratively and analyze the desired semantics of the interfaces are fulfilled at each stage.
 \else
-For clarity, we present the design with four iterations.
+We present our design with four iterations.
 \fi
-We begin with a basic design, I1, then refine its redundancy level with I2. We subsequently merge I1 and I2 into a generational design, I3, to amortize the coding overhead. Finally, we combine a modified version of I1 with I2 to create I4, which offers improved usability.
+We begin with a basic design, I1, then refine its redundancy level with I2. We then merge I1 and I2 into a generational design, I3, to amortize the coding overhead. Finally, we combine a I1 and I2 to create I4 which offers improved usability.
 
 \lijl{The design details are generally okay. For the workshop, can leave most of the availability, liveness, and redundancy analysis to the appendix. Main text just need to summarize those points.}
 
@@ -68,12 +67,12 @@ Consequently, the response by the correct queried node(s) will be verified and a
 I1 becomes practical only if older versions of the shards can be pruned.
 To enable this, we modify I1 such that each shard is placed on $2f+1$ nodes instead of $f+1$, and they are all queried for loading the shard.
 This won't fail any \texttt{get} calls.
-
 Next, after bumping their state version at the end of \texttt{update}, nodes broadcast signed messages.
 These messages include the node's Merkle root representing its view of that state version it just entered.
 A $2f+1$ bump quorum with matching version and Merkle root serves as a certificate to garbage collect all shards and metadata from the versions prior to the certified one. \lijl{meaning both metadata and shard data?}\gd{Yes and udpated.}
 Once a node gathers such a certificate, it can prune its historical shards accordingly.
 
+\ifspace
 If $2f+1$ nodes have bumped up to a certain version, at least $f+1$ of them are correct.
 For any given shard of that version, the $2f+1$ nodes responsible for storing it must overlap with these $f+1$ correct nodes by at least one correct node, which will serve the shard and correctly respond to \texttt{get}.
 As the result, \texttt{get} every shard of the \emph{highest} version certified by a bump quorum will succeed.
@@ -81,6 +80,7 @@ Simultaneously, the bump quorum certificate also indicates the correct Merkle ro
 So, if the incoming query is for a shard versioned older than the last bump quorum certificate, the nodes can respond with the certificate instead of the shard.
 This causes the corresponding \texttt{get} to return null, but in a following \texttt{skip} call, the querying node can fast-forward to the certified version and set its view of the state to the certified Merkle root.
 Therefore, the nodes can safely discard shards older than the last certified version.
+\fi
 
 \ifspace
 Also, the liveness of garbage collection is straightforward, as the formation of a bump quorum can be done by the $2f+1$ correct nodes.
@@ -167,20 +167,24 @@ In this design, we capitalize on the fact that the archive layer \emph{alone} ca
 %  we repurpose the young generation as a fast path with probabilistic availability.
 Instead of maintaining $f+1$ replicas, the young generation stores a fixed number $c$ of copies for each shard, distributed across uniformly random nodes, irrespective of $f$.
 Moreover, the young generation retains copies of \emph{all} active shards, representing the latest version of every shard, even if that version has been moved to the old generation.
+\ifspace
 We now refer to the young and old generations as the \emph{active} and \emph{archive} layers, respectively.
+\fi
 
-\gd{Updated.}
 \ifspace
 The archive layer ultimately guarantees successful \texttt{get} of the last archived version of the state, as detailed in the I2 design.
 Loading every stripe (and thus every shard) of any subsequent version can be accomplished by loading the archived version then replaying the intermediate transactions, so the \texttt{get} call of these versions are always successful.
 Furthermore, the probability of loading a shard successfully with the active layer is $1-(\frac{2}{3})^c$, which exceeds 99.9\% with $c=7$ and surpasses six-nines with $c=13$.
-\else
+\fi
+\ifspace
 The probability of loading a shard successfully with the active layer is $1-(\frac{2}{3})^c$, which exceeds 99.9\% with $c=7$ and surpasses six-nines with $c=13$.
 \fi
+\ifspace
 The resilience of the active layer grows exponentially with $c$ and is configurable by the administrator.
 Crucially, a potential failure of the active layer does not transform \sys into a speculative BFT protocol and does not necessitate rollback capabilities in the replicated state machine.
 In the recovery scenario where shards are unavailable in the active layer, the transaction history remains intact, and nodes simply re-execute the same sequence of transactions assisted by the archive layer.
 Any replies already committed to clients will not be invalidated.
+\fi
 \ifspace
 Finally, storage overhead of the active layer is a fixed $c$ times the state size, so the per-node average overhead is inversely proportional to the number of nodes, \ie, is storage-scalable.
 As already shown, the archive layer achieves storage scalability, as discussed in I2.

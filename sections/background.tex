@@ -7,10 +7,10 @@ Our work functions as a replicated service for arbitrary state machines~\cite{la
 The main focus is on the space consumed on participating nodes for storing the \emph{state}, the data component manipulated by the replicated state machine.
 Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft}, and its state storage consumption is scalable to the number of nodes analogous to distributed storage systems~\cite{corbett2013spanner}.
 \else
-We target on designing a replicated service for arbitrary state machines~\cite{lamport1978implementation} with security model aligned with conventional BFT protocols~\cite{pbft}.
-The main focus is on the space consumed on participating nodes for storing the \emph{state}, the data component manipulated by the replicated state machine.
+We target designing a replicated service for arbitrary state machines~\cite{lamport1978implementation} with security model aligned with conventional BFT protocols~\cite{pbft}.
+The main focus is on the space consumed for storing the \emph{state}, the data component manipulated by the replicated state machine.
 \fi
-Beyond traditional safety (linearizability~\cite{herlihy1987axioms}) and liveness guarantees, \sys aims to provide \emph{storage scalability}: As the system scales out, \sys demands \emph{less} state storage from each node, inversely proportionally to the node count.
+Beyond traditional safety (linearizability~\cite{herlihy1987axioms}) and liveness guarantees, \sys aims to provide \emph{storage scalability}: As the system scales out, \sys demands storage space from each node inversely proportionally to the node count.
 In contrary, state storage in traditional BFT remains the same regardless of the system size.
 %and the state size bottlenecks on the storage resource of a \emph{single} node, rendering the lack of scalability.
 
@@ -130,9 +130,6 @@ The essential point is that achieving storage scalability is critical for blockc
 In storage-scalable blockchains like \sys, the maximum operational state size depends on the total storage supply collaboratively provided by all nodes, rather than the storage capacity of each individual node.
 When more nodes join the system, the storage overhead can \emph{scale out} to their storage resources, reducing storage pressure on existing nodes and enabling the system to manage larger states, similar to conventional distributed databases~\cite{corbett2013spanner}.
 This characteristic is crucial for enabling blockchains to handle massive big data states, akin to distributed databases.
-\else
-In storage-scalable blockchains like \sys, the storage overhead can \emph{scale out} to arbitrary number of storage nodes, and the maximum state size that \sys can operate depends on the collaborative storage supply by all nodes, rather than the storage capacity of each individual node.
-Thus, storage scalability is crucial for enabling blockchains to act like distributed databases and handle massive big data states.
 \fi
 
 \begin{table}
@@ -167,7 +164,7 @@ Each table (or more granular table partition) is stored by a subset of nodes, an
 In blockchain databases~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb}, each table (or more granular table partition) is stored by a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables~\cite{zhang2015integridb,hong2024gridb}.
 \fi
 More general-purpose sharded blockchains~\cite{luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide} adopt this model, organizing nodes into multiple \emph{committees} responsible for maintaining distinct state shards.
-These approaches typically employ multiple instances of fully-replicated BFT protocols (common choices include PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and address the atomicity of transactions spanning committees using specialized strategies (\eg, two-phase commit).
+These approaches typically employ multiple instances of fully-replicated BFT protocols (common choices include PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and address the atomicity of cross-committee transactions using specialized strategies (\eg, two-phase commit).
 \lijl{Specialized strategies meaning 2PC + 2PL?} \gd{Some is, some not. Each with own trade-offs. Would rather not elaborate}
 
 % In common centralized distributed databases like~\cite{corbett2013spanner}, all nodes are centrally managed to collaboratively store the database states and each transaction is processed only once.
@@ -224,15 +221,14 @@ Monoxide~\cite{wang2019monoxide} introduces the concept of asynchronous consensu
 \fi
 
 \paragraph{Limitations of Processing Sharding.}
-\ifspace\else
 As summarized in \autoref{tab:compare}, all prior systems fail to simultaneously achieve safety, liveness, and storage scalability.
-For the randomized committee approach, we admit that some works inherently target lower failure rate (\eg, $\frac{1}{4}$~\cite{luu2016secure,kokoris2018omniledger}), and further examine them with \emph{adaptive} committee sizes, adjusted according to the $\frac{1}{3}$ failure rate.
-As the result, most of the works~\cite{luu2016secure,kokoris2018omniledger,amiri2021sharper,hellings2021byshard,gupta2020resilientdb,zamani2018rapidchain,david2022gearbox,dang2019towards} compromise safety and/or liveness except adaptive randomized committee and Monoxide~\cite{wang2019monoxide}, who would actually enforce the nodes to store full state and loss storage scalability like fully replicated blockchains.
-While Monoxide claims that the solo miners can enjoy scalable storage consumption, it cannot secure the security properties if nodes perform solo mining.
-Due to the lack of space, we defer the detailed examination to appendix.
-\fi
-The shortcomings of these prior systems stem from a fundamental challenge: the fault tolerance of the system is determined by the committee size, whereas conventional BFT settings mandate tolerating $\frac{1}{3}$ faulty nodes, the quantity of which is a function of the total node count.
-If the committee size is independent of the total number of nodes, then security properties are compromised because the resiliency cannot scale up with the number of nodes (as indicated by \emph{No} in the \emph{Safety?} and/or \emph{Liveness?} columns of \autoref{tab:compare}). \lijl{I think this sentence does not provide enough rationale to be convincing.} \gd{Refined}
+%For the randomized committee approach, we admit that some works inherently target lower failure rate (\eg, $\frac{1}{4}$~\cite{luu2016secure,kokoris2018omniledger})
+We further examine randomized committee with \emph{adaptive} committee sizes, adjusted according to the $\frac{1}{3}$ failure rate.
+%As the result, most of the works~\cite{luu2016secure,kokoris2018omniledger,amiri2021sharper,hellings2021byshard,gupta2020resilientdb,zamani2018rapidchain,david2022gearbox,dang2019towards} compromise safety and/or liveness except adaptive randomized committee and Monoxide~\cite{wang2019monoxide}, who would actually enforce the nodes to store full state and loss storage scalability like fully replicated blockchains.
+%While Monoxide claims that the solo miners can enjoy scalable storage consumption, it cannot secure the security properties if nodes perform solo mining.
+%Due to the lack of space, we defer the detailed examination to appendix.
+The shortcomings of prior systems stem from a fundamental challenge: Their fault tolerance is determined by the committee size, whereas conventional BFT settings mandate tolerating $\frac{1}{3}$ faulty nodes among \emph{all} participants.
+If the committee size is independent of the system size, security properties are compromised because the resiliency cannot scale up with the number of nodes (as indicated by \emph{No} in the \emph{Safety?} and/or \emph{Liveness?} columns of \autoref{tab:compare}). \lijl{I think this sentence does not provide enough rationale to be convincing.} \gd{Refined}
 Conversely, if the committee size increases with system growth, then storage consumption also rises, and storage scalability is lost (as indicated by \emph{No} in the \emph{Scalable storage?} column).
 In essence, processing sharding necessitates a choice between these two options, resulting in undesirable trade-offs among the desired properties.
 
