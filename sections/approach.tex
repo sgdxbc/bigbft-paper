@@ -11,23 +11,23 @@ Thus, keeping the goal of achieving these properties in mind, we should avoid sh
 Should we decompose the BFT protocols and solely shard the execution layer?
 Regrettably, a sharded execution layer can still significantly impact both safety and liveness properties.
 In BFT protocols, a client must await $f+1$ identical responses from distinct nodes before committing a transaction to tolerate up to $f$ Byzantine faults.
-In sharded blockchains, a particular transaction is invariably executed by a limited set of nodes (thus achieving storage scalability), consequently limiting the number of Byzantine faults that can be tolerated.
-Given a sufficient total number of nodes, the $\frac{1}{3}$ faulty nodes can overwhelm the committee and induce safety issues (\eg, sending identical incorrect responses) and liveness issues (\eg, non-responsiveness).
+In sharded blockchains, a transaction is invariably executed by a limited set of nodes (thus achieving storage scalability), limiting the number of Byzantine faults that can be tolerated.
+Given a sufficient number of nodes, the $\frac{1}{3}$ faulty nodes can overwhelm the committee and induce safety issues (\eg, sending identical incorrect responses) and liveness issues (\eg, non-responsiveness).
 
 While neither the consensus layer nor the execution layer in its entirety is amenable to sharding, we can further decompose the execution layer and \emph{extract} the state, considering that storage scalability primarily concerns the storage occupied by the (replicated) state.
 Fortunately, as long as all nodes continue to execute every transaction (and respond to the client), sharding the state will no longer compromise the safety property.
 Interestingly, although a sharded state is unrelated to typical liveness issues addressed by standard BFT protocols (leader rotation, reply withholding, etc.), it can introduce a novel liveness concern if nodes cannot obtain the required state shards, leading to execution being blocked.
 This implies that the liveness property now additionally hinges on the \emph{availability} of any shard of the state.
 State availability is a non-issue for most BFT protocols, where the execution layer maintains all relevant states locally at the nodes.
-However, when a sharded state is coupled with a non-sharded execution layer, the execution layer cannot process all transactions using only locally stored shards, and the liveness of execution depends on the accessibility of remote shards to the nodes.
+However, when a sharded state is coupled with a non-sharded execution layer, the execution layer cannot process all transactions using only local shards, and the liveness of execution depends on the accessibility of remote shards.
 
 We now present our approach, as illustrated in the bottom section of \autoref{fig:approach-compare}.
 A state management system (SMS) is separated from the execution layer and serves as the dedicated state storage on the nodes.
 % SMS is responsible for possessing the state to the execution layer.
 When execution layer need to access shards for executing transactions, it retrieves them from SMS.
 SMS guarantees the availability of the state: the retrieval will always be successful.
-Behind the scene, SMS must distribute shards across the nodes and cannot store all shards on each node, to achieve storage scalability.
-So, SMS may need to load the accessed shards from other nodes upon retrieval, and the loading must succeed as well to guarantee availability.
+Behind the scene, SMS stores a subset of shards on each node to achieve storage scalability;
+it thus may need to load the accessed shards from other nodes upon retrieval, and the loading must succeed as well to guarantee availability.
 % While every transaction is executed by all nodes, the state shard(s) accessed during its execution are stored only on a subset of the nodes.
 % The SMS of the remaining nodes is responsible for loading the required shards on demand to facilitate local execution.
 % These loaded shards may be discarded after the transaction is executed, and the SMS will reload them upon the next access.

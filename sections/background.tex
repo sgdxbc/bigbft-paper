@@ -56,7 +56,7 @@ Numerous blockchain applications generate OLTP workloads, such as token transfer
 Furthermore, OLAP workloads involving scans across a large number of shards can be executed off-chain using a verified state checkpoint (\autoref{sec:overview}).
 \else
 \sys achieves optimal performance with online transaction processing (OLTP) workloads, where each transaction access a tiny fraction of the whole state.
-Nonetheless, we remark that \sys guarantees the three properties under all kinds of transaction workloads.
+Nonetheless, \sys still guarantees the three properties under all kinds of transaction workloads.
 \fi
 
 % \lijl{Probably earlier in the paper, we should clearly define what ``state'' means.}
@@ -205,7 +205,7 @@ Among these works, \textsc{Elastico}~\cite{luu2016secure} establishes the ground
 The number of committees is proportional to the number of nodes, so the states size managed by the nodes of each committee decrease correspondingly, achieving scalability.
 The following works propose various improvements, including enhancing the committee formation with verifiable random function~\cite{kokoris2018omniledger}, reducing committee size and increasing storage scalability with trusted hardware~\cite{dang2019towards}, synchronous consensus~\cite{zamani2018rapidchain} or flexible liveness~\cite{david2022gearbox}.
 Meanwhile, another line of works~\cite{amiri2021sharper,hellings2021byshard,gupta2020resilientdb} leverage pre-determined fault-tolerant clusters as committees.
-Monoxide~\cite{wang2019monoxide} introduces the concept of asynchronous consensus zone, which can be viewed as arbitrarily sized committees, and proposes a novel PoW mining scheme that enables mining power to concurrently operate across multiple zones.
+Monoxide~\cite{wang2019monoxide} introduces the concept of asynchronous consensus zone, which can be viewed as arbitrarily sized committees, and proposes a novel PoW mining scheme that enables mining power to operate across multiple zones.
 \fi
 
 \lijl{For the workshop paper, we can shorten the description of prior work.}

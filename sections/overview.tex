@@ -1,7 +1,7 @@
 \section{System Design: An Iterative Refinement}
 \label{sec:overview}
 
-In this section, we detail the design of the state management system (SMS) within \sys.
+We now detail the design of the state management system (SMS).
 SMS considers the managed state as multi-versioned data, with each transaction execution generating a new state version.
 On shard level, in each new version a fraction of shards is updated by the interleaving transaction, and the other unmodified shards ``fall through''.
 It exposes three interfaces to the execution layer:
@@ -14,8 +14,7 @@ It exposes three interfaces to the execution layer:
 % The SMS is tasked with loading the necessary shards of the current state version to execute transactions, storing all versions of the shards that the nodes are responsible for maintaining, and responding to the load requests from other nodes.
 \lijl{We should clearly define the SMS interface and its properties.} \gd{Done.}
 
-SMS guarantees availability (\autoref{sec:approach}).
-Regarding the interfaces, it means all \texttt{get} will return the desired shards successfully (with the exception described later).
+SMS guarantees availability (\autoref{sec:approach}), i.e., all \texttt{get} will return the desired shards successfully (with the exception described later).
 On the other hand, execution layer should guarantee safety to SMS, which means the correct nodes will call \texttt{update} with identical sequence of shard indexes and shards.
 If so, then SMS guarantees that \texttt{get} returns identical shards on all correct nodes.
 Conceptually, SMS behaves as the full state is maintained on every node.
@@ -55,8 +54,8 @@ In this sense, the Merkle root represents the node's view of the whole state.
 Upon \texttt{get} call, the nodes load the desired shards by querying the $f+1$ storing nodes and wait for a response with a verified inclusion proof, or retrieve locally if themselves are among the storing nodes.
 The \texttt{update} call first updates the Merkle root and the inclusion proofs of the storing shards with the updated shards.
 Then, the nodes bump the version, and the shards loaded from other nodes (if any) can be discarded.
-The previous version(s) of the stored shards are not discarded immediately for serving the incoming queries from potentially slower nodes.
-However, we can perform \emph{copy-on-write} optimization to deduplicate the unmodified shards across multiple versions.
+The previous versions of the stored shards are not discarded immediately for serving queries from slower nodes.
+However, we can perform \emph{copy-on-write} to deduplicate the unmodified shards across multiple versions.
 
 \ifspace
 \gd{Updated.}
@@ -66,14 +65,14 @@ Consequently, the response by the correct queried node(s) will be verified and a
 \fi
 
 \paragraph{Garbage Collection.}
-I1 becomes practical only if historical versions of the shards can be pruned.
-To enable this, we first modify I1 such that each shard is placed on $2f+1$ nodes instead of $f+1$, and they are all queried for loading the shard.
-This certainly won't fail any \texttt{get} calls.
+I1 becomes practical only if older versions of the shards can be pruned.
+To enable this, we modify I1 such that each shard is placed on $2f+1$ nodes instead of $f+1$, and they are all queried for loading the shard.
+This won't fail any \texttt{get} calls.
 
 Next, after bumping their state version at the end of \texttt{update}, nodes broadcast signed messages.
 These messages include the node's Merkle root representing its view of that state version it just entered.
 A $2f+1$ bump quorum with matching version and Merkle root serves as a certificate to garbage collect all shards and metadata from the versions prior to the certified one. \lijl{meaning both metadata and shard data?}\gd{Yes and udpated.}
-Once a node gathers such a bump quorum certificate, it can prune its historical shards accordingly.
+Once a node gathers such a certificate, it can prune its historical shards accordingly.
 
 If $2f+1$ nodes have bumped up to a certain version, at least $f+1$ of them are correct.
 For any given shard of that version, the $2f+1$ nodes responsible for storing it must overlap with these $f+1$ correct nodes by at least one correct node, which will serve the shard and correctly respond to \texttt{get}.
@@ -81,7 +80,7 @@ As the result, \texttt{get} every shard of the \emph{highest} version certified 
 Simultaneously, the bump quorum certificate also indicates the correct Merkle root (view of the state) for that version.
 So, if the incoming query is for a shard versioned older than the last bump quorum certificate, the nodes can respond with the certificate instead of the shard.
 This causes the corresponding \texttt{get} to return null, but in a following \texttt{skip} call, the querying node can fast-forward to the certified version and set its view of the state to the certified Merkle root.
-Therefore, it is safe for the nodes to discard all the shards older than the last certified version.
+Therefore, the nodes can safely discard shards older than the last certified version.
 
 \ifspace
 Also, the liveness of garbage collection is straightforward, as the formation of a bump quorum can be done by the $2f+1$ correct nodes.
@@ -151,7 +150,7 @@ Periodically, the nodes transition into new \emph{epochs} and reach consensus on
 Once a bump quorum is achieved for an epoch version, the state corresponding to that epoch version is moved into the \emph{old} generation and encoded using the erasure code.
 The redundant copies of the shards from the young generation can then be discarded.
 Since all shard loading requests are served from the young generation, the encoding of the old generation can be performed in the background.
-This ensures that the process of loading shards is free from any encoding or decoding overhead.
+This ensures that loading shards is free from any encoding or decoding overhead.
 
 \ifspace
 \gd{Updated.}
@@ -167,8 +166,8 @@ This limitation is addressed in the subsequent design.
 In this design, we capitalize on the fact that the archive layer \emph{alone} can ensure robust availability and optimize the storage overhead by \emph{relaxing} availability guarantee of the young generation, drawing inspiration from \cite{qi2020bft}\footnote{Their work focuses on the availability of blocks rather than state.}.
 %  we repurpose the young generation as a fast path with probabilistic availability.
 Instead of maintaining $f+1$ replicas, the young generation stores a fixed number $c$ of copies for each shard, distributed across uniformly random nodes, irrespective of $f$.
-Moreover, the young generation retains copies of \emph{all} active shards, representing the latest version of every shard, even if that version has also been moved to the old generation.
-Thus, we henceforth refer to the young and old generations as the \emph{active} and \emph{archive} layers, respectively.
+Moreover, the young generation retains copies of \emph{all} active shards, representing the latest version of every shard, even if that version has been moved to the old generation.
+We now refer to the young and old generations as the \emph{active} and \emph{archive} layers, respectively.
 
 \gd{Updated.}
 \ifspace
