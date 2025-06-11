@@ -42,7 +42,7 @@ It is the shard \emph{index} instead of \emph{content} that associated to the no
 All shards are organized in a Merkle tree~\cite{merkle1987digital}, and nodes maintain inclusion proofs for the shards they store.
 \lijl{Might want to briefly explain what a ``inclusion proof'' is and its property.} \gd{Done.}
 The inclusion proof of a shard can prove the integrity of the shard to the nodes loading it.
-Any node with the Merkle root (\ie, the root hash of the Merkle tree) and verify the inclusion proofs of all the shards.
+Any node with the Merkle root (\ie, the root hash of the Merkle tree) can verify the inclusion proofs of all the shards.
 In this sense, the Merkle root represents the node's view of the whole state.
 
 % For each transaction, nodes load the necessary shards of their current state \lijl{it is not clear what does ``necessary shards of their current state'' mean}, process the transaction, update the Merkle root and the inclusion proofs of their stored shards, and advance the state version.
@@ -71,6 +71,7 @@ Next, after bumping their state version at the end of \texttt{update}, nodes bro
 These messages include the node's Merkle root representing its view of that state version it just entered.
 A $2f+1$ bump quorum with matching version and Merkle root serves as a certificate to garbage collect all shards and metadata from the versions prior to the certified one. \lijl{meaning both metadata and shard data?}\gd{Yes and udpated.}
 Once a node gathers such a certificate, it can prune its historical shards accordingly.
+The reasoning about garbage collection interacting with \texttt{get} and \texttt{skip} is detailed in appendix.
 
 \ifspace
 If $2f+1$ nodes have bumped up to a certain version, at least $f+1$ of them are correct.
@@ -88,7 +89,8 @@ During periods of synchrony, bump quorum certificates for increasingly newer ver
 \fi
 
 \paragraph{I2: Erasure Coding.}
-The I1 design incurs a redundancy of $2f+1$, which scales linearly with the number of potential faulty nodes. Consequently, I1 only compresses the storage consumption with a constant factor and fails to ensure storage scalability.
+The I1 design incurs a redundancy of $2f+1$, which scales linearly with the number of potential faulty nodes and fails to ensure storage scalability.
+% Consequently, I1 only compresses the storage consumption with a constant factor and fails to ensure storage scalability.
 
 \gd{Updated.}
 The refined design employs an EC$(k+2f,k)$ erasure code, as discussed in \autoref{sec:approach}.
