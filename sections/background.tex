@@ -154,6 +154,21 @@ This characteristic is crucial for enabling blockchains to handle massive big da
 \end{tabular}
 \end{table}
 
+\begin{outline}
+Currently, two approaches can achieve storage scalability.
+\emph{Process sharding} process each transaction, i.e., reach consensus and execute the transaction, with a subset of the nodes.
+The nodes only need to store the state that is relevant to the transactions they process.
+\emph{Stateless blockchain} store the states on dedicated \emph{storage nodes}, who may only store part of the state and execute the transactions supported by the stored part.
+While the consensus nodes need to reach consensus for all transactions, they are not required to store any state, as they can validate the execution results from the storage nodes \emph{statelessly} through verifiable computation or authenticated data structures.
+While the original works propose to deploy storage nodes on dedicated devices, complicating the security model, they are also compatible to colocate the storage nodes with the consensus nodes.
+
+Reason about the properties.
+Process sharding cannot achieve both storage scalability and safety, sometimes liveness is also compromised.
+The more nodes processing each transaction, the better safety but worse scalability.
+Stateless blockchain cannot achieve both storage scalability and liveness.
+The more storage nodes can execute each transaction, the better liveness but worse scalability.
+\end{outline}
+
 \paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
 \lijl{The descriptions of prior solutions are too detailed. Can give high-level idea of the general approach, and briefly describe each system.}
 Several prior works enable operation with nodes storing partial states through various mechanisms.
