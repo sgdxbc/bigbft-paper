@@ -93,6 +93,20 @@ Nonetheless, \sys still guarantees the three properties under all kinds of trans
 
 % \paragraph{The cases of big blockchain states~\cite{deepa2022survey,yang2017big} \gd{and the justification of storage scalability?}.}
 \paragraph{Blockchain Storage Consumption.}
+\begin{outline}
+    For permissioned blockchains with homogeneous nodes, full replication means the storage requirement of every node would be at least the size of the state.
+    As the state grows, the system essentially asks every participant to invest more storage resources.
+    If any single (correct) node cannot or is not willing to afford this storage cost, the whole system cannot operate (securely).
+    Meanwhile, the number of nodes often increases along with the state size.
+    So after realizing storage scalability, previous nodes are not required for more storage resources for growing state size as long as new nodes joining to amortize the storage cost.
+    
+    In permissionless blockchains, nodes probably have heterogeneous storage resources.
+    Currently, the nodes feature more storage resources than the state size has no clear way to utilize the extra storage and benefit from their abundant storage resource.
+    Storage scalability allows those nodes to ``lend'' the extra storage to the system (as long as employing necessary availability auditing mechanism).
+    The giant nodes can be further incentivized while the system is more accessible to small nodes, potentially attracting more nodes to join.
+\end{outline}
+
+\iffalse
 \lijl{Many of these facts and trends are important motivations for the paper. But can cut quite a bit of text in the workshop paper.}
 \ifspace
 The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
@@ -153,6 +167,7 @@ This characteristic is crucial for enabling blockchains to handle massive big da
     \bottomrule
 \end{tabular}
 \end{table}
+\fi
 
 \begin{outline}
 Currently, two approaches can achieve storage scalability.
@@ -169,6 +184,7 @@ Stateless blockchain cannot achieve both storage scalability and liveness.
 The more storage nodes can execute each transaction, the better liveness but worse scalability.
 \end{outline}
 
+\iffalse
 \paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
 \lijl{The descriptions of prior solutions are too detailed. Can give high-level idea of the general approach, and briefly describe each system.}
 Several prior works enable operation with nodes storing partial states through various mechanisms.
@@ -251,6 +267,7 @@ In essence, processing sharding necessitates a choice between these two options,
 \paragraph{Other approaches.}
 Due to the space limit, we omit the discussion of works that strive for block availability~\cite{qi2020bft,eip4844}, externalize the state manipulation~\cite{lee2020replicated,xu2021slimchain,ethereum_scaling_docs} or build BFT features on top of conventional distributed databases~\cite{mcconaghy2016bigchaindb,nathan2019blockchain}.
 These works are applied to other problem settings that not fully align with ours.
+\fi
 \fi
 
 \iffalse
