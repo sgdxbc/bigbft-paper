@@ -53,25 +53,26 @@ On the other hand, storage scalability can maintain a constant storage requireme
 Sustainable!\gd{TODO elaborate to whole sentence.}
 
 
-\begin{table}
+\begin{table*}
 \caption{
     Comparison of blockchain systems.
     \emph{Conventional security} is examined against $\frac{1}{3}$ faulty nodes and partially synchronous network model.
 }
 \label{tab:compare}
-\begin{tabularx}{\linewidth}{XXX}
+\begin{tabularx}{0.64\linewidth}{XXX}
     \toprule
     Approach                & Conventional security & Scalable storage  \\
     \midrule
     Fully replicated        & \yes                  & \no               \\
     Fault-tolerate clusters & \no                   & \yes              \\
-    Randomized committees   & \no                   & \yes              \\
-    Concurrent Pow Mining   & \no                   & \no               \\
-    Stateless blockchain    & \no                   & \yes              \\
+    Randomized committees   & \no                   & \textcolor{orange}{With sufficient nodes}\\
+    Concurrent PoW Mining   & \yes                  & \no               \\
+    \quad solo mining       & \no                   & \yes              \\
+    Stateless blockchain    & \no                   & \textcolor{orange}{Restricted}\\
     \sys                    & \yes                  & \yes              \\
     \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
 Prior works have proposed various blockchains with low storage overhead~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide}.
@@ -89,159 +90,38 @@ One important insight is that the committees consist of fixed number of nodes.
 As the number of nodes increases, the number of committees also increases, and the state size managed by each committee decreases proportionally, achieving storage scalability.
 
 Based on this approach, \cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard} leverages \emph{fault-tolerant clusters} as the natural committees.
-\cite{kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide} instead design sophisticated \emph{committee formation} protocols to dynamically form committees that are secure with high probability.
+\cite{kokoris2018omniledger,dang2019towards,zamani2018rapidchain} instead design sophisticated \emph{committee formation} protocols to dynamically form committees that are secure with high probability.
+\cite{wang2019monoxide} proposes a novel concurrent PoW mining mechanism that enables all committees to share the computational power, securing the committees regardless of node distribution across them.
 
-The stateless blockchains~\cite{xu2021slimchain,boneh2019batching,chepurnoy2018edrax,tomescu2020aggregatable,xu2022l2chain} \emph{outsource} the state to external storage nodes.
-The storage nodes submit the blocks to the consensus nodes along with the execution results and the proofs that show the correctness of the execution.
-The consensus nodes can \emph{attest} the execution results before reaching agreement on them.
+The stateless blockchains~\cite{xu2021slimchain,boneh2019batching,chepurnoy2018edrax,tomescu2020aggregatable,xu2022l2chain,lee2020replicated} \emph{outsource} the state to external storage nodes.
+These storage nodes submit the blocks to the nodes in the system along with the execution results and the proofs that show the correctness of the execution.
+Nodes can \emph{attest} the execution results before reaching agreement on them.
+As the result, stateless blockchains incur constant storage overhead on the nodes participating the replication.
+Ethereum has adopted similar stateless designs~\cite{eip4844} in its rollup-centric roadmap~\cite{ethereum_scaling_docs,vbuterin2020rolluproadmap}.
 
-\begin{outline}
-Currently, two approaches can achieve storage scalability.
-\emph{Process sharding} process each transaction, i.e., reach consensus and execute the transaction, with a subset of the nodes.
-The nodes only need to store the state that is relevant to the transactions they process.
-\emph{Stateless blockchain} store the states on dedicated \emph{storage nodes}, who may only store part of the state and execute the transactions supported by the stored part.
-While the consensus nodes need to reach consensus for all transactions, they are not required to store any state, as they can validate the execution results from the storage nodes \emph{statelessly} through verifiable computation or authenticated data structures.
-While the original works propose to deploy storage nodes on dedicated devices, complicating the security model, they are also compatible to colocate the storage nodes with the consensus nodes.
+\paragraph{The Fundamental Trade-off Between Security and Scalability.}
+As shown in \autoref{tab:compare}, no prior system can ensure conventional security properties with scalable storage.
+Fully replicated systems are not scalable in storage consumption, as every node must store a full copy of the state regardless of the number of nodes.
+The works taking processing sharding approach generally claims to ensure safety and liveness properties, but each of them introduce various assumptions for ensuring them.
+The works relying on pre-determined fault-tolerant clusters~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard} can only tolerate $\frac{1}{3}$ faulty nodes within each cluster.
+\cite{kokoris2018omniledger} can only tolerate $\frac{1}{4}$ faulty nodes.
+\cite{zamani2018rapidchain} assumes synchronous network condition.
+\cite{dang2019towards} requires a trusted execution environment.
+Also, these works that rely on randomized committees suffer from a lower bound of the committee size (typically 80-600 nodes), meaning that they cannot achieve storage scalability when the number of nodes is less than it.
+\cite{wang2019monoxide} claims to achieve the both storage scalability and security, but we remark that the two properties are achieved under different settings.
+Following the setting in the original work where the professional mining facilities dominate the mining power, the system can ensure conventional permissionless security but losing storage scalability, as most of the nodes must store the full state to participate into all committees.
+On the other hand, the solo miners can enjoy storage scalability by participating only one committee, but they cannot ensure the security properties, as the global $\frac{1}{2}$ faulty power can subvert individual committees in this case.
 
-Reason about the properties.
-Process sharding cannot achieve both storage scalability and safety, sometimes liveness is also compromised.
-The more nodes processing each transaction, the better safety but worse scalability.
-Stateless blockchain cannot achieve both storage scalability and liveness.
-The more storage nodes can execute each transaction, the better liveness but worse scalability.
-\end{outline}
+The stateless blockchains can achieve near-perfect storage scalability, but their unconventional security models introduce untrusted storage nodes.
+The storage nodes are not responsible for ensuring security properties and may behave arbitrarily.
+While the nodes can ensure safety, the liveness can be compromised simply because of, e.g., all storage nodes do nothing.
+Besides, because the nodes give up the right to produce blocks and the control to the order, the systems are also vulnerable to other attack vectors such as fairness.
+Additionally, the storage scalability of storage nodes are still not ideal.
+While \cite{xu2021slimchain} proposes a shard solution for the storage nodes, enabling them to store partial state and process corresponding transactions, there must still be some storage nodes storing the whole state so that all possible transactions can be processed.
 
-\iffalse
-\paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
-\lijl{The descriptions of prior solutions are too detailed. Can give high-level idea of the general approach, and briefly describe each system.}
-Several prior works enable operation with nodes storing partial states through various mechanisms.
-\ifspace
-In blockchain databases~\cite{ruan2021blockchains} such as \textit{BlockchainDB}~\cite{el2019blockchaindb} and \textsc{GriDB}~\cite{hong2024gridb}, the state is composed of multiple tables.
-Each table (or more granular table partition) is stored by a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables (e.g., join operations)~\cite{zhang2015integridb,hong2024gridb}.
-\else
-Blockchain databases~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb} stores each table (or more granular table partition) with a subset of nodes, and authenticated data structures~\cite{martel2004general, tamassia2003authenticated} are utilized to securely process queries across tables~\cite{zhang2015integridb,hong2024gridb}.
-\fi
-More general-purpose sharded blockchains~\cite{luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide} adopt this model, organizing nodes into multiple \emph{committees} responsible for maintaining distinct state shards.
-These approaches typically employ multiple instances of fully-replicated BFT protocols (common choices include PBFT~\cite{pbft} and ByzCoin~\cite{kogias2016enhancing}), one within each committee, and address the atomicity of cross-committee transactions using specialized strategies (\eg, two-phase commit).
-\lijl{Specialized strategies meaning 2PC + 2PL?} \gd{Some is, some not. Each with own trade-offs. Would rather not elaborate}
-
-% In common centralized distributed databases like~\cite{corbett2013spanner}, all nodes are centrally managed to collaboratively store the database states and each transaction is processed only once.
-% While in BFT systems the processing has to be replicated in order to tolerate faults, and multiple state copies reside on different nodes to support the replicated processing, resulting in high storage overhead.
-% Previous works developed blockchains with sharding mechanism which allow nodes to store only partial states and reduce the storage load.
-% The sharded blockchain works are more universal and state-agnostic solutions that also provide clear safety guarantees.
-% In these works, the nodes are grouped into multiple \emph{committees} which are responsible for maintaining different shards of the state.
-% The transactions are processed only once by the committees (and replicated within each committee), similar to the distributed database.
-% Indeed, the works report their space efficiency especially in large scale setup.
-% \xxx{Summarize the results.}
-
-\ifspace
-Next, we elaborate on these sharded blockchain systems.
-\lijl{Why are the following works not cited in the previous paragraph?} \gd{Done.}
-\textsc{Elastico}~\cite{luu2016secure} establishes the groundwork for scalable sharded blockchains.
-It employs epoch-based randomization of committees.
-At the start of each epoch, every node computes a proof-of-work (PoW) to acquire membership in a random committee.
-Subsequently, the members of each committee execute a permissioned BFT protocol locally to achieve agreement on the shard they manage and then disseminate the consensus result to other committees to attain global agreement.
-Since each committee randomly selects the minimum number of nodes required to ensure an honest supermajority with high probability, the committee size remains constant irrespective of the total node count.
-\gd{Updated.}
-Consequently, \textsc{Elastico} achieves storage scalability: the number of committees is proportional to the number of nodes, so the states size managed by the nodes of each committee decrease correspondingly.
-\lijl{How does it management shard state across epochs?} \gd{Transfer to committees of next epoch. No space to mention.}
-
-Building upon the advancements of \textsc{Elastico}, OmniLedger~\cite{kokoris2018omniledger} enhances several security features by substituting the PoW-based committee assignment with RandHound~\cite{syta2017scalable}, a decentralized randomness solution utilizing verifiable random functions (VRFs).
-This allows OmniLedger to extend the epoch duration considerably (e.g., to one day) and reduce the storage overhead for nodes more practically than \textsc{Elastico}.
-Subsequent work~\cite{dang2019towards} further integrates trusted execution environments (TEEs) to bolster intra-committee consensus with improved resilience.
-As an alternative to TEEs, RapidChain~\cite{zamani2018rapidchain} employs a synchronous BFT protocol for greater resilience and explicitly states its ability to tolerate $\frac{1}{3}$ Byzantine faults, the same as conventional BFT protocols.
-Both of these works achieve $\frac{1}{2}$ fault tolerance within committees, enabling a significant reduction in committee size while maintaining similar probabilistic security guarantees (\eg, 60 vs. 800 nodes for $\frac{1}{4}$ faulty nodes and a $2^{-20}$ probability of a faulty committee~\cite{dang2019towards}).
-GearBox~\cite{david2022gearbox} investigates flexible liveness resilience to minimize committee size, starting with small committees that consistently ensure safety but only guarantee liveness when most or all members are honest.
-It then continuously monitors committee liveness and expands committees lacking progress.
-These systems share a similar fundamental structure to \textsc{Elastico} but achieve lower redundancy and improved storage scalability by refining the intra-committee consensus or committee formation mechanisms.
-
-Furthermore, certain sharded blockchains do not require explicit committee formation to achieve their security properties.
-This category includes the previously mentioned blockchain database systems, as well as SharPer~\cite{amiri2021sharper} and \textsc{ByShard}~\cite{hellings2021byshard}, which leverage pre-determined fault-tolerant clusters to provide deterministic safety guarantees, in contrast to the probabilistic guarantees offered by the previously discussed systems.
-\textsc{GeoBFT}~\cite{gupta2020resilientdb} further optimizes for geographically distributed clusters, enhancing the performance of global blockchain deployments.
-Monoxide~\cite{wang2019monoxide} introduces an asynchronous consensus zone concept, which can be viewed as arbitrarily sized committees.
-It proposes a novel PoW mining scheme that enables mining power to concurrently operate across multiple zones and tolerate up to $\frac{1}{2}$ faulty mining power globally.
-\else
-Among these works, \textsc{Elastico}~\cite{luu2016secure} establishes the groundwork for scalable sharded blockchains with fixed-sized epoch-based randomization of committees established by proof-of-work (PoW).
-The number of committees is proportional to the number of nodes, so the states size managed by the nodes of each committee decrease correspondingly, achieving scalability.
-The following works propose various improvements, including enhancing the committee formation with verifiable random function~\cite{kokoris2018omniledger}, reducing committee size and increasing storage scalability with trusted hardware~\cite{dang2019towards}, synchronous consensus~\cite{zamani2018rapidchain} or flexible liveness~\cite{david2022gearbox}.
-Meanwhile, another line of works~\cite{amiri2021sharper,hellings2021byshard,gupta2020resilientdb} leverage pre-determined fault-tolerant clusters as committees.
-Monoxide~\cite{wang2019monoxide} introduces the concept of asynchronous consensus zone, which can be viewed as arbitrarily sized committees, and proposes a novel PoW mining scheme that enables mining power to operate across multiple zones.
-\fi
-
-\lijl{For the workshop paper, we can shorten the description of prior work.}
-
-% More recently, Estuary~\cite{jia2024estuary} dynamically adjusts the state distribution to minimize the cross-shard transaction overhead.
-% Pyramid~\cite{hong2021pyramid} and MSSP~\cite{liu2025mssp} permit some nodes to store multiple shards \ie overlapping committees so the cross-shard transactions can be processed locally.
-% Despite
-
-\ifspace
-\input{background-literature}
-\fi
-
-\paragraph{Limitations of Processing Sharding.}
-As summarized in \autoref{tab:compare}, all prior systems fail to simultaneously achieve safety, liveness, and storage scalability.
-%For the randomized committee approach, we admit that some works inherently target lower failure rate (\eg, $\frac{1}{4}$~\cite{luu2016secure,kokoris2018omniledger})
-We further examine randomized committee with \emph{adaptive} committee sizes, adjusted according to the $\frac{1}{3}$ failure rate.
-%As the result, most of the works~\cite{luu2016secure,kokoris2018omniledger,amiri2021sharper,hellings2021byshard,gupta2020resilientdb,zamani2018rapidchain,david2022gearbox,dang2019towards} compromise safety and/or liveness except adaptive randomized committee and Monoxide~\cite{wang2019monoxide}, who would actually enforce the nodes to store full state and loss storage scalability like fully replicated blockchains.
-%While Monoxide claims that the solo miners can enjoy scalable storage consumption, it cannot secure the security properties if nodes perform solo mining.
-%Due to the lack of space, we defer the detailed examination to appendix.
-The shortcomings of prior systems stem from a fundamental challenge: Their fault tolerance is determined by the committee size, whereas conventional BFT settings mandate tolerating $\frac{1}{3}$ faulty nodes among \emph{all} participants.
-If the committee size is independent of the system size, security properties are compromised because the resiliency cannot scale up with the number of nodes (as indicated by \emph{No} in the \emph{Safety?} and/or \emph{Liveness?} columns of \autoref{tab:compare}). \lijl{I think this sentence does not provide enough rationale to be convincing.} \gd{Refined}
-Conversely, if the committee size increases with system growth, then storage consumption also rises, and storage scalability is lost (as indicated by \emph{No} in the \emph{Scalable storage?} column).
-In essence, processing sharding necessitates a choice between these two options, resulting in undesirable trade-offs among the desired properties.
-
-\ifspace
-\paragraph{Other approaches.}
-Due to the space limit, we omit the discussion of works that strive for block availability~\cite{qi2020bft,eip4844}, externalize the state manipulation~\cite{lee2020replicated,xu2021slimchain,ethereum_scaling_docs} or build BFT features on top of conventional distributed databases~\cite{mcconaghy2016bigchaindb,nathan2019blockchain}.
-These works are applied to other problem settings that not fully align with ours.
-\fi
-\fi
-
-\iffalse
-\paragraph{Blockchain databases.~\cite{ruan2021blockchains}.}
-In blockchain databases, clients \emph{outsource} the database storage to the blockchain, which consists of the nodes with abundant storage capacity but are mutually untrusted to each other.
-The common database operations \eg SQL queries are implemented on top of the BFT replication, realizing the user experience of database applications while tolerating Byzantine faults at the same time\cite{el2019blockchaindb,peng2020falcondb}.
-Also, \cite{nathan2019blockchain} approaches the goal by plugging an ordering service into databases.
-
-% Authenticated data structures~\cite{martel2004general, tamassia2003authenticated}.
-% \textsc{IntegriDB}~\cite{zhang2015integridb}.
-% \textsc{GriDB}~\cite{hong2024gridb}
-
-Scaling out blockchain state has been the recurring topic of blockchain databases.
-As the blockchain databases keep operating, the size of content they store may ever grow.
-However, blockchains, as state machine replication protocols, by default require each node to store a full copy of the state in order to replicate the execution individually.
-Eventually, the ever-growing database will overwhelm the storage capacity of the nodes.
-Some blockchain databases leverage the inherent structure of rational databases and decompose the databases into table-level sub-chains~\cite{el2019blockchaindb}.
-The researches go further by utilizing authenticated data structures~\cite{martel2004general, tamassia2003authenticated} to safely process cross table queries (\eg join operations)~\cite{zhang2015integridb,hong2024gridb}.
-However, more universal solutions that are compatible with single large table or even agnostic to state structure are demanded for more widely adoption.
-
-\paragraph{Sharded blockchains}
-One layer down, the blockchains can divide the stored data into shards\cite{corbett2013spanner} and each node stores only one or a subset of the shards.
-However, without the whole state, the nodes can no longer process every transaction.
-EIP-4844~\cite{eip4844} of Ethereum bypasses this limitation by sharding \emph{blob}, a special kind of block data only whose (succinct) commitment is fully replicated and accessible by the transactions.
-This approach is not desirable by blockchain databases which requires the whole data to present in the state.
-
-Currently, the sharded blockchain works perform \emph{processing sharding} like regular distributed databases -- each node processes a subset of the transactions that only make use of the state shard(s) it stores.
-The immediate effect of a reduced processing quorum is low fault resiliency (unless when reaching out for synchronous BFT protocols~\cite{zamani2018rapidchain}), \eg, tolerating $\frac{1}{4}$ faulty nodes globally~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} or $\frac{1}{3}$ faulty nodes locally within each processing quorum~\cite{el2019blockchaindb,amiri2021sharper}.
-\lijl{Since compromised security/correctness guarantee is a major concern, we should elaborate this part.}
-Monoxide~\cite{wang2019monoxide} introduces Chu-ko-nu mining to recover a 50\% resiliency of faulty mining power, but its safety statement is built upon the assumption of dominance of the professional mining facilities that will perform batch-mining simultaneously on every shard, and the approach is limited to PoW setup.
-\lijl{Not sure if we need to talk about this work.}
-
-Besides the security concern, some works randomize the shards that the nodes work on and reshuffle the formation frequently on an epoch basis~\cite{luu2016secure,dang2019towards,yu2020ohie,zamani2018rapidchain}.
-This approach not only in advance degrades to probabilistic safety guarantee, but also the processing sharding that operates in this fashion cannot scale out the state because the nodes have to maintain the whole state to prepare for working on any shard in the following epochs.
-
-Efficient reliable broadcast with erasure code\cite{cachin2005asynchronous}, used in HoneyBadger\cite{miller2016honey}.
-Ceph~\cite{weil2006ceph}, HDFS~\cite{shvachko2010hadoop}, Azure~\cite{huang2012erasure}.
-Morph~\cite{kim2024morph}.
-
-The downside for the nodes to store less state data is that, in sharded blockchains only a subset of nodes can participate the processing of each transaction.
-This has to result in some trade-offs around the resiliency to the faulty processing nodes.
-An early line of works~\cite{luu2016secure,kokoris2018omniledger,eyal2016bitcoin,dang2019towards} can tolerate only up to $\frac{1}{4}$ faulty nodes.
-RapidChain~\cite{zamani2018rapidchain} resorts to synchronous protocol and poses higher requirement to the network conditions.
-Monoxide~\cite{wang2019monoxide} assumes the domination of professional mining facilities and is limited to PoW setup.
-\xxx{Find something with TEE}.
-The blockchain database works~\cite{el2019blockchaindb,amiri2021sharper} normally choose to tolerate $\frac{1}{3}$ faulty nodes locally within each processing committee, which also requires to predetermine the committees.
-
-Besides degraded security, cross shard transactions also bring additional coordination challenges.
-They either pose performance penalty and complicate the reasoning of safety (potentially relying on the client~\cite{kokoris2018omniledger} or TEE~\xxx{cite}), or the sharded blockchains give up atomicity and relax the linearizable guarantee~\cite{luu2016secure} or even completely overlook cross shard transactions~\cite{li2020polyshard}.
-Database transaction workload are also identified to bring inefficient processing to sharded blockchains~\cite{hong2024gridb}.
-\fi
+The trade-off between security and storage scalability is fundamental in these previous approaches.
+It all depends on the number of nodes participating in processing each transaction.
+In fully replicated systems, every node processes every transaction, and the system trades off storage scalability for security.
+In processing sharding systems, not all nodes process every transaction, enabling storage scalability but trades off security.
+Finally, in stateless blockchains, while all nodes participate in the agreement part, none of them execute transactions.
+Thus, the system can achieve storage scalability and safety but losing liveness.
