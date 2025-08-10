@@ -65,6 +65,7 @@
 \RequirePackage{amsthm}
 \RequirePackage{comment}
 \RequirePackage{pifont}
+\RequirePackage{tabularx}
 \ifacm
 \else
 \RequirePackage{amsmath}

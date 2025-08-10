@@ -2,172 +2,98 @@
 \label{sec:bg}
 
 \paragraph{Problem Settings.}
-\ifspace
 Our work functions as a replicated service for arbitrary state machines~\cite{lamport1978implementation} exhibiting tolerance to Byzantine faults akin to conventional BFT protocols.
 The main focus is on the space consumed on participating nodes for storing the \emph{state}, the data component manipulated by the replicated state machine.
-Specifically, \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft}, and its state storage consumption is scalable to the number of nodes analogous to distributed storage systems~\cite{corbett2013spanner}.
-\else
-We target designing a replicated service for arbitrary state machines~\cite{lamport1978implementation} with security model aligned with conventional BFT protocols~\cite{pbft}.
-The main focus is on the space consumed for storing the \emph{state}, the data component manipulated by the replicated state machine.
-\fi
-Beyond traditional safety (linearizability~\cite{herlihy1987axioms}) and liveness guarantees, \sys aims to provide \emph{storage scalability}: As the system scales out, \sys demands storage space from each node inversely proportionally to the node count.
-In contrary, state storage in traditional BFT remains the same regardless of the system size.
-%and the state size bottlenecks on the storage resource of a \emph{single} node, rendering the lack of scalability.
-
-\iffalse
-\begin{itemize}
-    \item Safety: The replicated service adheres to linearizability~\cite{herlihy1987axioms}, functioning equivalently to a centralized implementation that processes transactions atomically and sequentially.
-    \item Liveness: Clients eventually receive responses to their submitted transactions.
-    \item Storage scalability:
-    % The total storage resources required for system operation are $O(\text{state size})$.
-    % The number of nodes within the system does not influence storage consumption.
-    % This contrasts with typical BFT protocols where the storage complexity is $O(\text{state size} \times \text{number of nodes})$.
-    As the number of nodes increases, \sys demands \emph{less} state storage from each node, inversely proportionally to the node count.
-    This is in the contrary of conventional fully-replicated BFT protocols where the state storage remains the same regardless of the node count, and the state size bottlenecks on the storage resource of a \emph{single} node, rendering the lack of scalability.
-\end{itemize}
-\fi
+Specifically, \sys ensures both
+\begin{description}
+    \item[Security]
+    \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft} with standard settings.
+    \item[Storage scalability]
+    The storage consumption on each node is proportional to the state size and inversely proportional to the number of nodes.
+    In contrary, state storage in traditional BFT remains the same regardless of the system size.
+\end{description}
 \sys operates with $3f+1$ nodes and guarantees the aforementioned properties when up to $f$ nodes exhibit Byzantine faults and behave arbitrarily.
 Following numerous prior studies~\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark,luu2016secure,kokoris2018omniledger,dang2019towards,amiri2021sharper,gupta2020resilientdb,wang2019monoxide}, \sys achieves these properties under a partially synchronous network model.
 Outside the period of synchrony, the protocol may experience a lack of progress, but safety and storage scalability remain uncompromised.
 
-% \gd{``Spoiler'' here or just mention in approach?}
-% Unlike the previous works where the liveness property mostly concerns the network coordination (\eg continuous leader changes), in this work, the liveness additionally covers (and in fact focuses on) the \emph{availability} of the state.
-% We discuss this in detail in \autoref{sec:approach}.
-% \lijl{No need to discuss here.}
-
-% This work centers on the storage capacity utilized for maintaining the blockchain state, the data component manipulated by state machine replication~\cite{lamport1978implementation}.
-% Alternative methodologies that externalize state storage or partition block storage are examined in \autoref{sec:rel}.
-\ifspace
-\lijl{Can omit in workshop paper.}
-We remark that one way to achieve storage scalability is to store the state external to the nodes, or even not store it at all.
-In \autoref{sec:rel}, we discuss the trade-offs of these alternative approaches.
-Here we discuss the solutions that internally store the state with the nodes.
-
-\lijl{Can omit in workshop paper.}
-We assume that the replicated state and transactions that interact with it support sharding~\cite{corbett2013spanner}.
-The state should be divisible into a specific number of shards
-\footnote{
-    In certain studies on sharded blockchains, the term \emph{shard} (or node shard) denotes a group of nodes that operate on a particular state shard.
-    Adhering to distributed database conventions, this work uses \emph{shard} to signify a \emph{data shard}, consistently referring to a state shard.
-}, and for a given transaction, nodes can ascertain the shard(s) necessary for processing, i.e., the \emph{working set} of the transaction.
-We do not impose restrictions on the shard count, although a sufficient number of shards (i.e., significantly exceeding the node count) can enhance load balancing.
-Common state structures, such as key-value stores and (Merkle) Patricia Tries~\cite{mpt} employed by Ethereum~\cite{buterin2014next}, can be partitioned into an arbitrary number of shards.
-\fi
-
-\lijl{Can summarize in just 1-2 sentences.}
-\ifspace
-Our methodology accommodates diverse transaction workloads and particularly excels with workloads where transactions access single or few shards, i.e., online transaction processing (OLTP) workloads, rather than online analytical processing (OLAP), in terms of performance.
-Numerous blockchain applications generate OLTP workloads, such as token transfers between two accounts or status updates for specific goods in a supply chain.
-Furthermore, OLAP workloads involving scans across a large number of shards can be executed off-chain using a verified state checkpoint (\autoref{sec:overview}).
-\else
-\sys achieves optimal performance with online transaction processing (OLTP) workloads, where each transaction access a tiny fraction of the whole state.
-Nonetheless, \sys still guarantees the three properties under all kinds of transaction workloads.
-\fi
-
-% \lijl{Probably earlier in the paper, we should clearly define what ``state'' means.}
-% We don't assume any specific structure of the state, only requires it to be compatible for \emph{sharding}~\cite{corbett2013spanner}.
-% The state should be able to be divided into certain number of shards
-% \footnote{
-%     In some works on sharded blockchains, \emph{shard} (or node shard) refers to the group of nodes that work on certain state shard.
-%     Following distributed database's convention, in this work shard means \emph{data shard} and always refers to state shard.
-% }, and given a transaction, nodes can identify which shard(s) are required to process the transactions.
-% \lijl{Curious what type of state is not compatible?}
-% The number of shards is also not significant, though sufficient shards (\ie much more than the number of nodes) can achieve a better load balance effect.
-% Examples of sharding compatible states are key-value store (atop what relational databases potentially build)~\cite{corbett2013spanner} and (Merkle) Patricia Trie~\cite{mpt} used by Ethereum~\cite{buterin2014next}.
-
-% We also do not assume any specific structure of the transactions, which may range from simple key-value updates to complex smart contracts~\cite{buterin2014next}.
-% Though not affecting safety, we expect to work with transactions that access only single or few shards, \ie, online transaction processing (OLTP) workload instead of online analytical processing (OLAP), for performance reason.
-% \lijl{Maybe not as an expectation, just that the approach works well under certain workloads.}
-% This expectation is valid for extensive scenarios such as token transfer between a pair of accounts or status update of a specific merchandise in a supply chain.
-% Besides, OLAP workload that scans over large number of shards can be performed off-chain with a verified state checkpoint (\autoref{sec:overview}).
+\gd{Remember to describe the sharding interfaces in impl.}
 
 \begin{figure}
-    \includegraphics[width=0.5\linewidth]{graphs/states-grow}
-    \caption{Blockchain state size has exhibited rapid growth in recent years.
-    \ifspace
-    The reductions observed in Ethereum's state size correspond to several client software updates incorporating more efficient storage mechanisms and enhanced pruning strategies.
-    \fi
+    \includegraphics[width=0.7\linewidth]{graphs/states-grow}
+    \caption{
+        Blockchain state size has exhibited rapid growth in recent years.
+        The reductions observed in Ethereum's state size correspond to several client software updates incorporating more efficient storage mechanisms and enhanced pruning strategies.
     }
     \label{fig:states-grow}
 \end{figure}
 
-% \paragraph{The cases of big blockchain states~\cite{deepa2022survey,yang2017big} \gd{and the justification of storage scalability?}.}
 \paragraph{Blockchain Storage Consumption.}
-\begin{outline}
-    For permissioned blockchains with homogeneous nodes, full replication means the storage requirement of every node would be at least the size of the state.
-    As the state grows, the system essentially asks every participant to invest more storage resources.
-    If any single (correct) node cannot or is not willing to afford this storage cost, the whole system cannot operate (securely).
-    Meanwhile, the number of nodes often increases along with the state size.
-    So after realizing storage scalability, previous nodes are not required for more storage resources for growing state size as long as new nodes joining to amortize the storage cost.
-    
-    In permissionless blockchains, nodes probably have heterogeneous storage resources.
-    Currently, the nodes feature more storage resources than the state size has no clear way to utilize the extra storage and benefit from their abundant storage resource.
-    Storage scalability allows those nodes to ``lend'' the extra storage to the system (as long as employing necessary availability auditing mechanism).
-    The giant nodes can be further incentivized while the system is more accessible to small nodes, potentially attracting more nodes to join.
-\end{outline}
-
-\iffalse
-\lijl{Many of these facts and trends are important motivations for the paper. But can cut quite a bit of text in the workshop paper.}
-\ifspace
 The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
 From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\autoref{fig:states-grow}).
-The storage pressure is applied to a substantial number of nodes in these blockchains (22,275 for Bitcoin\footnote{\url{https://bitnodes.io/}}, 11,251 for Ethereum\footnote{\url{https://etherscan.io/nodetracker}}).
-Given the exorbitant cost of on-chain storage~\cite{balduf2022dude} (3.28 ETH per MB~\cite{palau2018storing}, exceeding 8000 USD at current exchange rates), the aforementioned blockchain states likely exhibit the \emph{slowest} rate of increase.
-The growth in state size significantly outpaces the reduction in storage media costs.
-SSD prices in 2019 were only $1.3\text{--}2\times$ higher than in 2025\footnote{\url{https://www.qootec.com/news/2025\%20ssd\%20price\%20trends.html}}, whereas state sizes in 2025 are $3.6\text{--}7.8\times$ larger than in 2019, exacerbating the decreasing affordability of operating blockchain nodes.
-\lijl{For permissionless blockchains, we can use barrier of entry as an argument.}
+While lacking open data on the permissioned settings side, it is reasonable to infer even much larger state sizes based on the significantly higher processing throughput.
+% Google reports 4, 20 and 70 TB data sizes respectively for personalized search, processed Google Analytics and Google Earth images data, dates back to 2006~\cite{chang2008bigtable}.
 
-Although permissioned or consortium blockchains in data centers have greater storage capacity, they require even larger blockchain states.
-Beyond well-known financial uses~\cite{qi2021bidl,lokhava2019fast}, prior work has also proposed deploying various big data applications on blockchains, like mobile crowdsensing in industrial IoT~\cite{bodkhe2020blockchain,liu2018blockchain}, edge computing~\cite{xu2018making}, crime evidence~\cite{kim2021two,jeong2020design}, medical and educational records~\cite{sun2020blockchain,li2019edurss}, machine learning~\cite{shen2019secure,salah2019blockchain}, and intelligent transportation and smart cities~\cite{hirtan2018blockchain, sharma2018blockchain}.
-Blockchain's strong security makes it ideal and widely researched for securing different phases of processing large volumes of data, such as data collection~\cite{bodkhe2020blockchain,liu2018blockchain}, sharing~\cite{xu2018making}, management~\cite{kim2021two,jeong2020design,sun2020blockchain,li2019edurss}, and analytics~\cite{shen2019secure,salah2019blockchain}, as well as protecting privacy during processing~\cite{hirtan2018blockchain, sharma2018blockchain} in environments with unreliable or mutually distrusting participants.
+\gd{TODO if possible argue for storing large (instead of many) files on chain.}
 
-These extensive data blockchains can accumulate very large states.
-% NASDAQ TotalView-ITCH, a dataset recorded at a trading matching engine, reportedly has a total size of 20 TB and grows at 4.13 GB per day~\cite{laughlin2014information}.
-% High-frequency stock market data can accumulate as much as 20-40 GB daily~\cite{rabindrajit2024high}.
-% \lijl{Need to confirm: these are state size, not historical trading data.}
-\gd{Updated.}
-Google reports 4, 20 and 70 TB data sizes respectively for personalized search, processed Google Analytics and Google Earth images data, dates back to 2006~\cite{chang2008bigtable}.
-Also, medical records typically range from MB to tens of MB in size~\cite{garcia2011mantisgrid} due to their multimodal content, while public medical record collections can contain 40,000-200,000 entries~\cite{pollard2018eicu,johnson2023mimic} and occupy terabytes of storage.
-These represent the dimensions of single-party databases.
-In consortium blockchains, multiple participants (\eg, exchanges or hospitals) contribute their data, each potentially comparable in size to these databases.
-Consequently, this can lead to blockchain states of terabyte or even petabyte scale, exceeding the storage capabilities of individual blockchain nodes.
-\else
-The rapidly expanding state sizes (\autoref{fig:states-grow}) of prevalent permissionless blockchains are a well-established phenomenon~\cite{balduf2022dude}.
-The storage pressure is applied to tens of thousands of nodes\footnote{\url{https://bitnodes.io/}} in these blockchains, results in extreme expensive on-chain storage~\cite{balduf2022dude,palau2018storing} corresponding to the replication cost.
-The growth in state size significantly outpaces the reduction in storage media costs\footnote{\url{https://www.qootec.com/news/2025\%20ssd\%20price\%20trends.html}}.
-Meanwhile, permissioned or consortium blockchains~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain} aggregate states from multiple enterprise-level participates, each of whom may possess multiple digits of terabytes of data~\cite{chang2008bigtable,garcia2011mantisgrid,pollard2018eicu,johnson2023mimic}.
-This can lead to blockchain states of up to petabyte scale, exceeding the storage capabilities of individual blockchain nodes.
-\fi
+\paragraph{The Necessity of Storage Scalability.}
+The permissionless blockchains consist of decentralized nodes with heterogeneous storage capacities.
+While the state sizes rapidly increase, more and more nodes cannot afford the storage costs and are forced to drop out.
+This leads to a gradual centralization of the network, as only nodes with sufficient resources can continue to participate.
+At the same time, the nodes with abundant storage resources are not able to utilize their extra storage to benefit the system.
+\sys, on the other hand, features storage scalability, allowing the nodes to effectively \emph{lend} their extra storage to the system by, e.g., joining the network with multiple virtual nodes.
+The increased total number of nodes can effectively alleviate the storage pressure on every node, enabling nodes with limited storage capacity to continue participating in the system.
+At the same time, by spawning more virtual nodes, the nodes with abundant storage resources can be further incentivized for contributing more storage to the system.
 
-\ifspace
-The essential point is that achieving storage scalability is critical for blockchains in diverse settings, alleviating the requirement for individual nodes to host the entire state.
-In storage-scalable blockchains like \sys, the maximum operational state size depends on the total storage supply collaboratively provided by all nodes, rather than the storage capacity of each individual node.
-When more nodes join the system, the storage overhead can \emph{scale out} to their storage resources, reducing storage pressure on existing nodes and enabling the system to manage larger states, similar to conventional distributed databases~\cite{corbett2013spanner}.
-This characteristic is crucial for enabling blockchains to handle massive big data states, akin to distributed databases.
-\fi
+In the permissioned settings, it may seem like the storage overhead is less concerning than in permissionless settings due to the more abundant resources normally found in the deployed environments.
+However, because of the static and known membership, these systems cannot replace the participating nodes as easily.
+Without storage scalability, the system would require every node to store the entire state.
+The system must be halted if any \emph{single} node does not meet the storage requirements.
+As more nodes join the network and more data is ingested, the early participants may be overwhelmed.
+On the other hand, storage scalability can maintain a constant storage requirement on these nodes when the data brought by the new participants is proportional to the number of them.
+Sustainable!\gd{TODO elaborate to whole sentence.}
+
 
 \begin{table}
-\caption{Comparison of blockchain systems.
-\emph{Safety?} and \emph{Liveness?} are examined against $\frac{1}{3}$ faulty nodes and partially synchronous network model.
-\lijl{Can change to green checkmarks and red crosses.}
+\caption{
+    Comparison of blockchain systems.
+    \emph{Conventional security} is examined against $\frac{1}{3}$ faulty nodes and partially synchronous network model.
 }
 \label{tab:compare}
-\begin{tabular}{llll}
+\begin{tabularx}{\linewidth}{XXX}
     \toprule
-    Approach                & Safety?       & Liveness?     & Scalable storage? \\
+    Approach                & Conventional security & Scalable storage  \\
     \midrule
-    Fully replicated        & \yes          & \yes          & \no               \\
-    Pre-determined clusters & \no           & \no           & \yes              \\
-    Randomized committees   & \no           & \no           & \yes              \\
-    \quad adaptive          & \yes          & \yes          & \no               \\
-    \quad synchronous       & \yes          & \no           & \yes              \\
-    Monoxide                & \yes          & \yes          & \no               \\
-    \quad solo mining       & \no           & \no           & \yes              \\
-    \sys                    & \yes          & \yes          & \yes              \\
+    Fully replicated        & \yes                  & \no               \\
+    Fault-tolerate clusters & \no                   & \yes              \\
+    Randomized committees   & \no                   & \yes              \\
+    Concurrent Pow Mining   & \no                   & \no               \\
+    Stateless blockchain    & \no                   & \yes              \\
+    \sys                    & \yes                  & \yes              \\
     \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
-\fi
+
+\paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
+Prior works have proposed various blockchains with low storage overhead~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide}.
+They can be categorized into two main approaches: \emph{processing sharding} and \emph{stateless blockchain}.
+Next, we introduce both approaches in detail and discuss their limitations.
+
+\gd{Cite~\cite{luu2016secure} in related work as sharded but not storage scalable.}
+
+The processing sharding approach horizontally partitions the state into multiple \emph{shards} and assigns each shard to a subset of nodes, called \emph{committees}\footnote{
+    In this line of works \emph{shards} usually refer to the committees, or the \emph{node shards}.
+    In this work, we follow the distributed database terminology and use \emph{shard} to refer \emph{data shards}.
+}.
+Every transaction is processed only by the committee(s) that manages the relevant shard(s).
+One important insight is that the committees consist of fixed number of nodes.
+As the number of nodes increases, the number of committees also increases, and the state size managed by each committee decreases proportionally, achieving storage scalability.
+
+Based on this approach, \cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard} leverages \emph{fault-tolerant clusters} as the natural committees.
+\cite{kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide} instead design sophisticated \emph{committee formation} protocols to dynamically form committees that are secure with high probability.
+
+The stateless blockchains~\cite{xu2021slimchain,boneh2019batching,chepurnoy2018edrax,tomescu2020aggregatable,xu2022l2chain} \emph{outsource} the state to external storage nodes.
+The storage nodes submit the blocks to the consensus nodes along with the execution results and the proofs that show the correctness of the execution.
+The consensus nodes can \emph{attest} the execution results before reaching agreement on them.
 
 \begin{outline}
 Currently, two approaches can achieve storage scalability.

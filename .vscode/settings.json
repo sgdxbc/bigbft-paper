@@ -19,5 +19,11 @@
         "title": false,
         "series": false,
         "journal": false
-    }
+    },
+    "cSpell.words": [
+        "incentivized",
+        "permissioned",
+        "permissionless",
+        "uncompromised"
+    ]
 }
