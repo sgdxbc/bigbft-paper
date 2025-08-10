@@ -7,7 +7,7 @@ On shard level, in each new version a fraction of shards is updated by the inter
 It exposes three interfaces to the execution layer:
 \begin{itemize}
     \item \texttt{get}(shard indexes) returns state shards of current version.
-    \item \texttt{update}(shard indexes, shards) update the shards and bump (\ie, increment) the state version.
+    \item \texttt{update}(shard indexes, shards) update the shards and bump (i.e., increment) the state version.
     \item \texttt{skip}() fast-forward the state version and returns the number of skipped versions.
 \end{itemize}
 % The SMS is tasked with loading the necessary shards of the current state version to execute transactions, storing all versions of the shards that the nodes are responsible for maintaining, and responding to the load requests from other nodes.
@@ -42,7 +42,7 @@ It is the shard \emph{index} instead of \emph{content} that associated to the no
 All shards are organized in a Merkle tree~\cite{merkle1987digital}, and nodes maintain inclusion proofs for the shards they store.
 \lijl{Might want to briefly explain what a ``inclusion proof'' is and its property.} \gd{Done.}
 The inclusion proof of a shard can prove the integrity of the shard to the nodes loading it.
-Any node with the Merkle root (\ie, the root hash of the Merkle tree) can verify the inclusion proofs of all the shards.
+Any node with the Merkle root (i.e., the root hash of the Merkle tree) can verify the inclusion proofs of all the shards.
 In this sense, the Merkle root represents the node's view of the whole state.
 
 % For each transaction, nodes load the necessary shards of their current state \lijl{it is not clear what does ``necessary shards of their current state'' mean}, process the transaction, update the Merkle root and the inclusion proofs of their stored shards, and advance the state version.

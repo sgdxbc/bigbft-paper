@@ -18,7 +18,7 @@ The redundancy introduced by the EC$(k+2f,k)$ erasure code is $\frac{k+2f}{k}$.
 When $k=1$, the redundancy becomes $2f+1$, which is equivalent to the plain replication design I1.
 By setting $k=pf$, where $p$ is a constant in the range $(0,\frac{f+1}{f}]$, the redundancy becomes $\frac{pf+2f}{pf} = \frac{p+2}{p}$. This redundancy factor remains constant regardless of the state size and total storage capacity, thus achieving the desired storage scalability property.
 
-However, this also implies that as $f$ increases (\ie, more nodes join the system), $k$ should ideally increase as well to maintain a target redundancy ratio.
+However, this also implies that as $f$ increases (i.e., more nodes join the system), $k$ should ideally increase as well to maintain a target redundancy ratio.
 This necessitates dynamically adjusting the number of shards within a stripe.
 % Fortunately, advancements in convertible codes~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth} and StripeMerge~\cite{yao2021stripemerge} offer a solution.
 Fortunately, we can employ a specialized erasure code~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth,yao2021stripemerge} that allows merging multiple stripes into a single larger stripe (with a proportionally increased $k$) through efficient computation by combining the parity shards of the original stripes.

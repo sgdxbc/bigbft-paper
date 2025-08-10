@@ -35,7 +35,7 @@ Let's break down analysis each of the fractions in the context of a simple key-v
     \item $\frac{s}{t}$ has varying meanings with different states and transactions.
     With key-value store state it is approximately the number of key-value pairs in a shard.
     \item $\sigma$ is the missing rate which is also transaction-dependent.
-    Given a skewed workload (\eg most configurations in YCSB~\cite{cooper2010benchmarking}), the missing rate can be as low as 1-10\%.
+    Given a skewed workload (e.g., most configurations in YCSB~\cite{cooper2010benchmarking}), the missing rate can be as low as 1-10\%.
 \end{itemize}
 
 We perform the numeric analysis with $d_t=1.5$, $\frac{s}{t}=10$ and $\sigma=0.1$ and the result is shown in the paper.
