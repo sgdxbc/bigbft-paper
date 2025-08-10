@@ -114,7 +114,8 @@ On the other hand, the solo miners can enjoy storage scalability by participatin
 
 The stateless blockchains can achieve near-perfect storage scalability, but their unconventional security models introduce untrusted storage nodes.
 The storage nodes are not responsible for ensuring security properties and may behave arbitrarily.
-While the nodes can ensure safety, the liveness can be compromised simply because of, e.g., all storage nodes do nothing.
+While the nodes can ensure safety, the liveness can be simply impeded because of, e.g., the lack of correct storage nodes producing new blocks.
+Even worse, the system will permanently halt if the faulty storage nodes lose the state.
 Besides, because the nodes give up the right to produce blocks and the control to the order, the systems are also vulnerable to other attack vectors such as fairness.
 Additionally, the storage scalability of storage nodes are still not ideal.
 While \cite{xu2021slimchain} proposes a shard solution for the storage nodes, enabling them to store partial state and process corresponding transactions, there must still be some storage nodes storing the whole state so that all possible transactions can be processed.
