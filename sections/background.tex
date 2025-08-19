@@ -8,9 +8,12 @@ Specifically, \sys ensures both
 \begin{description}
     \item[Security]
     \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft} with standard settings.
+    \lijl{Network synchrony assumptions?}
     \item[Storage scalability]
     The storage consumption on each node is proportional to the state size and inversely proportional to the number of nodes.
+    \lijl{Does storage size on each node matter?}
     In contrary, state storage in traditional BFT remains the same regardless of the system size.
+    \lijl{Shouldn't this also be proportional to the state size?}
 \end{description}
 \sys operates with $3f+1$ nodes and guarantees the aforementioned properties when up to $f$ nodes exhibit Byzantine faults and behave arbitrarily.
 Following numerous prior studies~\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark,luu2016secure,kokoris2018omniledger,dang2019towards,amiri2021sharper,gupta2020resilientdb,wang2019monoxide}, \sys achieves these properties under a partially synchronous network model.
@@ -43,6 +46,7 @@ At the same time, the nodes with abundant storage resources are not able to util
 \sys, on the other hand, features storage scalability, allowing the nodes to effectively \emph{lend} their extra storage to the system by, e.g., joining the network with multiple virtual nodes.
 The increased total number of nodes can effectively alleviate the storage pressure on every node, enabling nodes with limited storage capacity to continue participating in the system.
 At the same time, by spawning more virtual nodes, the nodes with abundant storage resources can be further incentivized for contributing more storage to the system.
+\lijl{The discussion here is slightly different from the storage scalability definition earlier.}
 
 In the permissioned settings, it may seem like the storage overhead is less concerning than in permissionless settings due to the more abundant resources normally found in the deployed environments.
 However, because of the static and known membership, these systems cannot replace the participating nodes as easily.
@@ -50,6 +54,7 @@ Without storage scalability, the system would require every node to store the en
 The system must be halted if any \emph{single} node does not meet the storage requirements.
 As more nodes join the network and more data is ingested, the early participants may be overwhelmed.
 On the other hand, storage scalability can maintain a constant storage requirement on these nodes when the data brought by the new participants is proportional to the number of them.
+\lijl{Not sure the meaning of this sentence.}
 Sustainable!\gd{TODO elaborate to whole sentence.}
 
 
@@ -85,6 +90,7 @@ The processing sharding approach horizontally partitions the state into multiple
     In this line of works \emph{shards} usually refer to the committees, or the \emph{node shards}.
     In this work, we follow the distributed database terminology and use \emph{shard} to refer \emph{data shards}.
 }.
+\lijl{Since this covers all prior sharding solutions, shall we just call it sharding?}
 Every transaction is processed only by the committee(s) that manages the relevant shard(s).
 One important insight is that the committees consist of fixed number of nodes.
 As the number of nodes increases, the number of committees also increases, and the state size managed by each committee decreases proportionally, achieving storage scalability.
@@ -114,14 +120,16 @@ On the other hand, the solo miners can enjoy storage scalability by participatin
 
 The stateless blockchains can achieve near-perfect storage scalability, but their unconventional security models introduce untrusted storage nodes.
 The storage nodes are not responsible for ensuring security properties and may behave arbitrarily.
-While the nodes can ensure safety, the liveness can be simply impeded because of, e.g., the lack of correct storage nodes producing new blocks.
+While the nodes \lijl{BFT nodes?} can ensure safety, the liveness can be simply impeded because of, e.g., the lack of correct storage nodes producing new blocks.
 Even worse, the system will permanently halt if the faulty storage nodes lose the state.
 Besides, because the nodes give up the right to produce blocks and the control to the order, the systems are also vulnerable to other attack vectors such as fairness.
 Additionally, the storage scalability of storage nodes are still not ideal.
+\lijl{These weaknesses could be more formalized.}
 While \cite{xu2021slimchain} proposes a shard solution for the storage nodes, enabling them to store partial state and process corresponding transactions, there must still be some storage nodes storing the whole state so that all possible transactions can be processed.
 
 The trade-off between security and storage scalability is fundamental in these previous approaches.
 It all depends on the number of nodes participating in processing each transaction.
+\lijl{What does this mean?}
 In fully replicated systems, every node processes every transaction, and the system trades off storage scalability for security.
 In processing sharding systems, not all nodes process every transaction, enabling storage scalability but trades off security.
 Finally, in stateless blockchains, while all nodes participate in the agreement part, none of them execute transactions.
