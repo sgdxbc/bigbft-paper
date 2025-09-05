@@ -26,5 +26,6 @@
         "permissionless",
         "rollup",
         "uncompromised"
-    ]
+    ],
+    "liveServer.settings.port": 5501
 }
