@@ -1,194 +1,84 @@
 \section{System Design}
 \label{sec:overview}
 
-We now detail the design of the state management system (SMS).
-SMS considers the managed state as multi-versioned data, with each transaction execution generating a new state version.
-On shard level, in each new version a fraction of shards is updated by the interleaving transaction, and the other unmodified shards ``fall through''.
-It exposes three interfaces to the execution layer:
-\begin{itemize}
-    \item \texttt{get}(shard indexes) returns state shards of current version.
-    \item \texttt{update}(shard indexes, shards) update the shards and bump (i.e., increment) the state version.
-    \item \texttt{skip}() fast-forward the state version and returns the number of skipped versions.
-\end{itemize}
-% The SMS is tasked with loading the necessary shards of the current state version to execute transactions, storing all versions of the shards that the nodes are responsible for maintaining, and responding to the load requests from other nodes.
-\lijl{We should clearly define the SMS interface and its properties.} \gd{Done.}
+\subsection{Active Tier}
 
-SMS guarantees availability (\autoref{sec:approach}), i.e., all \texttt{get} will return the desired shards successfully.
-If all correct nodes call \texttt{update} with identical sequence of shard indexes and shards (guaranteed by consensus and execution), SMS ensures that \texttt{get} returns identical shards on all correct nodes.
-Conceptually, SMS behaves as the full state is maintained on every node.
+Firstly, we describe a simplified version of the active tier.
+The key space is divided into $f+1$ shards, each of which is stored on a distinct node.
+(We will later explain why not using $3f+1$ shards.)
+For each of the shards, the hosting node accesses the shard locally, while the other $3f$ nodes retrieve the values of the accessed keys from the hosting node.
+After executing a transaction, the hosting node updates the values of the stored shard, while the other nodes simply discard the retrieved values.
+Remarks that the hosting node stores not only the current shard, but also the values of the accessed keys of the past transactions, so that a node that is running behind can still retrieve the necessary values to execute.
+We will discuss when the past values can be garbage collected later.
 
-However, to scale state, SMS only stores a subset of shards on each node;
-\texttt{get} might need to fetch data from a remote node.
-If a node lags behind a $2f+1$ quorum, the target shard could be \emph{garbage collected}, and \texttt{get} returns null.
-In such cases, the node can call \texttt{skip} to fast-forward its version and skip execution for the intermediate transactions.
-Equivalently, SMS guarantees the availability of a \emph{sliding window} of state versions, and the nodes behind this window can always catch up by calling \texttt{skip}.
-This fact allows us to reason about the liveness of \sys: nodes can always make progress on the state version (given that there are new versions ahead) either by calling \texttt{update} followed by \texttt{get} that is guaranteed to succeed or by calling \texttt{skip}.
+To ensure the correctness of the active tier, the $3f$ nodes must be able to verify the correctness (i.e., integrity and freshness) of the retrieved values.
+We employ the \emph{accumulator} to achieve this.
+An accumulator, or a updatable vector commitment, is a cryptographic primitive that allows one to succinctly represent a set of values and efficiently prove the inclusion of a value in the set.
+In our design, the $3f$ nodes maintain the accumulator of the shard.
+When they retrieve the values of some keys from the hosting node, the hosting node also provides the inclusion proofs of those keys in the accumulator.
+At the same time, the accumulator supports efficient updates.
+When the values of some keys are updated in the shard due to the execution of a transaction, the retrieving nodes can require necessary information from the hosting node to update their local copy of the accumulator.
+The update scheme ensures that the accumulator is always consistent on the retrieving nodes.
+\gd{Maybe further elaborate on the properties of the accumulator.}
+In conclusion, the accumulator allows the retrieving nodes to \emph{attest} the correctness of the retrieved values and reject the incorrect ones independently.
 
-\ifspace
-For clarity, we will describe the design iteratively and analyze the desired semantics of the interfaces are fulfilled at each stage.
-\else
-We present our design with four iterations.
-\fi
-We begin with a basic design, I1, then refine its redundancy level with I2. We then merge I1 and I2 into a generational design, I3, to amortize the coding overhead. Finally, we combine a I1 and I2 to create I4 which offers improved usability.
+To ensure the availability of the shard, we replicate each shard on $r$ random nodes.
+To ensure storage scalability, $r$ is a constant independent of the total number of nodes and may be less than $f$.
+While there is a chance that all $r$ nodes storing a shard are faulty, we randomize the placement of shards.
+So, a key (and the shard it belongs to) is stored by $r$ nodes, each of which is faulty with a probability of $\frac{f}{3f+1}$ independently.
+As the result, the probability that all $r$ nodes storing a shard are faulty is $(\frac{f}{3f+1})^r$, which decreases exponentially with $r$, regardless of the total number of nodes.
+Thus, the probabilistic availability of each shard can be ensured with a sufficiently large $r$.
+This guarantee is sufficient in some practice, and we will later describe how to achieve deterministic availability.
 
-\lijl{The design details are generally okay. For the workshop, can leave most of the availability, liveness, and redundancy analysis to the appendix. Main text just need to summarize those points.}
+\paragraph{Garbage collection of past values.}
+As previously mentioned, the hosting node stores not only the current shard but also the values of the accessed keys of the past transactions.
+The number of past transactions that the node can host must be bounded to ensure storage scalability.
+So the past values must be garbage collected in a timely manner.
+If the garbage collection is not happening in time, the node must suspend the execution of new transactions to avoid the need of storing more past values.
 
-\lijl{Overall, the state versioning is not particularly clear in this section. This can be better clarified in the beginning of the section.}\gd{Done.}
+To ensure the liveness of garbage collection, the past values are collected after $2f+1$ nodes have executed the corresponding transaction.
+The nodes exchange signed messages that indicate the transaction sequence number they have executed (which can be implied by their retrieving requests).
+Once a node receives $2f+1$ messages indicating that they have executed a transaction, it can safely discard the past values accessed by that transaction.
+On the other hand, if the execution on that node is fetching or bumping for the transaction earlier than the quorum-executed transaction, the fetching or bumping may not be able to be resolved because the past values have been discarded.
+In this case, the node can skip the execution of the transaction and fast-forward to the quorum-executed transaction.
+This is acceptable by all the BFT protocols we are aware of, as any BFT protocol that requires more than $2f+1$ nodes to execute a transaction cannot ensure liveness anyway.
 
-\paragraph{I1: Sharding + Plain Replication.}
-In the most basic design, consistent hashing~\cite{karger1997consistent} assigns each shard to $f+1$ nodes.
-\gd{Updated.}
-It is the shard \emph{index} instead of \emph{content} that associated to the nodes, so it will be the same $f+1$ nodes to store all versions of a shard.
-All shards are organized in a Merkle tree~\cite{merkle1987digital}, and nodes maintain inclusion proofs for the shards they store.
-\lijl{Might want to briefly explain what a ``inclusion proof'' is and its property.} \gd{Done.}
-The inclusion proof of a shard can prove the integrity of the shard to the nodes loading it.
-Any node with the Merkle root (i.e., the root hash of the Merkle tree) can verify the inclusion proofs of all the shards.
-In this sense, the Merkle root represents the node's view of the whole state.
+\paragraph{Prefetch.}
+\gd{Elaborate this paragraph.}
+\gd{Proactive pushing is described in implementation section.}
+To mitigate the latency and throughput penalty introduced by the on-path retrieval discussed in \autoref{sec:approach}, we can prefetch the values of keys that are likely to be accessed by future transactions.
+For stored procedure, we can usually perfectly predict the keys that will be accessed by a transaction.
 
-% For each transaction, nodes load the necessary shards of their current state \lijl{it is not clear what does ``necessary shards of their current state'' mean}, process the transaction, update the Merkle root and the inclusion proofs of their stored shards, and advance the state version.
-% \lijl{For a new state version, does the shard assignment change due to consistent hashing?}
-% To load a shard, a node queries $f+1$ other nodes and waits for one reply with a valid inclusion proof.
-% The prior state versions (shards and proofs) are retained to serve later queries from potentially slower nodes.
-\gd{Updated.}
-Upon \texttt{get} call, the nodes load the desired shards by querying the $f+1$ storing nodes and wait for a response with a verified inclusion proof, or retrieve locally if themselves are among the storing nodes.
-The \texttt{update} call first updates the Merkle root and the inclusion proofs of the storing shards with the updated shards.
-Then, the nodes bump the version, and the shards loaded from other nodes (if any) can be discarded.
-The previous versions of the stored shards are not discarded immediately for serving queries from slower nodes.
-However, we can perform \emph{copy-on-write} to deduplicate the unmodified shards across multiple versions.
+However, during the interval of prefetching and execution, the values of the prefetched keys may be updated by other transactions.
+Nodes must locally keep track of the updates made by a certain number of the most recent transactions, and the number is determined by the number of transactions that can be prefetched ahead.
 
-\ifspace
-\gd{Updated.}
-At this point, \texttt{get} calls always succeed, because the query to $f+1$ nodes will always land on at least one correct node.
-Furthermore, the Merkle root of each version will be identical on the correct nodes, because they call \texttt{update} with identical sequence of arguments.
-Consequently, the response by the correct queried node(s) will be verified and accepted.
-\fi
+\subsection{Archive Tier}
 
-\paragraph{Garbage Collection.}
-I1 becomes practical only if older versions of the shards can be pruned.
-To enable this, we modify I1 such that each shard is placed on $2f+1$ nodes instead of $f+1$, and they are all queried for loading the shard.
-This won't fail any \texttt{get} calls.
-Next, after bumping their state version at the end of \texttt{update}, nodes broadcast signed messages.
-These messages include the node's Merkle root representing its view of that state version it just entered.
-A $2f+1$ bump quorum with matching version and Merkle root serves as a certificate to garbage collect all shards and metadata from the versions prior to the certified one. \lijl{meaning both metadata and shard data?}\gd{Yes and udpated.}
-Once a node gathers such a certificate, it can prune its historical shards accordingly.
-The reasoning about garbage collection interacting with \texttt{get} and \texttt{skip} is detailed in appendix.
+The active tier can achieve correctness and probabilistic availability with decent performance.
+However, the probabilistic availability may not be sufficient in some practice.
+It is also vunerable to slowly adaptive adversary that can compromise nodes over time.\gd{cite}
+To achieve deterministic availability, we introduce the archive tier.
 
-\ifspace
-If $2f+1$ nodes have bumped up to a certain version, at least $f+1$ of them are correct.
-For any given shard of that version, the $2f+1$ nodes responsible for storing it must overlap with these $f+1$ correct nodes by at least one correct node, which will serve the shard and correctly respond to \texttt{get}.
-As the result, \texttt{get} every shard of the \emph{highest} version certified by a bump quorum will succeed.
-Simultaneously, the bump quorum certificate also indicates the correct Merkle root (view of the state) for that version.
-So, if the incoming query is for a shard versioned older than the last bump quorum certificate, the nodes can respond with the certificate instead of the shard.
-This causes the corresponding \texttt{get} to return null, but in a following \texttt{skip} call, the querying node can fast-forward to the certified version and set its view of the state to the certified Merkle root.
-Therefore, the nodes can safely discard shards older than the last certified version.
-\fi
+The archive tier encodes the $f+1$ shards with an erasure code and produces $2f$ parity shards.
+(This is why we have $f+1$ shards instead of $3f+1$ shards in the active tier.)
+The $3f+1$ shards (including the original and parity shards) are stored on all of the $3f+1$ nodes.
+The encoding routine ensures that at least $2f+1$ nodes have participated, among which at least $f+1$ are correct.
+The erasure code guarantees that any $f+1$ shards (original or parity) are sufficient to reconstruct the original $f+1$ shards.
+So the correct nodes who have participated in the encoding can always reconstruct the original shards and serve them to the system.
 
-\ifspace
-Also, the liveness of garbage collection is straightforward, as the formation of a bump quorum can be done by the $2f+1$ correct nodes.
-During periods of synchrony, bump quorum certificates for increasingly newer versions will become available, and the garbage collection process will prune historical shards, allowing nodes to operate while storing a bounded number of shards.
-\fi
+We now detail the encoding routine.
+The nodes first reach consensus on a certain transaction sequence number through the atomic broadcast.
+Once a node has executed all transactions up to that sequence number, it snapshots its storing shards and starts to work on the encoding, i.e., \emph{archiving} that sequence number.
+The nodes then exchange their snapshoted shards and verify their correctness with the accumulators provided by the active tier (which are also snapshoted).
+To avoid loading the entire shards into memory in this stage, the whole state can be divided into many stripes, and each stripe is further divided into $f+1$ shards and managed as described previously, and the encoding is performed on one stripe by another.
+After the nodes collect all the $f+1$ shards, they independently encode the shards to produce $2f$ parity shards.
+Finally, they store a hash vector of all the shards and only one of the $3f+1$ shards according to their node indices.
+Later when a node needs to reconstruct the original shards, it retrieves the stored shards from all nodes and verifies their integrity with the stored hash values.
+After they encode all the stripes, the nodes can discard the snapshoted shards and accumulators, and the archived shards from the previous encoding.
+Then the nodes can start a new round of encoding.
 
-\paragraph{I2: Erasure Coding.}
-The I1 design incurs a redundancy of $2f+1$, which scales linearly with the number of potential faulty nodes and fails to ensure storage scalability.
-% Consequently, I1 only compresses the storage consumption with a constant factor and fails to ensure storage scalability.
-
-\gd{Updated.}
-The refined design employs an EC$(k+2f,k)$ erasure code, as discussed in \autoref{sec:approach}.
-To \texttt{get} shards, a node queries the nodes storing the stripes to which the shards belong and retrieves the \emph{entire} stripes.
-Both the original data shards and the parity shards are organized as the leaf nodes of the Merkle tree \lijl{not immediately clear how this is done}\gd{Clear now?}, allowing nodes to verify the integrity of both.
-During \texttt{update}, the node first reconstructs the parity shards for any stripe containing updated data shards (hence the need to load the entire stripe).
-It then updates the Merkle root and the inclusion proofs for its stored state and parity shards, and then it bumps the state version, similar to I1.
-
-\ifspace
-\texttt{get} shards for versions that have not been garbage collected always succeeds because out of the $k+2f$ queried nodes, at least $k+f$ are correct.
-Since any $k$ correct nodes holding any $k$ pieces of the stripe (state or parity shards) can reconstruct the original $k$ data shards, the queried stripes can always be reconstructed.
-Furthermore, the garbage collection process still requires a bump quorum of only $2f+1$ participating nodes.
-As mentioned in \autoref{sec:approach}, for each stripe, the $k+2f$ nodes responsible for serving it must overlap with this $2f+1$ quorum by at least $k$ correct nodes.
-These $k$ correct nodes will possess enough state and parity shards to reconstruct the entire stripe.
-The following reasoning is similar to the one in I1.
-\else
-The garbage collection process still requires a bump quorum of only $2f+1$ participating nodes, according to the availability reasoning in \autoref{sec:approach}.
-We defer the detailed reasoning and analysis on availability and scalability to appendix.
-\fi
-
-\ifspace
-\paragraph{Redundancy Analysis.}
-The redundancy introduced by the EC$(k+2f,k)$ erasure code is $\frac{k+2f}{k}$.
-When $k=1$, the redundancy becomes $2f+1$, which is equivalent to the plain replication design I1.
-By setting $k=pf$, where $p$ is a constant in the range $(0,\frac{f+1}{f}]$, the redundancy becomes $\frac{pf+2f}{pf} = \frac{p+2}{p}$. This redundancy factor remains constant regardless of the state size and total storage capacity, thus achieving the desired storage scalability property.
-
-However, this also implies that as $f$ increases (\ie, more nodes join the system), $k$ should ideally increase as well to maintain a target redundancy ratio.
-This necessitates dynamically adjusting the number of shards within a stripe.
-% Fortunately, advancements in convertible codes~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth} and StripeMerge~\cite{yao2021stripemerge} offer a solution.
-Fortunately, we can employ a specialized erasure code~\cite{maturana2020access,maturana2022convertible,maturana2023bandwidth,yao2021stripemerge} that allows merging multiple stripes into a single larger stripe (with a proportionally increased $k$) through efficient computation by combining the parity shards of the original stripes.
-This approach mitigates the significant overhead of massive transcoding operations\footnote{
-It's important to note that even if $k$ is not adjusted immediately with an increasing $f$, the safety of the system is not compromised; we would simply incur a higher redundancy overhead than necessary.
-Conversely, when $f$ decreases, $k$ must be reduced, and the stripes need to be reconstructed promptly.
-
-Nevertheless, when the total number of nodes $n$ increases, the potential number of faults $f$ also increases, but an immediate increase in $k$ is not strictly required.
-Conversely, when $n$ decreases, $f$ does not necessarily need to be decreased immediately (except for potential liveness considerations), and the administrator can choose an opportune time to decrease $f$ and consequently $k$.
-In summary, $k$ does not require immediate adjustment regardless of whether $n$ is increasing or decreasing.
-}.
-In future work, we will design a comprehensive reconfiguration protocol leveraging these techniques to achieve low-overhead scaling up/down.
-\lijl{I assume this should be part of the full paper?}\gd{Yes}
-\fi
-
-\paragraph{I3: Amortizing Erasure Code Overhead with a Generational Design.}
-\ifspace
-The I2 design involves frequent encoding and decoding operations, leading to two primary overheads.
-First, although each parity shard is stored on only one node, every node must encode the original state shards to generate inclusion proofs for the state shards and parity shards it stores.
-Second, while nodes can avoid decoding if all the shards within a queried stripe are successfully retrieved, this scenario only occurs when all $k$ original state shards of the stripe are stored by correct nodes.
-Even if the $\frac{1}{3}$ faulty nodes employ no sophisticated strategy and simply withhold the shards they store, the probability that at least one required original state shard is stored and withheld by a faulty node is lower-bounded by $1-(\frac{2}{3})^k$.
-This probability is undesirably significant and increases with $k$.
-
-\else
-The previous iteration is effective but incur on-path encoding operations, and faulty nodes can easily trigger massive decoding operations simply by withholding stored shards.
-\fi
-\gd{Updated.}
-To effectively resolve this drawback, we adopt an epoch-based \emph{generational} approach.
-New state versions are created in the \emph{young} generation, where shards are replicated on $f+1$ nodes, similar to the I1 design.
-\lijl{it is not immediately clear that only shards that are modified by transactions are replicated}\gd{Done in I1.}
-Periodically, the nodes transition into new \emph{epochs} and reach consensus on specific \emph{epoch versions} (through the consensus layer).
-Once a bump quorum is achieved for an epoch version, the state corresponding to that epoch version is moved into the \emph{old} generation and encoded using the erasure code.
-The redundant copies of the shards from the young generation can then be discarded.
-Since all shard loading requests are served from the young generation, the encoding of the old generation can be performed in the background.
-This ensures that loading shards is free from any encoding or decoding overhead.
-
-\ifspace
-\gd{Updated.}
-The availability of I3 is guaranteed by the availability properties of both I1 and I2.
-Initially, the young generation seems to introduce an $f+1$ redundancy (as in I1), potentially undermining the storage scalability objective.
-However, thanks to the copy-on-write optimization, these $f+1$ shard copies are only maintained for the shards that are updated within the current epoch.
-In many real-world applications, workloads exhibit high skewness, and the size of the frequently accessed ``working set'' of data tends to be bounded and independent of the total state size.
-Nevertheless, this approach might not be optimal for all workload patterns, and malicious nodes could still execute withholding attacks at the beginning of each epoch, affecting performance.
-This limitation is addressed in the subsequent design.
-\fi
-
-\paragraph{I4: Achieving Constant Redundancy with Probabilistic (Fast Path) Availability.}
-In this design, we capitalize on the fact that the archive layer \emph{alone} can ensure robust availability and optimize the storage overhead by \emph{relaxing} availability guarantee of the young generation, drawing inspiration from \cite{qi2020bft}\footnote{Their work focuses on the availability of blocks rather than state.}.
-%  we repurpose the young generation as a fast path with probabilistic availability.
-Instead of maintaining $f+1$ replicas, the young generation stores a fixed number $c$ of copies for each shard, distributed across uniformly random nodes, irrespective of $f$.
-Moreover, the young generation retains copies of \emph{all} active shards, representing the latest version of every shard, even if that version has been moved to the old generation.
-\ifspace
-We now refer to the young and old generations as the \emph{active} and \emph{archive} layers, respectively.
-\fi
-
-\ifspace
-The archive layer ultimately guarantees successful \texttt{get} of the last archived version of the state, as detailed in the I2 design.
-Loading every stripe (and thus every shard) of any subsequent version can be accomplished by loading the archived version then replaying the intermediate transactions, so the \texttt{get} call of these versions are always successful.
-Furthermore, the probability of loading a shard successfully with the active layer is $1-(\frac{2}{3})^c$, which exceeds 99.9\% with $c=7$ and surpasses six-nines with $c=13$.
-\fi
-\ifspace
-The probability of loading a shard successfully with the active layer is $1-(\frac{2}{3})^c$, which exceeds 99.9\% with $c=7$ and surpasses six-nines with $c=13$.
-\fi
-\ifspace
-The resilience of the active layer grows exponentially with $c$ and is configurable by the administrator.
-Crucially, a potential failure of the active layer does not transform \sys into a speculative BFT protocol and does not necessitate rollback capabilities in the replicated state machine.
-In the recovery scenario where shards are unavailable in the active layer, the transaction history remains intact, and nodes simply re-execute the same sequence of transactions assisted by the archive layer.
-Any replies already committed to clients will not be invalidated.
-\fi
-\ifspace
-Finally, storage overhead of the active layer is a fixed $c$ times the state size, so the per-node average overhead is inversely proportional to the number of nodes, \ie, is storage-scalable.
-As already shown, the archive layer achieves storage scalability, as discussed in I2.
-Therefore, I4 is a design that effectively achieves both availability and storage scalability.
-\fi
+The archive tier and the active tier complement each other.
+The archive tier strengthens the availability guarantee of the active tier from probabilistic to deterministic, and it can effectively defend against slowly adaptive adversary: as long as the encoding is performed before the adversary can compromise $f+1$ nodes, the compromised nodes can only cause the loss after the last archived sequence number.
+And if that happens, the system can recover by reconfiguring the active tier and re-executing the transactions after the last archived sequence number.
+\gd{Should mention reconfigure somewhere.}
+On the other hand, the active tier serves the shards to the archive tier for encoding, and it also efficiently serves the shards to the execution layer for transaction execution, while the archive tier deals with the heavy encoding workload which should be performed off the critical path of execution.
