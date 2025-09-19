@@ -72,6 +72,7 @@
 \RequirePackage{amssymb}
 \fi
 
+\xspaceaddexceptions{(}
 
 \hypersetup{linkcolor=blue}
 

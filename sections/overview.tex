@@ -4,31 +4,47 @@
 \subsection{Active Tier}
 
 Firstly, we describe a simplified version of the active tier.
-The key space is divided into $f+1$ shards, each of which is stored on a distinct node.
+The key space is divided into $f+1$ shards, each of which is stored on a distinct node, denoted as the \emph{hosting node} of the shard.
 (We will later explain why not using $3f+1$ shards.)
-For each of the shards, the hosting node accesses the shard locally, while the other $3f$ nodes retrieve the values of the accessed keys from the hosting node.
-After executing a transaction, the hosting node updates the values of the stored shard, while the other nodes simply discard the retrieved values.
-Remarks that the hosting node stores not only the current shard, but also the values of the accessed keys of the past transactions, so that a node that is running behind can still retrieve the necessary values to execute.
+For each of the shards, the hosting node \fetch and \bump against the shard locally, while the other $3f$ nodes retrieve the \fetch-ed values of the accessed keys from the hosting node, and discard the updated values in the \bump.
+Remarks that the hosting node stores not only the current shard, but also the values of the \fetch-ed keys of the past versions, so that a node that is running behind can still retrieve the \fetch-ed values of its current version.
+Because the SMS can assume that the \fetch issued on each version is identical on all nodes, the hosting node can treat a retrieve request as faulty if it retrieves a key whose value is not preserved at the retrieved version and ignore the request.
 We will discuss when the past values can be garbage collected later.
 
 To ensure the correctness of the active tier, the $3f$ nodes must be able to verify the correctness (i.e., integrity and freshness) of the retrieved values.
-We employ the \emph{accumulator} to achieve this.
-An accumulator, or a updatable vector commitment, is a cryptographic primitive that allows one to succinctly represent a set of values and efficiently prove the inclusion of a value in the set.
-In our design, the $3f$ nodes maintain the accumulator of the shard.
-When they retrieve the values of some keys from the hosting node, the hosting node also provides the inclusion proofs of those keys in the accumulator.
-At the same time, the accumulator supports efficient updates.
-When the values of some keys are updated in the shard due to the execution of a transaction, the retrieving nodes can require necessary information from the hosting node to update their local copy of the accumulator.
-The update scheme ensures that the accumulator is always consistent on the retrieving nodes.
-\gd{Maybe further elaborate on the properties of the accumulator.}
-In conclusion, the accumulator allows the retrieving nodes to \emph{attest} the correctness of the retrieved values and reject the incorrect ones independently.
+We employ the \emph{authenticated dictionaries}~\cite{tamassia2003authenticated} to achieve this.
+\gd{Probably should move to the background section.}
+In an authenticated dictionary, or more generally, an authenticated data structure (ADS) scheme, an untrusted server answers queries over a data structure and returns a proof; a client keeps only a short commitment and verifies each reply.
+The updates on the server come with update information that lets the client efficiently update its commitment.
+In the context of authenticated dictionaries, the data structure is a key-value map, and the ADS scheme supports the following operations
+\begin{itemize}
+    \item \commit($D$): given a dictionary $D$, output a commitment $c$;
+    \item \open($D, k$): given a dictionary $D$ and a key $k$, output the value $v$ associated with $k$ in $D$ and a proof $\pi$;
+    \item \verify($c, k, v, \pi$): given a commitment $c$, a key $k$, a value $v$ and a proof $\pi$, output true if $\pi$ is a valid proof that $v$ is the value associated with $k$ in the dictionary committed by $c$, and false otherwise;
+    \item \update($D, k, v$): given a dictionary $D$, a key $k$ and a new value $v$, update the value associated with $k$ in $D$ to be $v$, and output the update information $\delta$;
+    \item \cupdate($c, k, v, \delta$): given a commitment $c$, a key $k$, a new value $v$ and an update information $\delta$, output the updated commitment $c'$.
+\end{itemize}
+\gd{List the properties.}
+A classical authenticated dictionary scheme is based on Merkle tree~\gd{cite}, where the commitment is the root hash of the tree, the proof and the update information are the hashes of the nodes on the path from the leaf to the root.
+More recently, the advancement in vector commitment~\cite{benabbas2011verifiable,catalano2013vector,nitulescu2021sok} and accumulator~\gd{cite some} supplies superior building blocks for authenticated dictionary schemes, enabling more efficient operations and smaller proofs and update information (or even no update information).
+\gd{Figure out some concrete facts on this.}
 
-To ensure the availability of the shard, we replicate each shard on $r$ random nodes.
+In our design, each shard is organized as an authenticated dictionary.
+The hosting node acts as the untrusted server, while the remaining nodes act as the clients.
+The nodes maintain the commitment of the shard, initialized by \commit an empty dictionary.
+When the nodes retrieve the values of some keys from the hosting node, the hosting node \open at the keys and sends the values and proofs to the retrieving nodes.
+The retrieving nodes \verify the values with the proofs and the locally stored commitment.
+To \bump, the retrieving nodes retrieve the update information from the hosting node, and \cupdate their local copy of the commitment.
+The authenticated dictionary scheme ensures that the commitment is always consistent with the shard content.
+By attesting the retrieved values with the authenticated dictionary scheme, the retrieving nodes can detect and discard any malformed or stale values returned by the hosting node, thereby ensuring the correctness.
+
+To ensure the availability of the shard, we replicate each shard on $r$ random hosting nodes.
 To ensure storage scalability, $r$ is a constant independent of the total number of nodes and may be less than $f$.
 While there is a chance that all $r$ nodes storing a shard are faulty, we randomize the placement of shards.
 So, a key (and the shard it belongs to) is stored by $r$ nodes, each of which is faulty with a probability of $\frac{f}{3f+1}$ independently.
 As the result, the probability that all $r$ nodes storing a shard are faulty is $(\frac{f}{3f+1})^r$, which decreases exponentially with $r$, regardless of the total number of nodes.
 Thus, the probabilistic availability of each shard can be ensured with a sufficiently large $r$.
-This guarantee is sufficient in some practice, and we will later describe how to achieve deterministic availability.
+This guarantee is sufficient in some practice, and we will later describe how to further achieve deterministic availability.
 
 \paragraph{Garbage collection of past values.}
 As previously mentioned, the hosting node stores not only the current shard but also the values of the accessed keys of the past transactions.
@@ -37,20 +53,27 @@ So the past values must be garbage collected in a timely manner.
 If the garbage collection is not happening in time, the node must suspend the execution of new transactions to avoid the need of storing more past values.
 
 To ensure the liveness of garbage collection, the past values are collected after $2f+1$ nodes have executed the corresponding transaction.
-The nodes exchange signed messages that indicate the transaction sequence number they have executed (which can be implied by their retrieving requests).
-Once a node receives $2f+1$ messages indicating that they have executed a transaction, it can safely discard the past values accessed by that transaction.
-On the other hand, if the execution on that node is fetching or bumping for the transaction earlier than the quorum-executed transaction, the fetching or bumping may not be able to be resolved because the past values have been discarded.
-In this case, the node can skip the execution of the transaction and fast-forward to the quorum-executed transaction.
-This is acceptable by all the BFT protocols we are aware of, as any BFT protocol that requires more than $2f+1$ nodes to execute a transaction cannot ensure liveness anyway.
+The nodes exchange messages that indicate their state versions (or implies it with their subsequent retrieve requests).
+Once a node receives $2f+1$ messages indicating that they have passed a version (denoted as a quorum-bumped certificate), it can safely discard the past values prior to that version.
+On the other hand, if the node is \fetch-ing or \bump-ing for the transaction earlier than the version, the operation may not be able to proceed because the hosting nodes have discarded the retrieving values or the update information.
+In this case, SMS outputs \forward to the execution layer and skips to the version.
+
+The garbage collection routine fulfills the requirement of the availability property.
+The \fetch and \bump operations can always proceed without outputting \forward unless the node is lagging behind at least $2f+1$ other nodes.
+Because if there has not been at least $2f+1$ nodes that have passed the version the node is retrieving for the \fetch or \bump, the version cannot be garbage collected, and the node can retrieve the values or update information to proceed the operation.
+This ensures that \forward is only output on at most $f$ nodes.
+On the other hand, if the node is lagging behind at least $2f+1$ nodes, it will eventually form a quorum-bumped certificate and output \forward, so that the \fetch and \bump operations eventually output on every node.
 
 \paragraph{Prefetch.}
 \gd{Elaborate this paragraph.}
 \gd{Proactive pushing is described in implementation section.}
-To mitigate the latency and throughput penalty introduced by the on-path retrieval discussed in \autoref{sec:approach}, we can prefetch the values of keys that are likely to be accessed by future transactions.
+To mitigate the latency and throughput penalty introduced by the on-path retrieval discussed in \autoref{sec:approach}, we can prefetch the values of keys that are likely to be accessed in the future versions.
 For stored procedure, we can usually perfectly predict the keys that will be accessed by a transaction.
 
-However, during the interval of prefetching and execution, the values of the prefetched keys may be updated by other transactions.
-Nodes must locally keep track of the updates made by a certain number of the most recent transactions, and the number is determined by the number of transactions that can be prefetched ahead.
+However, during the interval of prefetching and execution, the values of the prefetched keys may be updated in the intermediate versions.
+Nodes must locally keep track of the updates made by a certain number of the most recent versions, and the number is determined by the \emph{prefetch offset}, i.e., the number of versions between the version prefetching aimed at and the version prefetching is initiated.
+
+\gd{It's a bit complex to explain why the update information does not need to be prefetched. Is it necessary?}
 
 \subsection{Archive Tier}
 
@@ -67,18 +90,18 @@ The erasure code guarantees that any $f+1$ shards (original or parity) are suffi
 So the correct nodes who have participated in the encoding can always reconstruct the original shards and serve them to the system.
 
 We now detail the encoding routine.
-The nodes first reach consensus on a certain transaction sequence number through the atomic broadcast.
-Once a node has executed all transactions up to that sequence number, it snapshots its storing shards and starts to work on the encoding, i.e., \emph{archiving} that sequence number.
-The nodes then exchange their snapshoted shards and verify their correctness with the accumulators provided by the active tier (which are also snapshoted).
+The nodes first reach consensus on a certain version through the atomic broadcast.
+Once a node has brought its hosting shards into that version, it snapshots its storing shards and the commitments of the non-hosting shards, and starts to work on the encoding, i.e., \emph{archiving} that version.
+The nodes then exchange their snapshoted shards and verify their correctness with the commitment (which are also snapshoted).
 To avoid loading the entire shards into memory in this stage, the whole state can be divided into many stripes, and each stripe is further divided into $f+1$ shards and managed as described previously, and the encoding is performed on one stripe by another.
 After the nodes collect all the $f+1$ shards, they independently encode the shards to produce $2f$ parity shards.
 Finally, they store a hash vector of all the shards and only one of the $3f+1$ shards according to their node indices.
 Later when a node needs to reconstruct the original shards, it retrieves the stored shards from all nodes and verifies their integrity with the stored hash values.
-After they encode all the stripes, the nodes can discard the snapshoted shards and accumulators, and the archived shards from the previous encoding.
+After they encode all the stripes, the nodes can discard the snapshoted shards and commitments, and the archived shards from the previous encoding round.
 Then the nodes can start a new round of encoding.
 
 The archive tier and the active tier complement each other.
-The archive tier strengthens the availability guarantee of the active tier from probabilistic to deterministic, and it can effectively defend against slowly adaptive adversary: as long as the encoding is performed before the adversary can compromise $f+1$ nodes, the compromised nodes can only cause the loss after the last archived sequence number.
-And if that happens, the system can recover by reconfiguring the active tier and re-executing the transactions after the last archived sequence number.
+The archive tier strengthens the availability guarantee of the active tier from probabilistic to deterministic, and it can effectively defend against slowly adaptive adversary: as long as the encoding is performed before the adversary can compromise $f+1$ nodes, the compromised nodes can only cause the loss after the last archived version.
+And if that happens, the system can recover by reconfiguring the active tier and re-executing the transactions after the last archived version.
 \gd{Should mention reconfigure somewhere.}
-On the other hand, the active tier serves the shards to the archive tier for encoding, and it also efficiently serves the shards to the execution layer for transaction execution, while the archive tier deals with the heavy encoding workload which should be performed off the critical path of execution.
+On the other hand, the active tier serves the \emph{correct} shards to the archive tier for encoding, and it also efficiently serves the shards to the execution layer for transaction execution, while the archive tier deals with the heavy encoding workload that should be performed off the critical path of execution.
