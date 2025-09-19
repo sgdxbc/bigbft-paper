@@ -1,6 +1,13 @@
 \section{Related Works}
 \label{sec:rel}
 
+Stateless client or stateless cryptocurrency.
+\gd{Elaborate background.}
+\sys adopts a similar approach to stateless clients in active tier: for each shard, the hosting nodes can be seen as the full nodes, while the other nodes can be seen as the light clients.
+Stateless cryptocurrencies take a binary view of the nodes: either full nodes that store the entire state or light clients that store no state, while in \sys, the nodes can host arbitrary number of shards, ranging from zero to all, according to their storage capacities.
+These works also do not develop a security notation for the availability of the state, but simply assume that there will always be some full nodes that host the state and serve the light clients, e.g., for economics incentives.
+Also, most of these works assume a permissionless setting and focus on a specialized cryptocurrency application like UTXO model, while \sys defaults to a permissioned setting (while still can be applied to permissionless setting) and targets general applications.
+
 \lijl{Can omit in the workshop version. Can merge the important ones with the background section.}
 
 \paragraph{Availability of historical transactions, i.e., blocks.}
@@ -11,7 +18,7 @@ In public blockchains, \emph{archival nodes} voluntarily supply historical block
 BFT-store~\cite{qi2020bft} constitutes a space-efficient block-availability solution tailored for permissioned blockchains.
 Blocks undergo erasure coding and subsequent distribution across nodes to achieve storage scalability; this work demonstrates a fault tolerance of $f$ faulty nodes out of a total of $3f+1$ while ensuring block availability.
 Danksharding~\cite{eip4844} proposes augmenting Ethereum's blocks with \emph{blobs}, which are erasure coded and collaboratively stored by the nodes.
-Distinct from BFT-store, Ethereum ensures blob availability only for a defined period (\eg currently 18 days), as the rationale for blob storage pertains to auditing rather than archival.
+Distinct from BFT-store, Ethereum ensures blob availability only for a defined period (e.g., currently 18 days), as the rationale for blob storage pertains to auditing rather than archival.
 
 On one hand, scaling block storage solutions is simpler than scaling state storage solutions.
 The historical blocks are immutable and certainly structured in an append-only list, while the state is a piece of arbitrary data that is both added with new content and modified in place.
