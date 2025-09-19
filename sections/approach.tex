@@ -1,22 +1,23 @@
 \section{Decoupling State from Execute}
 \label{sec:approach}
 
-From the previous works of all of fully replicated blockchains, sharded blockchains and stateless blockchains, we observe a common theme: the nodes maintain the part of the state (or the whole state) necessitated by the transactions they execute all by themselves.
-In fully replicated blockchains, all the nodes execute all transactions and maintain the entire state.
+From the previous works of all of fully replicated blockchains, sharded blockchains and stateless blockchains, we observe a common theme: the nodes store what they need to execute the transactions on their own.
+In another word, what nodes can (and will) execute is determined by what state they store locally.
+In fully replicated blockchains, all the nodes maintain the entire state and execute all transactions.
 In sharded blockchains, the nodes only need to maintain a state shard because they only execute transactions that access that shard.
 In stateless blockchains, the internal nodes do not maintain the state because they don't (also cannot) execute transactions.
 While the external storage nodes maintain the entire or part of the state and execute the transactions whose execution can be supported by the state they maintain.
 
-This common theme leads to the dilemma between storage scalability and security guarantees.
+This ``store what you need for execution'' common theme leads to the dilemma between storage scalability and security guarantees.
 On one hand, storage scalability cannot be achieved if the state is replicated to all nodes or a set of nodes whose size is proportional to the total number of nodes.
 That means that for each transaction, the state it accesses can only be stored on a limited set of nodes whose number is independent of the total number of nodes.
 In only the nodes storing the accessed state can (and will) execute the transaction, the number of executing nodes is limited as well.
 However, the conventional security guarantees of blockchains, i.e., safety and liveness, can only be achieved when a transaction is executed by all nodes\gd{cite 3f+1 lower bound here}.
 This fundamental theoretical limitation forces the sharded and stateless blockchains to trade the security guarantees in various ways (\autoref{sec:bg}) for storage scalability.
 
-If we diverge from the common practice of executing the transaction only if the local state can support the execution, we can achieve both storage scalability and security guarantees.
+If we diverge from this common practice, the chance of achieving both storage scalability and security guarantees appears.
 As shown in \autoref{fig:approach-compare}, we propose a novel design that decouples state management from transaction execution.
-In this design, the nodes execute all transactions while only maintaining a part of the state.
+In this design, the nodes execute all transactions while only maintaining a part of the state, i.e., one or more state shards.
 If a transaction accesses a state shard that is not stored locally, the node retrieves it from other nodes to execute the transaction.
 By carefully engineering the state placement, we can ensure that each shard is stored on a limited set of nodes, achieving storage scalability.
 At the same time, since all nodes execute all transactions, the security guarantees are preserved as well.
@@ -27,22 +28,72 @@ We remark that this is a theoretical worst case that is unlikely to happen in pr
 In practice, most transactions only access a tiny fraction of the state.
 \gd{Copilot believes the following sentence, try to cite it or remove if not found.}
 For example, in Ethereum, more than 90\% of transactions only access a single account.
-As we will show in our design, the retrieval happens at key level, so that even if a transaction accesses keys that are stored by many or even all nodes, those nodes only transfer the values of the accessed keys instead of the entire shards they store.
+Also, as we will show in our design, the retrieval happens at key level, so that even if a transaction accesses keys that are stored by many or even all nodes, those nodes only transfer the values of the accessed keys instead of the entire shards they store.
 So the peak size of the retrieved temporary state is equal to the size of the accessed keys and values, which is small enough to even only reside in memory.
 \gd{In some way claim that this is also what blockchains like Ethereum are doing and assuming.}
 
-However, the common practice of maintaining the state necessary for executing transactions locally comes with its reason: execute with local state is efficient and does not require additional security reasoning.
+However, diverging from the common practice also gives up its benefits: execute with local state is efficient and does not require additional security reasoning.
 As the state is maintained by the node itself, the state is always correct and available to the node, and the execution of the same sequence of transactions on the same initial state will always halt with the same final state and output.
 As the result, the previous sharded and stateless blockchains can mostly focus on establishing the consistent ordering of transactions to ensure their security guarantees.
 On the other hand, our design of decoupling state from execution introduces new challenges to ensure the correctness and availability of the state shards retrieved from other nodes, which are crucial for the security guarantees.
-We will detail these challenges and outline our approaches to address them, but first we formalize the interfaces and the security properties of the state management.
+If the nodes retrieves incorrect values, the execution may diverge.
+If the retrieval does not complete, the execution is stuck.
+Even if the retrieval do complete but just not efficiently, the execution will be delayed and the throughput will be reduced.
+We will detail these challenges below and outline our approaches to address them in \autoref{sec:overview}, but before that, we first formalize the interfaces and the security properties of the state management.
 
-\subsection{Security Properties of State Management}
+\subsection{Interfaces and Security Properties of State Management}
 
-Interfaces: fetch and bump.
+In our design, the BFT protocol consist of three components: the state management system (SMS), the execution layer and the Byzantine atomic broadcast (BAB) protocol.
+We specify the design of the SMS and the execution layer, while the Byzantine atomic broadcast protocol can be any existing protocol that satisfies the standard properties (validity, agreement, integrity and total order)\gd{cite here}.
+In this section, we first define the universal interfaces for state management to abstract away the implementation details and describe how the execution layer executes transactions with the support of the SMS.
+Then we define the security properties that the state management must satisfy to ensure the security guarantees of the overall system.
+Finally, we reason about how the overall security properties are preserved given that the SMS and BAB ensure their own properties and the transaction execution is deterministic.
 
-Properties: availability and correctness.
-In essence, fetch and bump behaves as the node locally stores everything (except the forwarding).
+We take a key-value view of the state: the state is a mapping from keys to values, and each transaction accesses a set of keys to read or write their values.
+This view is compatible with most blockchain applications, including account-based model and UTXO-based model.
+
+The interfaces of the SMS are defined as two operations: \fetch and \bump.
+Normally, \fetch($k$) returns the value associated with the key $k$, and \bump($[k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots]$) updates the values associated with the keys $k_i$ to $v_i$ and returns \texttt{OK}.
+The execution layer is straightforward with these two operations.
+During executing a transaction, the execution layer gradually \fetch all keys as the execution requires to read, and buffers all key-value pairs written by the execution.
+When the execution finishes, the execution layer \bump all buffered key-value pairs to update the state.
+In the special case where the node lags behind and needs to catch up, \fetch and \bump may return \forward($s$), indicating that the node should skip the following $s$ \bump calls and any \fetch calls in between.
+(The case of leveraging \forward is shown in the garbage collection design in \autoref{sec:overview}.)
+In the view of the execution layer, this simply translates to skipping the execution of the next $s$ transactions (including the current one).
+The SMS guarantees to only return \forward when there are at least $2f+1$ nodes have already executed and \bump the corresponding transactions.
+In such case, any sensible BFT protocol allows the node to skip the execution of those transactions and not reply to the clients, because the protocol would lose liveness if it requires more than $2f+1$ nodes to execute.
+
+The straw-man implementation of the SMS is to fully store the entire state on the node and implement \fetch and \bump as local operations on the local state (and they never returns \forward).
+In \sys, we design a distributed implementation of the SMS that is storage scalable.
+Next, we define the security properties of SMS that captures the essential assumptions made by the execution layer to a local SMS: correctness and availability.
+By ensuring these properties, an SMS implementation would ``behave as'' a local one to the remaining system, so that as long as the system can ensure its security properties with a local SMS, it can ensure the same properties with this SMS implementation as well.
+
+\paragraph{State version.}
+For clearness, we define the \emph{version} of the state as the number of transactions that ought to be executed, i.e., the number of \bump calls that have been executed plus the number of \bump calls that have been \forward-ed.
+
+\paragraph{Assumptions made by the SMS\@.}
+SMS may assume a consistent sequence of \fetch and \bump calls from the execution layer.
+Specifically, at each version, the nodes receive identical \fetch and \bump calls.
+% This assumption is sensible: the execution layer should receive the same sequence of transactions from the BAB protocol, i.e., at each version the same transaction is executed by all nodes, and the execution should be translated to the same sequence of \fetch and \bump calls.
+% \gd{Should we explicitly mention the execution is assumed to be deterministic?}
+
+\paragraph{Correctness.}
+The value returns by \fetch($k$) must match the last \bump call that updates $k$. 
+\gd{A weaker property that only requires returning consistent values is probably sufficient, but this definition seems more reasonable.}
+
+\paragraph{Availability.}
+Each \fetch and \bump call must eventually return, and for each version, \fetch and \bump calls may return \forward on at most $f$ nodes.
+\gd{A bit attempting to extract the latter part into a ``quorum progress'' property.}
+
+Given that the SMS ensures these properties, the BAB protocol ensures its standard properties and the transaction execution is deterministic, we now show that the overall system can ensure the conventional safety and liveness properties of BFT protocols regardless of the implementation of the SMS\@.
+The BAB protocol ensures that the execution layer of all non-faulty nodes receive the same sequence of transactions.
+Because of deterministic execution, the execution layer of all non-faulty nodes will translate the transaction executions into the same sequence of \fetch and \bump calls, satisfying SMS's assumptions.
+Then, the availability of SMS ensures that all non-faulty nodes can proceed to every state version (by either execution or \forward over it), and at least $2f+1$ nodes
+who proceed a version have executed the corresponding transaction (instead of \forward over it).
+Combining both statements gives that for each version, at least $f+1$ non-faulty nodes have executed the corresponding transaction.
+Finally, the correctness ensures that as long as the executions start from consistent pre-states, the executions yield consistent results and transition into consistent post-states.
+Given that all nodes start from the same initial state, by induction, all non-faulty nodes will yield consistent results for all transactions they have executed.
+As the result, for each transaction, the client can collect $f+1$ identical responses from the executing non-faulty nodes, satisfying the safety and liveness properties of BFT protocols.
 
 \gd{Is this the appropriate place to mention the decoupling of the storage node and the (execution) node?}
 
@@ -54,7 +105,7 @@ However, if we store each shard on at least $f+1$ nodes to ensure it is not only
 Ensuring correctness is also challenging.
 As the system consists of up to $f$ faulty nodes, those nodes may attempt to respond to retrieval requests with malformed or stale data.
 The retrieving node must be able to detect and discard such incorrect data to avoid execution divergence.
-The most straightforward solution is to collect $f+1$ identical responses from distinct nodes, ensuring at least one correct response.
+The straightforward solution is to collect $f+1$ identical responses from distinct nodes, ensuring at least one correct response.
 However, this approach requires storing each shard on at least $2f+1$ nodes, which again results in storage overhead proportional to the number of nodes.
 
 Last but not least, the retrieval of state shards from other nodes introduces additional network traffic, and more importantly, on the critical path of execution.

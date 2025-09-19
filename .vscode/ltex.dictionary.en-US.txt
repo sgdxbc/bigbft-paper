@@ -6,7 +6,9 @@ Arbitrum
 Arweave
 asynchrony
 Asynchrony
+atomicity
 aynchronous
+BAB
 bursty
 Ceph
 Ceph-like
@@ -39,6 +41,7 @@ linearizable
 Luby
 Merkle
 OceanStore
+OLAP
 permissionless
 Permissionless
 PoS
@@ -48,12 +51,17 @@ rateless
 Rateless
 RUDP
 sawtooth
+sharding
+Sharding
 sk
 Solana
 soliton
 Soliton
 subprotocols
+supermajority
+TODO
 Tokio
+Trie
 unforgeable
 unreachabilities
 vCPUs
@@ -63,10 +71,3 @@ xFS
 XORed
 XORing
 Yiqing
-Sharding
-sharding
-Trie
-OLAP
-atomicity
-supermajority
-TODO

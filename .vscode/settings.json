@@ -20,12 +20,5 @@
         "series": false,
         "journal": false
     },
-    "cSpell.words": [
-        "incentivized",
-        "permissioned",
-        "permissionless",
-        "rollup",
-        "uncompromised"
-    ],
     "liveServer.settings.port": 5501
 }
