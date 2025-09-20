@@ -27,7 +27,7 @@ In the context of authenticated dictionaries, the data structure is a key-value 
 \gd{List the properties.}
 A classical authenticated dictionary scheme is based on Merkle tree~\gd{cite}, where the commitment is the root hash of the tree, the proof and the update information are the hashes of the nodes on the path from the leaf to the root.
 More recently, the advancement in vector commitment~\cite{benabbas2011verifiable,catalano2013vector,nitulescu2021sok} and accumulator~\gd{cite some} supplies superior building blocks for authenticated dictionary schemes, enabling more efficient operations and smaller proofs and update information (or even no update information).
-\gd{Figure out some concrete facts on this.}
+\gd{Figure out some concrete highlights from the lines of works, showing how practical they are.}
 
 In our design, each shard is organized as an authenticated dictionary.
 The hosting node acts as the untrusted server, while the non-hosting nodes act as the clients.
