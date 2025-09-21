@@ -2,11 +2,21 @@
 \label{sec:rel}
 
 Stateless client or stateless cryptocurrency.
+The ADS research is motivated by the stateless client problem.
 \gd{Elaborate background.}
-\sys adopts a similar approach to stateless clients in active tier: for each shard, the hosting nodes can be seen as the full nodes, while the other nodes can be seen as the light clients.
-Stateless cryptocurrencies take a binary view of the nodes: either full nodes that store the entire state or light clients that store no state, while in \sys, the nodes can host arbitrary number of shards, ranging from zero to all, according to their storage capacities.
+Compare to \sys, stateless cryptocurrencies take a binary view of the nodes: either full nodes that store the entire state or light clients that store no state, and the features strict unidirectional flow of data from full nodes to light clients.
+\sys explores a novel scenario where all nodes store partial states and serve each other.
+This is more challenging regarding performance, as the workload is unfriendly to batching (and even needs prefetching).
 These works also do not develop a security notation for the availability of the state, but simply assume that there will always be some full nodes that host the state and serve the light clients, e.g., for economics incentives.
 Also, most of these works assume a permissionless setting and focus on a specialized cryptocurrency application like UTXO model, while \sys defaults to a permissioned setting (while still can be applied to permissionless setting) and targets general applications.
+
+Erasure-coded (crash-fault tolerant) state machine replication.
+Racos~\cite{zarnstorff2024racos}.
+\gd{Cite the rest works in the line.}
+The BFT settings makes the problem fundamentally different.
+In Racos, each parity shard only need to be encoded once and the proposer can encode the parity shards locally and send to the replicas.
+Under BFT settings, the encoding must be replicated by every node, rendering impractical to perform on-path encoding.
+\gd{Elaborate more.}
 
 \lijl{Can omit in the workshop version. Can merge the important ones with the background section.}
 
