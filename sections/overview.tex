@@ -71,6 +71,9 @@ So, if we want to \fetch at version $v$, we can instead issue the \fetch at vers
 The \fetch can be processed concurrently to the execution of $v-o$ to $v-1$ versions.
 When the execution layer reaches version $v$ and requires the \fetch result, it may already be available and can be returned immediately.
 
+The semantics of \fetch is extended for overlapping issuing in the offseted case.
+If a \fetch call overlaps with serveral versions (i.e., \bump calls), it may return the value of any of those versions.
+
 To perform offseted \fetch, the execution layer must predict the \fetch-es issued for the transactions before their proceding transactions complete.
 This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
 
