@@ -63,14 +63,24 @@ If this is not the case, the hosting node cannot collect a quorum-bumped certifi
 This ensures that \forward is only return on at most $f$ nodes.
 On the other hand, if a node is lagging behind at least $2f+1$ nodes, it will eventually form a quorum-bumped certificate and return \forward, ensuring that \fetch and \bump operations eventually complete on every node.
 
-\paragraph{Prefetch.}
-\gd{Elaborate this paragraph.}
-\gd{Proactive pushing is described in implementation section.}
-To mitigate the latency and throughput penalties introduced by on-path retrieval as discussed in \autoref{sec:approach}, we can prefetch the values of keys that are likely to be accessed in future versions.
-For stored procedures, it is often possible to accurately predict the keys that will be accessed by a transaction.
+\paragraph{Offseted \fetch.}
+The on-path retrieval of \fetch introduces latency pernalties.
+And because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
+To mitigate these issues, the issue of \fetch calls can be \emph{offseted}, against a slightly earlier version.
+So, if we want to \fetch at version $v$, we can instead issue the \fetch at version $v-o$, where $o$ is the \emph{fetch offset}.
+The \fetch can be processed concurrently to the execution of $v-o$ to $v-1$ versions.
+When the execution layer reaches version $v$ and requires the \fetch result, it may already be available and can be returned immediately.
 
-However, during the interval between prefetching and execution, the values of prefetched keys may be updated in intermediate versions.
-Nodes must locally track the updates made in a certain number of the most recent versions, with this number determined by the \emph{prefetch offset}, i.e., the number of versions between the target version for prefetching and the version when prefetching is initiated.
+To perform offseted \fetch, the execution layer must predict the \fetch-es issued for the transactions before their proceding transactions complete.
+This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
+
+However, offseted \fetch returns the value of one of the versions between $v-o$ and $v$, which may be stalled for version $v$.
+To ensure the freshness of \fetch-ed values, since issuing a \fetch call, the execution layer must keep track of the \fetch-ed key.
+If the key is later updated in a \bump before \fetch's version, that updated value should be the result of the \fetch, instead of the actual value returned by \fetch.
+On the other hand, if the key is never updated during the offseted versions, then the original value returned by \fetch will be the same as if it was fetched at version $v$ and can be used.
+To realize this tracking within bounded memory, the execution layer can set a maximum \fetch offset.
+
+\gd{Proactive pushing is described in implementation section.}
 
 \subsection{Archive Tier}
 
