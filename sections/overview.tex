@@ -63,25 +63,18 @@ If this is not the case, the hosting node cannot collect a quorum-bumped certifi
 This ensures that \forward is only return on at most $f$ nodes.
 On the other hand, if a node is lagging behind at least $2f+1$ nodes, it will eventually form a quorum-bumped certificate and return \forward, ensuring that \fetch and \bump operations eventually complete on every node.
 
-\paragraph{Offseted \fetch.}
-The on-path retrieval of \fetch introduces latency pernalties.
-And because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
-To mitigate these issues, the issue of \fetch calls can be \emph{offseted}, against a slightly earlier version.
-So, if we want to \fetch at version $v$, we can instead issue the \fetch at version $v-o$, where $o$ is the \emph{fetch offset}.
-The \fetch can be processed concurrently to the execution of $v-o$ to $v-1$ versions.
-When the execution layer reaches version $v$ and requires the \fetch result, it may already be available and can be returned immediately.
+\paragraph{Mask \fetch latencies by combining prefetching with caching.}
+The on-path retrieval of \fetch introduces latency pernalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
+Because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
+To mitigate this issue, a \emph{prefetch + cache} mechanism is developed.
+For each \fetch, a corresponding \emph{prefetch} is issued ahead of the time.
+At the same time, all updates made by \bump since the prefetching is issued are cached locally.
+When the \fetch is issued, SMS first checks the local cache, and returns the updated value if it exists; otherwise, it returns the prefetched value.
+Given sufficient headroom between prefetching and fetching, the prefetch can be completed before the fetch is issued, effectively masking the latency of \fetch.
+The tradeoff is the extra memory consumption for caching, which is usually at MB level and is definitely acceptable.
 
-The semantics of \fetch is extended for overlapping issuing in the offseted case.
-If a \fetch call overlaps with serveral versions (i.e., \bump calls), it may return the value of any of those versions.
-
-To perform offseted \fetch, the execution layer must predict the \fetch-es issued for the transactions before their proceding transactions complete.
+To perform prefetching, the execution layer must predict the \fetch-es issued for the transactions before their proceding transactions complete.
 This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
-
-However, offseted \fetch returns the value of one of the versions between $v-o$ and $v$, which may be stalled for version $v$.
-To ensure the freshness of \fetch-ed values, since issuing a \fetch call, the execution layer must keep track of the \fetch-ed key.
-If the key is later updated in a \bump before \fetch's version, that updated value should be the result of the \fetch, instead of the actual value returned by \fetch.
-On the other hand, if the key is never updated during the offseted versions, then the original value returned by \fetch will be the same as if it was fetched at version $v$ and can be used.
-To realize this tracking within bounded memory, the execution layer can set a maximum \fetch offset.
 
 \gd{Proactive pushing is described in implementation section.}
 
