@@ -51,17 +51,22 @@ As previously mentioned, the hosting node stores not only the current shard but 
 The number of past versions retained by the node must be bounded, requiring timely garbage collection of past values.
 If garbage collection is delayed, the node must suspend further \bump operations to avoid excessive storage of past values.
 
-To guarantee the liveness of garbage collection, past values are collected after $2f+1$ nodes have executed the corresponding transaction.
-Nodes exchange messages indicating their state versions (or implicitly via subsequent retrieve requests).
-Once a node receives $2f+1$ messages confirming that those nodes have advanced past a version (forming a quorum-bumped certificate), it can safely discard past values prior to that version.
-Conversely, if a node is performing \fetch or \bump for a version earlier than the quorum-bumped one, the operation may not proceed because the hosting nodes may have already discarded the required values or update information.
-In this case, the SMS skips to the quorum-bumped version and returns \forward for the ongoing operation to the execution layer.
+As we will detail later, the archive tier periodically picks a version and archives it into erasure-coded shards.
+This archived version is guaranteed to be recoverable by any node (before the next archive version is archived) and serves as an anchor point for garbage collection.
+After participating the archiving of version $v$, a node can safely discard all past values prior to version $v$.
+On the other hand, if a node is lagging behind the last archived version, it may not be able to retrieve the \fetch-ed values for its current version, as the hosting nodes may have already discarded those values.
+The node can recover the last archived version from the archive tier and ask execution layer to \forward to that version.
 
+The liveness of garbage collection is guaranteed by the liveness of archive tier.
+As we will show, the archiving process requires only $2f+1$ nodes to participate and is guaranteed to be live.
+Nonetheless, a faster garbage collection scheme is introduced in \gd{ref} to further reduce memory pressure of the nodes when all nodes are correct.
+
+\gd{This paragraph becomes lacking context without elaborating archive tier. If we move it to later, should we move the whole garbage collection discussion to later?}
 This garbage collection routine satisfies the availability property.
 The \fetch and \bump operations can always proceed without returning \forward unless the node is lagging behind at least $2f+1$ other nodes.
-If this is not the case, the hosting node cannot collect a quorum-bumped certificate for the version and will not garbage collect it, allowing the node to retrieve the necessary values or update information to continue.
+If this is not the case, there will not be an archived version that is ahead of the node's version.
 This ensures that \forward is only return on at most $f$ nodes.
-On the other hand, if a node is lagging behind at least $2f+1$ nodes, it will eventually form a quorum-bumped certificate and return \forward, ensuring that \fetch and \bump operations eventually complete on every node.
+On the other hand, if a node is lagging behind at least $2f+1$ nodes, it will eventually learn about the last archived version and return \forward, ensuring that \fetch and \bump operations eventually complete on every node.
 
 \paragraph{Mask \fetch latencies by combining prefetching with caching.}
 The on-path retrieval of \fetch introduces latency pernalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
@@ -101,10 +106,13 @@ After collecting all $f+1$ shards, nodes independently encode them to produce $2
 Finally, each node stores a hash vector of all shards and retains only one of the $3f+1$ shards according to its node index.
 When reconstruction is needed, a node retrieves stored shards from all nodes and verifies their integrity using the hash vector.
 As discussed, the node can always retrieve at least $f+1$ correct shards, ensuring successful reconstruction.
-After encoding all stripes, nodes can discard the snapshotted shards and commitments, as well as archived shards and hash vectors from the previous round, and begin a new encoding round.
+After encoding all stripes, nodes can discard the snapshotted shards and commitments.
+The nodes can also perform garbage collection on both active and archive tiers up to the archived version, removing the unnecessary past values and archived shards.
+Then, the nodes proceed to the next encoding round.
 
 The archive tier and active tier complement each other.
-The archive tier upgrades the availability guarantee of the active tier from probabilistic to deterministic, and effectively defends against a slowly adaptive adversary: as long as encoding occurs before the adversary compromises $f+1$ nodes, compromised nodes can only cause loss after the last archived version.
+The archive tier upgrades the availability guarantee of the active tier from probabilistic to deterministic.
+The deterministic availability not only serves as an anchor point for garbage collection, but also effectively defends against a slowly adaptive adversary: as long as encoding occurs before the adversary compromises $f+1$ nodes, compromised nodes can only cause loss after the last archived version.
 If such loss occurs, the system can recover by reconfiguring the active tier and re-executing transactions after the last archived version.
 \gd{Should mention reconfigure somewhere.}
 Meanwhile, the active tier provides correct shards to the archive tier for encoding and efficiently serves shards to the execution layer for transaction execution, while the archive tier handles the heavy encoding workload off the critical path of execution.
