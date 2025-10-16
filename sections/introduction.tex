@@ -1,24 +1,17 @@
 \section{Introduction}
 \label{sec:intro}
 
-\lijl{As a general rule of thumb, we should target ~2 pages for introduction + background/motivation, 2 pages for approach + design, and ~1 page for evaluation + conclusion.}
-
 Blockchain state size is undergoing considerable augmentation.
 Prevailing permissionless distributed ledgers~\cite{buterin2014next, nakamoto2008bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:states-grow}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
-% , the duplication of which across over ten thousand nodes necessitates petabytes of cumulative storage.
-\lijl{Why is cumulative storage an issue?} \gd{Done.}
-% The considerable financial burden linked to state replication renders on-chain data storage economically unviable~\cite{balduf2022dude}.
 Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes potentially attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic,chang2008bigtable}, imposing impractical storage requirements at each node if the state is fully replicated.
+\lijl{Is there any concrete evidence that these applications on blockchain actually require large state?}
 Can state size of a blockchain \emph{scales} with the system size, like traditional distributed databases?
-%Addressing this challenge requires \emph{storage scalability}:
-% the total storage utilization should correlate solely with the state size \lijl{The meaning of ``total storage utilization'' is not very clear}, irrespective of the number of nodes.
-\lijl{Still think that the above definition of scalability is not intuitive.} \gd{Done.}
-%The storage consumption on each node must decrease proportionally to the increase of node count.
-%Only by realizing storage scalability, the state storage pressure can scale out to the storage resource contributed by the newly-joined nodes, and the state size is not constrained by the storage capabilities of individual nodes.
+\lijl{Can first bring up traditional databases scale state size horizontally.}
 
 Sharded blockchains, wherein nodes can function by maintaining only a segment of the state, have been the subject of considerable prior research~\cite{ruan2021blockchains,luu2016secure,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,wang2019monoxide,amiri2021sharper}.
 Although these solutions scale blockchain state, they introduce compromises between scalability and security, specifically safety and liveness~\cite{pbft}.
 Consequently, these approaches fail to uphold the conventional security assurance of Byzantine fault tolerance (BFT)~\cite{bft}, which deterministically tolerates any $f$ Byzantine faulty nodes within a total of $3f+1$ nodes.
+\lijl{Can mention that security and liveness concerns have hindered their adoption in practice.}
 %They may rely on probabilistic safety guarantees, proposing to tolerate only $\frac{1}{4}$ faulty nodes~\cite{luu2016secure,kokoris2018omniledger} or impose supplementary prerequisites such as trusted hardware~\cite{dang2019towards} or synchronous networks~\cite{zamani2018rapidchain}.
 %Other solutions necessitate pre-defined fault-tolerant clusters and can only manage $\frac{1}{3}$ Byzantine faults locally within each committee~\cite{ruan2021blockchains,amiri2021sharper,gupta2020resilientdb}.
 %Ultimately, no prior sharding method achieves storage scalability without impacting safety and liveness properties.
@@ -34,16 +27,17 @@ The trade-off between security and scalability arises from the prevalent \emph{p
 The entirety of processing, encompassing consensus and execution, is partitioned, with only a limited set of nodes (i.e., the committee) involved in transaction processing.
 This leads to diminished resilience against safety and liveness attacks.
 % Conversely, storage scalability is attained by partitioning the state, without necessitating the fragmentation of other components \lijl{what does this sentence mean?}.
-\gd{Updated.}
 We observe that only the sharding of the state is crucial for blockchains to achieve storage scalability, while sharding the other components is unnecessary while posing undesirable consequences.
+\lijl{Need to improve the previous few sentences. Understanding this concept is crucial for the paper, so we need to clearly explain the different layers and their responsibilities.}
 Based on this observation, we introduce a novel approach: we decouple a state management system (SMS) from the execution layer to handle a sharded state, while maintaining global consensus and execution layers.
 This innovative methodology achieves a clear \emph{separation of concerns}: the SMS solely addresses storage scalability and availability, which can be effectively managed using advanced erasure coding~\cite{ec} techniques.
 Concurrently, the consensus and execution layers can focus on security attributes without concerning about impacting storage scalability.
-\lijl{Can summarize the challenges of this decoupling approach.}\gd{Done.}
 Meanwhile, the decoupled SMS also introduces the new challenge of supporting execution at different speeds across nodes.
 This necessitates managing multiple state versions concurrently and efficiently identifying historical versions that are safe to dispose of.
 And, needless to say, SMS must accomplish this while tolerating $f$ faulty nodes.
+\lijl{Might need to better explain these challenges. For someone who hasn't read the full paper, these are not easy to understand.}
 Luckily, through the careful employment of erasure coding\cite{ec}, we demonstrate that this difficulty can be practically addressed.
+\lijl{We do need to summarize the techniques in the introduction.}
 
 \ifspace
 \gd{Updated.}
