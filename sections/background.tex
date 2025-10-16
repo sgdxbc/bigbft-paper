@@ -4,18 +4,17 @@
 \paragraph{Problem Settings.}
 Our work functions as a replicated service for arbitrary state machines~\cite{lamport1978implementation} exhibiting tolerance to Byzantine faults akin to conventional BFT protocols.
 The main focus is on the space consumed on participating nodes for storing the \emph{state}, the data component manipulated by the replicated state machine.
+\lijl{Could provide more background on what ``state'' means.}
 Specifically, \sys ensures both
 \begin{description}
     \item[Security]
     \sys ensures safety and liveness properties consistent with conventional BFT protocols~\cite{pbft} with standard settings.
-    \lijl{Network synchrony assumptions?}\gd{Below.}
     \item[Storage scalability]
     Given certain amount of the state data, the storage consumption on each node for operating the state is inversely proportional to the number of nodes.
-    \lijl{Does storage size on each node matter?}
+    \lijl{An alternative definition would be: the maximum state size is proportional to the total storage capacity of the system. I think systems people would be more familiar with such a definition.}
     In contrary, state storage in traditional BFT remains the same regardless of the system size.
-    \lijl{Shouldn't this also be proportional to the state size?}
 \end{description}
-\sys operates with $3f+1$ nodes and guarantees the aforementioned properties when up to $f$ nodes exhibit Byzantine faults and behave arbitrarily.
+\sys operates with $3f+1$ nodes and guarantees the aforementioned properties when up to $f$ nodes exhibit Byzantine faults and behave arbitrarily \lijl{Is this assuming all nodes have similar storage capacity?}.
 Following numerous prior studies~\cite{pbft,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark,luu2016secure,kokoris2018omniledger,dang2019towards,amiri2021sharper,gupta2020resilientdb,wang2019monoxide}, \sys achieves these properties under a partially synchronous network model.
 Outside the period of synchrony, the protocol may experience a lack of progress, but safety and storage scalability remain uncompromised.
 
@@ -46,8 +45,7 @@ At the same time, the nodes with abundant storage resources are not able to util
 \sys, on the other hand, features storage scalability, is more flexible in configuring the storage load of the nodes.
 \gd{TODO here.}
 The increased total number of nodes can effectively alleviate the storage pressure on every node, enabling nodes with limited storage capacity to continue participating in the system.
-At the same time, by spawning more virtual nodes, the nodes with abundant storage resources can be further incentivized for contributing more storage to the system.
-\lijl{The discussion here is slightly different from the storage scalability definition earlier.}
+At the same time, by spawning more virtual nodes, the nodes with abundant storage resources can be further incentivized for contributing more storage to the system \lijl{This last part is not very clear}.
 
 In the permissioned settings, it may seem like the storage overhead is less concerning than in permissionless settings due to the more abundant resources normally found in the deployed environments.
 However, because of the static and known membership, these systems cannot replace the participating nodes as easily.
@@ -56,6 +54,9 @@ The system must be halted if any \emph{single} node does not meet the storage re
 As more nodes join the network and more data is ingested, the early participants may be overwhelmed.
 Thanks to storage scalability, while the state data is growing because of the joining nodes, the storage resources of these joining nodes amortize the storage pressure of these data at the same time.
 As the result, the early nodes can enjoy a much slower increasing or even nearly constant storage overhead.
+\lijl{When storage capacity is reached, requiring all participating nodes to upgrade their storage. Probably okay when managed by a single organization, but permissioned blockchain usually follows a federated model.}
+
+\lijl{Can also mention that horizontal scaling is a desired property for distributed systems. DAG-based protocols enable horizontal scaling for block dissemination. We are horizontally scaling storage capacity.}
 
 \begin{table*}
 \caption{
