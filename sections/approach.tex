@@ -14,12 +14,16 @@ That means that for each transaction, the state it accesses can only be stored o
 If only the nodes storing the accessed state can execute the transaction, the number of executing nodes is also limited.
 However, the conventional security guarantees of blockchains, i.e., safety and liveness, can only be achieved when a transaction is executed by all nodes~\gd{cite 3f+1 lower bound here}.
 This fundamental theoretical limitation forces sharded and stateless blockchains to trade off security guarantees in various ways (\autoref{sec:bg}) in exchange for storage scalability.
+\lijl{We can probably frame this into an informal impossibility result. That is, a system can choose at most one of the two properties. Then informally ``prove'' that if security is chosen, then storage scalability can't be achieved, and vice versa.}
 
 If we diverge from this common practice, the chance of achieving both storage scalability and security guarantees appears.
 As shown in \autoref{fig:approach-compare}, we propose a novel design that decouples state management from transaction execution.
+\lijl{Can relate to other systems designs, e.g., memory is separated from CPU execution logic (CPU only maintains registers and caches), prior disaggregated memory.}
 In this design, nodes execute all transactions while maintaining only a portion of the state: one or more state shards.
+\lijl{One point can be made here: transaction execution only requires state being available when a transaction accesses it. Traditional approaches are pessimistic: a node needs to always maintain all state. This is an overkill for execution. We are doing is on-demand or optimistically.}
 If a transaction accesses a state shard not stored locally, the node retrieves it from other nodes to complete the execution.
 By carefully designing the placement of state shards, we ensure that each shard is stored on a limited subset of nodes, thereby achieving storage scalability.
+\lijl{Another point to make: why do nodes need to maintain some state locally, and how much to store? There are two reasons: state availability and performance. State availability determines the storage lower bound on each node. Storing more state than the lower bound could improve performance.}
 Meanwhile, because all nodes execute all transactions, the system retains its security guarantees.
 
 \paragraph{The size of the retrieved temporary state.}
@@ -31,6 +35,7 @@ For example, in Ethereum, more than 90\% of transactions access only a single ac
 Moreover, as our design demonstrates, retrieval occurs at the key level, so even if a transaction accesses keys distributed across many or all nodes, only the values of the accessed keys are transferred, rather than entire shards.
 Thus, the peak size of the retrieved temporary state equals the total size of the accessed keys and values, which is sufficiently small to reside entirely in memory.
 \gd{In some way claim that this is also what blockchains like Ethereum are doing and assuming.}
+\lijl{Yes, should provide more concrete evidence and workload citations. Even better if we can do some empirical analysis of available traces.}
 
 However, diverging from the common practice also sacrifices its advantages: executing with local state is efficient and does not require additional security analysis.
 When the state is maintained locally, it is always correct and available to the node, and executing the same sequence of transactions from the same initial state will deterministically yield the same final state and output.
@@ -40,6 +45,7 @@ If a node retrieves incorrect values, execution may diverge.
 If retrieval fails to complete, execution is stalled.
 Even if retrieval completes but is inefficient, execution will be delayed and throughput will decrease.
 We will elaborate on these challenges and outline our solutions in \autoref{sec:overview}; before that, we first formalize the interfaces and security properties of state management.
+\lijl{I think we can move these challenge discussions later.}
 
 \subsection{Interfaces and Security Properties of State Management}
 
@@ -51,6 +57,7 @@ Finally, we reason about how the overall security properties are preserved, give
 
 We adopt a key-value abstraction for the state: the state is represented as a mapping from keys to values, and each transaction accesses a set of keys to read or write their associated values.
 This abstraction is compatible with most blockchain applications, including both account-based and UTXO-based models.
+\lijl{Can also mention that most distributed databases use such storage interface.}
 
 The interfaces of the SMS are defined as two operations: \fetch and \bump.
 Typically, \fetch($k$) returns the value associated with key $k$, and \bump($[k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots]$) updates the values of keys $k_i$ to $v_i$ and returns \texttt{OK}.
