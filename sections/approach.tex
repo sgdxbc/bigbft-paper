@@ -65,9 +65,11 @@ The execution layer operates straightforwardly with these two operations and the
 Upon receiving transactions from clients, the BAB protocol establishes a total order of transactions and delivers them to the execution layer.
 During transaction execution, the execution layer incrementally invokes \fetch for all required keys and buffers all key-value pairs written by the execution.
 After execution completes for the transactions, the execution layer calls \bump on all buffered key-value pairs to update the state and responds to clients with the execution results.
+\lijl{It is not immediately clear when should the execution layer perform a \bump. After completing one transaction?}
 Clients collect $f+1$ identical responses from distinct nodes before considering the transaction committed.
 In the special case where a node lags behind and needs to catch up, \fetch and \bump may return \forward($s$), indicating that the node should skip the next $s$ \bump calls and any \fetch calls in between.
 (The use of \forward is illustrated in the garbage collection design in \autoref{sec:overview}.)
+\lijl{I wonder if this skip logic should be done in the state layer? Or would it be more appropriate in the execution layer? Maybe can refer to the CORFU line of work, where the storage layer is dumb.}
 From the execution layer's perspective, this simply means skipping the execution of the next $s$ transactions (including the current one).
 The SMS guarantees to output \forward only when at least $2f+1$ nodes have already executed and \bump-ed the corresponding transactions.
 As shown later, this is sufficient to ensure the liveness of the overall BFT protocol.
@@ -81,18 +83,22 @@ By ensuring these properties, an SMS implementation can behave equivalently to a
 
 \paragraph{State version.}
 For clarity, we define the \emph{version} of the state as the number of transactions that should be executed, i.e., the sum of \bump calls that have been executed and those that have been \forward-ed.
+\lijl{Should we expose state version to the execution layer, i.e., all \fetch and \bump should specify the version number?}
 
 \paragraph{Assumptions made by the SMS\@.}
 The SMS may assume a consistent sequence of \fetch and \bump calls from the execution layer.
 Specifically, at each version, all nodes receive identical \fetch and \bump calls.
+\lijl{Can only guarantee this for honest nodes? Also, maybe we should not call these assumptions, but specify the properties of SMS if certain pre-conditions are met.}
 
 \paragraph{Correctness.}
 The value returned by \fetch($k$) must match the last \bump call that updated $k$.
 \gd{A weaker property that only requires returning consistent values is probably sufficient, but this definition seems more reasonable.}
+\lijl{Not very precise. What does ``last'' mean? Just need one \bump call?}
 
 \paragraph{Availability.}
 Each \fetch and \bump call must eventually return, and for each version, at most $f$ nodes may receive \forward from \fetch and \bump calls.
 \gd{A bit attempting to extract the latter part into a dedicated ``quorum progress'' property.}
+\lijl{Some people may expect a more classic availability definition in which certain state becomes available/retrievable by all honest node once a store operation returns.}
 
 Given that the SMS ensures these properties, the BAB protocol ensures its standard properties, and transaction execution is deterministic, we now show that the overall system can guarantee the conventional safety and liveness properties of BFT protocols regardless of the SMS implementation.
 The BAB protocol ensures that the execution layer of all non-faulty nodes receives the same sequence of transactions.
