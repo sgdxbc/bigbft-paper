@@ -1,4 +1,5 @@
 .DS_Store
 .latex.out/
+.vscode/
 paper.pdf
 suppl.pdf
