@@ -70,6 +70,7 @@
 \else
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
+\RequirePackage{booktabs}
 \fi
 
 \xspaceaddexceptions{(}
