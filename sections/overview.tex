@@ -75,22 +75,26 @@ If this is not the case, there will not be an archived version that is ahead of 
 This ensures that \forward is only return on at most $f$ nodes.
 On the other hand, if a node is lagging behind at least $2f+1$ nodes, it will eventually learn about the last archived version and return \forward, ensuring that \fetch and \bump operations eventually complete on every node.
 
-\paragraph{Mask \fetch latencies by combining prefetching with caching.}
+\paragraph{Mask \fetch latencies by concurrent fetches and bounded staleness.}
 The on-path retrieval of \fetch introduces latency pernalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
 Because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
-To mitigate this issue, a \emph{prefetch + cache} mechanism is developed.
-For each \fetch, a corresponding \emph{prefetch} is issued ahead of the time \lijl{When to issue prefetch?}.
-At the same time, all updates made by \bump since the prefetching is issued are cached locally.
-When the \fetch is issued, SMS first checks the local cache, and returns the updated value if it exists; otherwise, it returns the prefetched value.
-Given sufficient headroom between prefetching and fetching, the prefetch can be completed before the fetch is issued, effectively masking the latency of \fetch.
-The trade-off is the extra memory consumption for caching, which is usually at MB level and is definitely acceptable.
+To recover the throughput, we introduce concurrent fetches.
+The execution layer not only issue \fetch for the current transaction, but also pre-issues \fetch-es for the pending transactions in the execution queue.
+When a transaction completes, its \fetch-ed values are likely already retrieved, allowing the transaction to proceed without stalling.
 
-To perform prefetching, the execution layer must predict the \fetch-es issued for the transactions before their proceeding transactions complete.
+To perform concurrent fetches, the execution layer must predict the \fetch-es issued for the transactions before their proceeding transactions complete.
 This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
+\gd{Remark that Ethereum smart contracts enforce explicit declaration of accessed keys.}
 
-\gd{Proactive pushing is described in implementation section.}
-
-\lijl{Is it beneficial to also cache a small set of non-hosting key-values for skewed workloads?}
+The consequence of concurrent fetches is that the \fetch-ed values may be slightly stale and does not reflect the latest \bump operations (which may haven't been issue yet at the time of \fetch).
+To address this, we introduce a bounded staleness semantic for \fetch.
+The \fetch-ed value is allowed to be stale with respect to up to $s$ latest \bump operations, where $s$ is a system parameter.
+When nodes retrieve the \fetch-ed values remotely, they accept the responses as long as their versions' staleness is within the bound and examine the responded values against the commitment of their corresponding versions.
+This allows the remote nodes to respond to \fetch requests before advancing to the corresponding versions, effectively eliminating the sequential data dependency.
+On the other hand, the execution layer takes care of only issuing up to $s$ concurrent fetches and further maintains a small in-memory cache of recent $s$ \bump operations.
+When serving transaction reads, the cached updates supersede the \fetch-ed values if they overlap.
+This cache not only guarantees to mask the staleness introduced by concurrent fetches but also potentially improves performance: if a hot key is frequently updated and fetched within a short period, the reads can be served directly from the cache and the performance is not affected by the \fetch at all.
+\lijl{Is it beneficial to also cache a small set of non-hosting key-values for skewed workloads?}\gd{Mentioned.}
 
 \subsection{Archive Tier}
 
