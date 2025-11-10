@@ -85,6 +85,8 @@ When a transaction completes, its \fetch-ed values are likely already retrieved,
 To perform concurrent fetches, the execution layer must predict the \fetch-es issued for the transactions before their proceeding transactions complete.
 This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
 \gd{Remark that Ethereum smart contracts enforce explicit declaration of accessed keys.}
+Nonetheless, for transactions whose \fetch-es cannot be (accurately) predicted, the execution layer can always issue on-path \fetch to execute the transactions.
+\sys supports all kinds of transactions with an additional optimization for common types of transactions.
 
 The consequence of concurrent fetches is that the \fetch-ed values may be slightly stale and does not reflect the latest \bump operations (which may haven't been issue yet at the time of \fetch).
 To address this, we introduce a bounded staleness semantic for \fetch.
