@@ -1,27 +1,14 @@
-\section{Optimizations}
+\section{Implementation}
 \label{sec:impl}
 
-\lijl{This section can be omitted in the workshop version.}
+\subsection{Authenticated storage.}
 
-In this section, we will discuss the most impactful performance enhancements that have not yet been addressed in \autoref{sec:overview}.
+\paragraph{Merkle trees.}
 
-\paragraph{Caching Shards and/or Shard Hashes.}
-To leverage the skewed access patterns of transactions and minimize the network overhead of shard synchronization, nodes are advised to maintain a least-recently-used (LRU) cache of shards.
-Additionally, nodes should cache the hashes of all shards for their latest state view.
-This enables nodes to replace the verification of inclusion proofs with a more efficient direct hash comparison when receiving remote shards.
-Thanks to the decomposition design separating state management and execution (\autoref{sec:approach}), caching shard hashes requires no additional communication, as nodes obtain all necessary hashes through their local processing.
+\paragraph{Vector commitments.}
 
-\paragraph{Speculative Shard Pushing.}
-The active layer primarily operates in a pull-based manner, where nodes fetch remote shard copies on demand to minimize network overhead.
-However, this on-demand fetching lies on the critical path and introduces latency.
-To mitigate this, in addition to serving pull requests, one of the nodes storing a shard in the active layer is designated as the pushing node. This node proactively broadcasts the shard to other relevant nodes upon processing a transaction that accesses it.
-Furthermore, this pushing can be performed speculatively, even before the associated transaction is committed.
-Many BFT protocols have a time window between transaction proposal and commitment, and after which proposed transactions have a high likelihood of being committed.
-By speculatively pushing the shards accessed by these proposed transactions, shard dissemination can occur concurrently with transaction dissemination, effectively masking the latency associated with retrieving remote shards.
+\paragraph{Trusted hardware-based storage.}
 
-\iffalse
-\paragraph{Skip processing.}
-Node can choose to skip processing the transactions that do not update the stored shards.
-The drawback is the skipping invalidates the cached shard hashes and the node must perform full verification of inclusion proofs in a later synchronization.
-Nevertheless, this optimization is effective when working with heavyweight transactions like smart contracts.
-\fi
+\subsection{Optimizations}
+
+\paragraph{Designated pushing nodes.}
