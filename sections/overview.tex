@@ -1,6 +1,30 @@
 \section{System Design}
 \label{sec:overview}
 
+\subsection{Preliminaries}
+
+\paragraph{Authenticated dictionaries.}
+The key-value state is stored in the form of \emph{authenticated dictionaries}, which allow untrusted servers to serve key-value queries with proofs that can be efficiently verified by clients holding only a short commitment, and the clients are able to update their commitments according to the updates and continuously verify the server responses against the mutable state.
+
+Specifically, an authenticated dictionary scheme supports the following operations, following the definitions introduced by \cite{peng2020falcondb}.
+\begin{itemize}
+    \item \commit($D$): given a dictionary $D$, output a commitment $c$;
+    \item \open($D, k$): given a dictionary $D$ and a key $k$, output the value $v$ associated with $k$ in $D$ and a proof $\pi$;
+    \item \verify($c, k, v, \pi$): given a commitment $c$, a key $k$, a value $v$ and a proof $\pi$, output true if $\pi$ is a valid proof that $v$ is the value associated with $k$ in the dictionary committed by $c$, and false otherwise;
+    \item \update($D, k, v$): given a dictionary $D$, a key $k$ and a new value $v$, output a dictionary $D'$ that updates the value associated with $k$ in $D$ to $v$, and an auxiliry update information $\delta$;
+    \item \cupdate($c, k, v, \delta$): given a commitment $c$, a key $k$, a new value $v$ and update information $\delta$.
+    If $\delta$ is valid, that is, it is the output of \update($D, k, v$) for some dictionary $D$ committed by $c$ (i.e., \commit($D$) outputs $c$), output true and the updated commitment $c'$ that commits to the updated dictionary $D'$; otherwise, output false and $\bot$.
+\end{itemize}
+
+The \cupdate operation enables clients to update their commitments in a \emph{stateless} manner, i.e., without needing to re-execute \commit on the entire updated dictionary from scratch.
+In practice, clients only need to run \commit once at the beginning to obtain the initial commitment of an empty dictionary, and then can keep updating their commitments using \cupdate as the dictionary evolves.
+
+There are multiple constructions of authenticated dictionaries based on different cryptographic primitives, varying in their computation and space efficiency.
+\gd{cite}
+We will discuss and compare these constructions in \autoref{sec:impl}.
+
+\paragraph{Erasure coding.}
+
 \subsection{Active Tier}
 
 Firstly, we describe the basic architecture of the active tier.
