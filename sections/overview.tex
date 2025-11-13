@@ -128,17 +128,19 @@ The active tier can achieve correctness and probabilistic availability with dece
 However, probabilistic availability may not be sufficient in some scenarios.
 It is also vulnerable to a slowly adaptive adversary that can compromise nodes over time.\gd{cite}
 To achieve deterministic availability, we introduce the archive tier.
+\lijl{Does this deterministic availability depend on properties of the active tier?}
 
 The archive tier encodes the $f+1$ shards using erasure coding to produce $2f$ parity shards.
 (This is why only $f+1$ shards are present in the active tier; the remaining ones are employed here.)
-The $3f+1$ shards (including both original and parity shards) are stored on distinct nodes.
+The $3f+1$ shards (including both original and parity shards) are stored on distinct nodes \lijl{distinct primary nodes?}.
 The encoding process ensures that at least $2f+1$ nodes participate, among which at least $f+1$ are correct.
 The erasure code guarantees that any $f+1$ shards (original or parity) are sufficient to reconstruct the original $f+1$ shards.
 Thus, the correct nodes involved in encoding always host enough shards to reconstruct the original data.
+\lijl{It is not immediately clear how does the original $f+1$ shards are available during this encoding process based on this line of reasoning.}
 
 We now detail the encoding process.
-Nodes first reach consensus on a specific version via atomic broadcast.
-Once a node has brought its hosting shards to that version, it snapshots its stored shards and the commitments of non-hosting shards, and begins encoding, i.e., \emph{archiving} that version.
+Nodes first reach consensus on a specific version via atomic broadcast \lijl{This statement is a bit ambiguous. This is a past version or a future version? Any specific requirement on the version?}.
+Once a node has brought its hosting shards to that version, it snapshots its stored shards \lijl{meaning the hosting shards?} and the commitments of non-hosting shards, and begins encoding, i.e., \emph{archiving} that version.
 Nodes then exchange their snapshotted shards and verify correctness using the commitments.
 To avoid loading the entire state into memory in this stage, the state can be divided into multiple stripes, each further divided into $f+1$ shards and managed as described above, with encoding performed stripe by stripe.
 After collecting all $f+1$ shards, nodes independently encode them to produce $2f$ parity shards.
@@ -152,6 +154,7 @@ Then, the nodes proceed to the next encoding round.
 The archive tier and active tier complement each other.
 The archive tier upgrades the availability guarantee of the active tier from probabilistic to deterministic.
 The deterministic availability not only serves as an anchor point for garbage collection, but also effectively defends against a slowly adaptive adversary: as long as encoding occurs before the adversary compromises $f+1$ nodes, compromised nodes can only cause loss after the last archived version.
+\lijl{Need to finish encoding before the attack is done? A secure backup mechanism is that all nodes store transaction blocks since the last archived version, and replay the transactions if they cannot find any of the $f+1$ shards during encoding. This should only occupy constant storage size.}
 If such loss occurs, the system can recover by reconfiguring the active tier and re-executing transactions after the last archived version.
 \gd{Should mention reconfigure somewhere.}
 Meanwhile, the active tier provides correct shards to the archive tier for encoding and efficiently serves shards to the execution layer for transaction execution, while the archive tier handles the heavy encoding workload off the critical path of execution.
