@@ -30,7 +30,7 @@ We will discuss and compare these constructions in \autoref{sec:impl}.
 We divide the key space into multiple shards and store them across all storage nodes in the system.
 For fault tolerance, each shard is replicated on $r$ storage nodes, referred as the \emph{responsible nodes} of the shard.
 These $r$ nodes are selected randomly and independently for each shard using consistent hashing.
-On \fetch the values of a shard, a replica node retrieves the values from the responsible nodes and returns the first correct response it receives.
+To \fetch the values of a shard, a replica node retrieves the values from the responsible nodes and returns the first correct response it receives.
 
 To ensure storage scalability, $r$ is a constant independent of the total number of storage nodes and may be less than $f$.
 However, since the placement of shards is randomized, the probability that all $r$ nodes storing a shard are faulty decreases exponentially with $r$, regardless of the total number of storage nodes.
@@ -44,37 +44,15 @@ To combat this issue, we further employ the authenticated dictionary scheme wher
 The replica nodes maintain the lightweight commitments of all shards.
 When retrieving values from the responsible nodes, the storage nodes \open the retrieved keys and response both the values and the proofs.
 The replica nodes \verify the retrieved values using the proofs and their locally stored commitments and discard any malformed or stale values.
-For \bump operations, the replica nodes send the updated values to the responsible nodes, and the responsible nodes \update the shards and response the update information to the replica nodes.
-The replica nodes then \cupdate their local commitments accordingly.
+For \bump operations, the storage nodes receive the pushed updates from their trusted replica nodes.
+The responsible nodes \update their local shards and get the update information, while the other storage nodes ignore the updates.
+Then, every replica nodes retrieve the update information from the responsible nodes and \cupdate their local commitments.
 
 The storage nodes need to respond to retrieval requests from multiple replica nodes, potentially on different versions of the state.
 As the result, the retrieval requests should be tagged with the version of the state they are issued for, and the storage nodes must maintain past values and proofs of the retrieved keys to serve these requests.
-Notice that the storage nodes do not need to maintain the entire past states, but only the values of keys that have been accessed by replica nodes in previous versions.
-As discussed in \autoref{sec:approach}, consensus layer ensures that all correct replica nodes access the same set of keys in each version, so the storage nodes can simply treat any retrieval on the unexpected keys as malformed requests and ignore them.
+Notice that the storage nodes do not need to maintain the entire past state shards, but only the values of keys that have been accessed by the trusted replica node in previous versions.
+As discussed in \autoref{sec:approach}, SMS expects a consistent sequence of \fetch invoked from the replica nodes, so the storage nodes can simply treat any retrieval on the unexpected keys as malformed requests and ignore them.
 Nonetheless, the storage nodes must perform garbage collection on the past values to bound their memory overhead, which we detail after introducing the archive tier.
-
-\paragraph{Mask \fetch latencies by concurrent fetches and bounded staleness.}
-The on-path retrieval of \fetch introduces latency pernalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
-Because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
-To recover the throughput, we introduce concurrent fetches.
-The execution layer not only issue \fetch for the current transaction, but also pre-issues \fetch-es for the pending transactions in the execution queue.
-When a transaction completes, its \fetch-ed values are likely already retrieved, allowing the transaction to proceed without stalling.
-
-To perform concurrent fetches, the execution layer must predict the \fetch-es issued for the transactions before their proceeding transactions complete.
-This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
-\gd{Remark that Ethereum smart contracts enforce explicit declaration of accessed keys.}
-Nonetheless, for transactions whose \fetch-es cannot be (accurately) predicted, the execution layer can always issue on-path \fetch to execute the transactions.
-\sys supports all kinds of transactions with an additional optimization for common types of transactions.
-
-The consequence of concurrent fetches is that the \fetch-ed values may be slightly stale and does not reflect the latest \bump operations (which may haven't been issue yet at the time of \fetch).
-To address this, we introduce a bounded staleness semantic for \fetch.
-The \fetch-ed value is allowed to be stale with respect to up to $s$ latest \bump operations, where $s$ is a system parameter.
-When nodes retrieve the \fetch-ed values remotely, they accept the responses as long as their versions' staleness is within the bound and examine the responded values against the commitment of their corresponding versions.
-This allows the remote nodes to respond to \fetch requests before advancing to the corresponding versions, effectively eliminating the sequential data dependency.
-On the other hand, the execution layer takes care of only issuing up to $s$ concurrent fetches and further maintains a small in-memory cache of recent $s$ \bump operations.
-When serving transaction reads, the cached updates supersede the \fetch-ed values if they overlap.
-This cache not only guarantees to mask the staleness introduced by concurrent fetches but also potentially improves performance: if a hot key is frequently updated and fetched within a short period, the reads can be served directly from the cache and the performance is not affected by the \fetch at all.
-\lijl{Is it beneficial to also cache a small set of non-hosting key-values for skewed workloads?}\gd{Mentioned.}
 
 \subsection{Archive Tier}
 

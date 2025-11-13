@@ -91,7 +91,7 @@ Next, we define the security properties of the SMS that are necessary to ensure 
 Informally, the SMS behaves like a local state store to the execution layer, except for returning \forward in a restricted manner.
 The SMS expects a consistent sequence of \fetch and \bump calls from the execution layer, and guarantees the following properties:
 \begin{itemize}
-    \item \textbf{Correctness}: on correct nodes, the values returned by \fetch are consistent with the updates made by prior \bump calls.
+    \item \textbf{Correctness}: on correct nodes, \fetch can observe all preceding \bump operations.
     That is, given a sequence: \bump($[k \mapsto v]$), $\dots$, \fetch($k$) that every \bump in between does not update $k$, the \fetch($k$) returns $v$.
     \item \textbf{Availability}: every \fetch-ed value is revealed to at least $f+1$ correct nodes.
     In another word, the \fetch and \bump calls eventually return on all correct nodes, and at most $f$ of them may return \forward.

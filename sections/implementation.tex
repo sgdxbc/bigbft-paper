@@ -11,4 +11,26 @@
 
 \subsection{Optimizations}
 
+\paragraph{Mask \fetch latencies by concurrent fetches and bounded staleness.}
+The on-path retrieval of \fetch introduces latency penalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
+Because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
+To recover the throughput, we introduce concurrent fetches.
+The execution layer not only issue \fetch for the current transaction, but also pre-issues \fetch-es for the pending transactions in the execution queue.
+When a transaction completes, its \fetch-ed values are likely already retrieved, allowing the transaction to proceed without stalling.
+
+To perform concurrent fetches, the execution layer must predict the \fetch-es issued for the transactions before their proceeding transactions complete.
+This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
+\gd{Remark that Ethereum smart contracts enforce explicit declaration of accessed keys.}
+Nonetheless, for transactions whose \fetch-es cannot be (accurately) predicted, the execution layer can always issue on-path \fetch to execute the transactions.
+\sys supports all kinds of transactions with an additional optimization for common types of transactions.
+
+However, if the storage nodes can only respond to the retrieval requests for their current versions, they cannot respond to the concurrent \fetch-es before their trusted repica nodes \bump to the corresponding versions, and the sequential data dependency remains.
+To address these, we introduce a bounded staleness semantic for \fetch.
+The execution layer is configured with a staleness bound $s$, and it only issues \fetch-es for versions within $s$ of the current version.
+At the same time, the storage nodes are configured with the same $s$, and they can respond to retrieval requests with values up to $s$ versions stale from the requested one.
+Then, the execution layer further maintains a small in-memory cache of recent $s$ \bump operations.
+When serving transaction reads, the cached updates supersede the \fetch-ed values if they overlap.
+This cache not only guarantees to mask the staleness introduced by concurrent fetches but also potentially improves performance: if a hot key is frequently updated and fetched within a short period, the reads can be served directly from the cache and the performance is not affected by the \fetch at all.
+\lijl{Is it beneficial to also cache a small set of non-hosting key-values for skewed workloads?} \gd{Mentioned.}
+
 \paragraph{Designated pushing nodes.}
