@@ -27,77 +27,31 @@ We will discuss and compare these constructions in \autoref{sec:impl}.
 
 \subsection{Active Tier}
 
-Firstly, we describe the basic architecture of the active tier.
-The key space is divided into $f+1$ shards, each stored on a distinct node, referred to as the \emph{hosting node} of the shard.
-(We will later explain why $3f+1$ shards are not used.)
-\lijl{How to pick hosting node of a shard?}
-For each shard, the hosting node performs \fetch and \bump operations locally, while the other $3f$ non-hosting nodes retrieve the \fetch-ed values of the accessed keys from the hosting node and discard the updated values in the \bump.
-\lijl{The meaning of ``\fetch-ed'' is not very clear.}
-Note that the hosting node stores not only the current shard, but also the values of the \fetch-ed keys from previous versions, so that a node running behind can still retrieve the \fetch-ed values for its current version.
-\lijl{Does this mean for older versions, the node only stores values that are fetched in that version? This part can be clarified.}
-\lijl{How many older versions to maintain? I guess this is related to garbage collection? Can give a forward pointer here.}
-Since the SMS can assume that the \fetch issued at each version is identical on all nodes, the hosting node can treat a retrieve request as faulty if it requests a key whose value is not preserved at the retrieved version and ignore the request.
-Later, we will extend this basic architecture with multiple hosting nodes per shard for the sake of availability, and discuss when past values can be garbage collected without affecting availability.
+We divide the key space into multiple shards and store them across all storage nodes in the system.
+For fault tolerance, each shard is replicated on $r$ storage nodes, referred as the \emph{responsible nodes} of the shard.
+These $r$ nodes are selected randomly and independently for each shard using consistent hashing.
+On \fetch the values of a shard, a replica node retrieves the values from the responsible nodes and returns the first correct response it receives.
 
-To ensure the correctness of the active tier, non-hosting nodes must be able to verify the integrity and freshness of the retrieved values.
-We employ \emph{authenticated dictionaries}~\cite{tamassia2003authenticated} for this purpose.
-\gd{Probably should move to the background section.}
-In an authenticated dictionary, or more generally, an authenticated data structure (ADS) scheme, an untrusted server answers queries over a data structure and returns a proof; a client maintains only a short commitment and verifies each reply.
-Updates on the server are accompanied by update information that allows the client to efficiently update its commitment.
-For authenticated dictionaries, the data structure is a key-value map, and the ADS scheme supports the following operations:
-\begin{itemize}
-    \item \commit($D$): given a dictionary $D$, output a commitment $c$;
-    \item \open($D, k$): given a dictionary $D$ and a key $k$, output the value $v$ associated with $k$ in $D$ and a proof $\pi$;
-    \item \verify($c, k, v, \pi$): given a commitment $c$, a key $k$, a value $v$ and a proof $\pi$, output true if $\pi$ is a valid proof that $v$ is the value associated with $k$ in the dictionary committed by $c$, and false otherwise;
-    \item \update($D, k, v$): given a dictionary $D$, a key $k$ and a new value $v$, update the value associated with $k$ in $D$ to $v$, and output the update information $\delta$;
-    \item \cupdate($c, k, v, \delta$): given a commitment $c$, a key $k$, a new value $v$ and update information $\delta$, output the updated commitment $c'$.
-    \lijl{Does the function verify the validity of $\delta$?}
-\end{itemize}
-\gd{List the properties.}
-A classical authenticated dictionary scheme is based on Merkle trees~\gd{cite}, where the commitment is the root hash of the tree, and the proof and update information are the hashes of the nodes along the path from leaf to root.
-Recent advances in vector commitments~\cite{benabbas2011verifiable,catalano2013vector,nitulescu2021sok} and accumulators~\gd{cite some} provide improved building blocks for authenticated dictionary schemes, enabling more efficient operations and smaller proofs and update information (or even eliminating update information).
-\gd{Figure out some concrete highlights from the lines of works, showing how practical they are.}
+To ensure storage scalability, $r$ is a constant independent of the total number of storage nodes and may be less than $f$.
+However, since the placement of shards is randomized, the probability that all $r$ nodes storing a shard are faulty decreases exponentially with $r$, regardless of the total number of storage nodes.
+As long as there is at least one correct node among the $r$ responsible nodes of a shard, the shard is available.
+This random sampling technique has been widely adopted in previous sharded blockchain systems for their \emph{committee formation}.
+\gd{cite.}
+However, they require a much larger committee size (i.e., large $r$) to ensure at least $\frac{2}{3}$ of the committee members are correct with high probability, because their systems also rely on the committees for the correctness of execution.
 
-In our design, each shard is implemented as an authenticated dictionary.
-The hosting node serves as the untrusted server, while the non-hosting nodes act as clients.
-Non-hosting nodes maintain the commitment of the shard, initialized by committing to an empty dictionary.
-When nodes retrieve keys from the hosting node, the hosting node opens the requested keys and sends the corresponding values and proofs to the non-hosting nodes.
-The non-hosting nodes verify the values using the proofs and their locally stored commitment.
-For \bump operations, non-hosting nodes obtain the update information from the hosting node and update their local commitment accordingly.
-The authenticated dictionary scheme guarantees that the commitment remains consistent with the shard's content.
-By verifying retrieved values through the authenticated dictionary, non-hosting nodes can detect and discard any malformed or stale values from the hosting node, thereby ensuring correctness.
+Even if the availability of each shard is secured with high probability, a faulty storage node can still return incorrect or stale values for \fetch requests, jeopardizing the correctness of execution.
+To combat this issue, we further employ the authenticated dictionary scheme where each shard is a separated authenticated dictionary, the storage nodes are servers and the replica nodes are clients.
+The replica nodes maintain the lightweight commitments of all shards.
+When retrieving values from the responsible nodes, the storage nodes \open the retrieved keys and response both the values and the proofs.
+The replica nodes \verify the retrieved values using the proofs and their locally stored commitments and discard any malformed or stale values.
+For \bump operations, the replica nodes send the updated values to the responsible nodes, and the responsible nodes \update the shards and response the update information to the replica nodes.
+The replica nodes then \cupdate their local commitments accordingly.
 
-To ensure the availability of each shard, we replicate every shard on $r$ randomly selected hosting nodes, determined by consistent hashing.
-For storage scalability, $r$ is a constant independent of the total number of nodes and may be less than $f$.
-Although there is a possibility that all $r$ nodes storing a shard are faulty, the randomized placement of shards mitigates this risk.
-Thus, a key (and its corresponding shard) is stored by $r$ nodes, each of which is faulty with probability $\frac{f}{3f+1}$ independently.
-Consequently, the probability that all $r$ nodes storing a shard are faulty is $(\frac{f}{3f+1})^r$, which decreases exponentially with $r$, regardless of the total number of nodes.
-Therefore, the probabilistic availability of each shard can be ensured by choosing a sufficiently large $r$.
-This level of guarantee is sufficient for some practical scenarios, and we will later discuss how to further achieve deterministic availability.
-\lijl{We should properly define the availability guarantee upfront.}
-
-\paragraph{Garbage collection of past values.}
-As previously mentioned, the hosting node stores not only the current shard but also the values of accessed keys from previous versions.
-The number of past versions retained by the node must be bounded, requiring timely garbage collection of past values.
-If garbage collection is delayed, the node must suspend further \bump operations to avoid excessive storage of past values.
-
-As we will detail later, the archive tier periodically picks a version and archives it into erasure-coded shards.
-This archived version is guaranteed to be recoverable by any node (before the next archive version is archived) and serves as an anchor point for garbage collection.
-After participating the archiving of version $v$, a node can safely discard all past values prior to version $v$.
-On the other hand, if a node is lagging behind the last archived version, it may not be able to retrieve the \fetch-ed values for its current version, as the hosting nodes may have already discarded those values.
-The node can recover the last archived version from the archive tier and ask execution layer to \forward to that version.
-\lijl{After \forward, all subsequent fetches can be served by the responsible node.}
-
-The liveness of garbage collection is guaranteed by the liveness of archive tier.
-As we will show, the archiving process requires only $2f+1$ nodes to participate and is guaranteed to be live.
-Nonetheless, a faster garbage collection scheme is introduced in \gd{ref} to further reduce memory pressure of the nodes when all nodes are correct.
-
-\gd{This paragraph becomes lacking context without elaborating archive tier. If we move it to later, should we move the whole garbage collection discussion to later?}
-This garbage collection routine satisfies the availability property.
-The \fetch and \bump operations can always proceed without returning \forward unless the node is lagging behind at least $2f+1$ other nodes.
-If this is not the case, there will not be an archived version that is ahead of the node's version.
-This ensures that \forward is only return on at most $f$ nodes.
-On the other hand, if a node is lagging behind at least $2f+1$ nodes, it will eventually learn about the last archived version and return \forward, ensuring that \fetch and \bump operations eventually complete on every node.
+The storage nodes need to respond to retrieval requests from multiple replica nodes, potentially on different versions of the state.
+As the result, the retrieval requests should be tagged with the version of the state they are issued for, and the storage nodes must maintain past values and proofs of the retrieved keys to serve these requests.
+Notice that the storage nodes do not need to maintain the entire past states, but only the values of keys that have been accessed by replica nodes in previous versions.
+As discussed in \autoref{sec:approach}, consensus layer ensures that all correct replica nodes access the same set of keys in each version, so the storage nodes can simply treat any retrieval on the unexpected keys as malformed requests and ignore them.
+Nonetheless, the storage nodes must perform garbage collection on the past values to bound their memory overhead, which we detail after introducing the archive tier.
 
 \paragraph{Mask \fetch latencies by concurrent fetches and bounded staleness.}
 The on-path retrieval of \fetch introduces latency pernalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
