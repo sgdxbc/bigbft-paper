@@ -66,6 +66,7 @@
 \RequirePackage{comment}
 \RequirePackage{pifont}
 \RequirePackage{tabularx}
+\RequirePackage{multirow}
 \ifacm
 \else
 \RequirePackage{amsmath}

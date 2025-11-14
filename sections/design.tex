@@ -19,6 +19,33 @@
     \label{fig:skip-execution}
 \end{figure}
 
+\begin{table*}
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Channel} & \textbf{Message} & \textbf{Data} \\
+\midrule
+\multirow{4}{*}{Replica to storage nodes RPC} & \retrievev{} request & version, key \\
+ & \retrievev{} response & version, value, proof \\
+ & \retrieveu{} request & version, key \\
+ & \retrieveu{} response & version, update information \\
+\addlinespace
+\multirow{2}{*}{Trusted replica to storage nodes} & \pushu{} & \bump updates \\
+ & \pushc{} & round, commitments \\
+\addlinespace
+\multirow{2}{*}{Storage nodes peer RPC} & \retrieves{} request & round, shard ID \\
+ & \retrieves{} response & round, shard ID, shard data \\
+\addlinespace
+\multirow{2}{*}{Atomic broadcast} & \votec{} & round, storage node ID \\
+ & \voter{} & round, storage node ID, nonce \\
+\bottomrule
+\end{tabular}
+\caption{SMS messages grouped by channel.}
+\label{tab:sms-messages}
+\end{table*}
+
 In this section, we detail the data structures and the algorithms of the replica and the storage nodes and the protocol between them.
 There are three kinds of network channels.
 The first kind is between the replica nodes and all storage nodes, where the replica nodes send \retrievev and \retrieveu requests to the storage nodes and receive responses.
@@ -77,7 +104,7 @@ For archive tier, the storage nodes maintain the hashes of all encoded chunks an
 The storage nodes send \votec messages for round $i$ after finishing checkpointing round $i-1$ and for round 0 at startup.
 After receiving a \pushc message, the storage nodes snapshot their responsible shards before applying further updates.
 Then they perform checkpointing stripe by stripe.
-For each stripe, they exchange the shards in the stripe with each other using \retrieves requests, and verify the received shards against the commitments.
+For each stripe, they exchange the shards in the stripe with each other using \retrieves requests, and \commit the received shards to verify against the expected commitments.
 After collecting all shards in the stripe, they encode them into $3f+1$ chunks and store their hashes and one of them and perform garbage collection as described in \autoref{sec:overview}.
 
 If the SMS of a replica node does not receive responses for \retrievev or \retrieveu requests from the responsible nodes, nor be able to \forward based on the \votec messages, it sends \voter messages with a random nonce.
