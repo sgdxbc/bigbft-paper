@@ -94,6 +94,16 @@ As long as the adversary cannot compromise $f+1$ nodes between two consecutive c
 As we will see in \autoref{sec:eval}, the checkpoint can be finished within reasonable time intervals.
 \lijl{Need to finish encoding before the attack is done? A secure backup mechanism is that all nodes store transaction blocks since the last archived version, and replay the transactions if they cannot find any of the $f+1$ shards during encoding. This should only occupy constant storage size.} \gd{Added explanation.}
 
+\paragraph{Garbage collection and \forward.}
+To ensure the liveness, checkpointing and garbage collection are finished with $2f+1$ nodes.
+The other $f$ nodes may retrieve values and shards that are prior to the last checkpoint and have been garbage collected.
+In such case, the retrieval requests cannot be fulfilled.
+These $f$ nodes can eventually detect the situation when they receive the $2f+1$ votes for completing a checkpoint of a later version than their local state.
+They can then return \forward to the SMS calls, and catch up to the checkpoint version by reconstructing the state similar to the recovery process described above.
+We can guarantee the liveness property of SMS.
+The \fetch and \bump calls eventually return because the atomic broadcast eventually delivers the votes.
+And at most $f$ nodes may return \forward, because returning \forward requires to observe votes from $2f+1$ nodes, none of which has returned \forward.
+
 \subsection{Reasoning about Properties}
 
 In the previous sections, we focused primarily on the intuition behind the correctness and availability properties.
