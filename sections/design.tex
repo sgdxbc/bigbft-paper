@@ -1,10 +1,70 @@
 \section{Design Details}
 \label{sec:design}
 
+In this section, we detail the data structures and the algorithms of the replica and the storage nodes and the protocol between them.
+There are three kinds of network channels.
+The first kind is between the replica nodes and all storage nodes, where the replica nodes send \retrievev and \retrieveu requests to the storage nodes and receive responses.
+The second kind is between the (trusted) replica nodes and the storage nodes of their participants, where the replica nodes send \pushu and \pushc to the storage nodes.
+The third kind is between the storage nodes, where they send \retrieves requests and responses to each other.
+There is also one implicit channel provided by the atomic broadcast protocol where two SMS meta messages: \votec and \voter are broadcast to the replica nodes from the storage nodes and the replica nodes, respectively.
+
 \subsection{Execution Layer}
+
+The execution layer maintains a sequence of ordered messages delivered by the atomic broadcast protocol.
+Each message is either a client transaction or an SMS meta message.
+For the client transactions, the execution layer sequentially executes them according to application logic with \fetch and \bump.
+After receiving $2f+1$ \votec messages for a checkpoint round, the execution layer send a \pushc message to the storage nodes with all commitments maintained by the SMS.
+Since the \votec messages are ordered together with the client transactions, the storage nodes will receive the \pushc message after the same number of \pushu messages, i.e., at the same version.
+If the execution layer is executing transactions that are ordered before the $2f+1$-th \votec message for the previous checkpoint round, it will treat the ongoing \fetch and \bump operations as returning \forward and skip to that \votec message.
+After receiving $f+1$ \voter messages, so that at least one correct storage node has voted for reconfiguration, the execution layer send a \pushr message to the storage nodes with all the nonces of the \voter messages.
+
+\subsection{Active Tier Placement}
+
+The active tier first maps each key to a shard ID using a hash function.
+Then, it needs to determine the responsible storage nodes for each shard.
+Suppose there are $N$ storage nodes and $k$ shards, we want the placement to:
+\begin{itemize}
+    \item Replicate each shard to $r$ storage nodes;
+    \item Balance the load across all storage nodes, that is, each storage node should be responsible for at most $\lceil rk/N \rceil$ shards, and
+    \item The probability that each node is responsible for a given shard is uniform across all nodes.
+\end{itemize}
+To achieve these goals, we choose a simple Markov-chain algorithm~\cite{kannan1999simple} to generate the placement.
+The algorithm starts with an initial placement that assigns each shard $i$ to $r$ (circular) consecutive storage nodes starting with node $i \mod N$.
+Then, it repeatedly selects two shards and two storage nodes at random so that each of the nodes is responsible for exactly one of the shards, and swaps the two shards between the two nodes.
+After sufficient number of swapping, the placement converges to a uniform distribution.
+It also satisfies the replication and load balancing requirements, because the initial placement satisfies them and each swap preserves them.
+
+The randomization procedure is performed with a seeded pseudo-random number generator.
+Each node can independently compute the placement for the shards with the seed, and during each reconfiguration, a new seed is generated, and the placement is reshuffled effectively.
 
 \subsection{SMS Interfaces}
 
+On replica nodes, SMS maintains the commitment of every shard.
+To \fetch a value, the replica nodes send a \retrievev request to the storage nodes responsible for the shard that contains the key.
+After getting the response, the replica nodes \verify the value against the commitment, and return the value if the verification passes.
+To \bump updates, the replica nodes send \pushu to the storage nodes of their participants, and then send \retrieveu requests to the responsible storage nodes of the updated keys.
+After getting the responses, the replica nodes \cupdate the commitments of the corresponding shards.
+
 \subsection{Storage Nodes}
 
+For active tier, the storage nodes maintain the version, the data of the shards they are responsible for, and the past version values and proofs.
+On \pushu messages, the storage nodes filter the updated keys and for those keys contained by their responsible shards, they \update the shards with the received updates to get the update information.
+Then, they increment the version.
+On \retrievev and \retrieveu requests of the past versions, the storage nodes return the stored values and proofs or update information if they exist.
+For other requests, the storage nodes wait until they have entered the requested version, and then \open the requested values and respond them with proofs for \retrievev or respond with update information for \retrieveu.
+
 \subsection{Checkpointing and Recovery}
+
+For archive tier, the storage nodes maintain the hashes of all encoded chunks and the content of some of them.
+The storage nodes send \votec messages for round $i$ after finishing checkpointing round $i-1$ and for round 0 at startup.
+After receiving a \pushc message, the storage nodes snapshot their responsible shards before applying further updates.
+Then they perform checkpointing stripe by stripe.
+For each stripe, they exchange the shards in the stripe with each other using \retrieves requests, and verify the received shards against the commitments.
+After collecting all shards in the stripe, they encode them into $3f+1$ chunks and store their hashes and one of them and perform garbage collection as described in \autoref{sec:overview}.
+
+If the SMS of a replica node does not receive responses for \retrievev or \retrieveu requests from the responsible nodes, nor be able to \forward based on the \votec messages, it sends \voter messages with a random nonce.
+After receiving $f+1$ \voter messages, the SMS forward the nonce to the storage nodes with a \pushr message.
+Both the SMS and the storage nodes then reseed the active tier placement using the nonces.
+Because the nonce is produced by $f+1$ nodes, at least one of them is correct, and thus the new placement is unpredictable to the adversary.
+The storage nodes then recover the responsible shards according to the new placement, and the SMS can redirect the \retrievev and \retrieveu requests to the new responsible nodes.
+The system can continue from the last checkpoint as described in \autoref{sec:overview}.
