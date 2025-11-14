@@ -58,55 +58,52 @@ Nonetheless, the storage nodes must perform garbage collection on the past value
 
 The active tier can achieve correctness and probabilistic availability with decent performance.
 However, probabilistic availability may not be sufficient in some scenarios.
-It is also vulnerable to a slowly adaptive adversary that can compromise nodes over time.\gd{cite}
+It is also vulnerable to a slowly adaptive adversary that can compromise nodes over time. \gd{cite}
 To achieve deterministic availability, we introduce the archive tier.
-\lijl{Does this deterministic availability depend on properties of the active tier?}
+\lijl{Does this deterministic availability depend on properties of the active tier?} \gd{No and explain here.}
+In a nutshell, the archive tier periodically \emph{checkpoints} the entire state stored in the active tier using erasure coding.
+The checkpoint will be \emph{deterministically} available as long as no more than $f$ nodes are compromised.
+So that, even if the active tier loses some shards due to probabilistic failure or slow adaptive attacks, the system can always restart from the last checkpoint and \emph{reconfigure} the active tier to bring it back to an operational state.
 
-The archive tier encodes the $f+1$ shards using erasure coding to produce $2f$ parity shards.
-(This is why only $f+1$ shards are present in the active tier; the remaining ones are employed here.)
-The $3f+1$ shards (including both original and parity shards) are stored on distinct nodes \lijl{distinct primary nodes?}.
-The encoding process ensures that at least $2f+1$ nodes participate, among which at least $f+1$ are correct.
-The erasure code guarantees that any $f+1$ shards (original or parity) are sufficient to reconstruct the original $f+1$ shards.
-Thus, the correct nodes involved in encoding always host enough shards to reconstruct the original data.
-\lijl{It is not immediately clear how does the original $f+1$ shards are available during this encoding process based on this line of reasoning.}
+To checkpoint the state, the storage nodes first agree on a specific version of the state to checkpoint by voting via atomic broadcast.
+\lijl{This statement is a bit ambiguous. This is a past version or a future version? Any specific requirement on the version?} \gd{Clarified.}
+The version where $2f+1$ storage nodes have voted is selected as the checkpoint version.
+Each storage node snapshot the checkpoint version of their responsible shards and gather all the shards with a retrieval protocol similar to \fetch.
+Each node then individually encodes the gathered shards using an RS($3f+1$, $f+1$) erasure code, dividing the original state into $f+1$ chunks and producing $2f$ parity chunks.
+Finally, the node stores the hashes of all $3f+1$ chunks and retains only one chunk according to its node index.
+The nodes signal the completion of checkpointing via voting the next checkpoint version.
+By starting a new round of checkpoint, the nodes learn that the previous checkpoint has been completed and can safely discard the transaction history and past values and proofs up to the checkpointed version and the stored hashes and chunk of the checkpoint(s) prior to the previous one.
 
-We now detail the encoding process.
-Nodes first reach consensus on a specific version via atomic broadcast \lijl{This statement is a bit ambiguous. This is a past version or a future version? Any specific requirement on the version?}.
-Once a node has brought its hosting shards to that version, it snapshots its stored shards \lijl{meaning the hosting shards?} and the commitments of non-hosting shards, and begins encoding, i.e., \emph{archiving} that version.
-Nodes then exchange their snapshotted shards and verify correctness using the commitments.
-To avoid loading the entire state into memory in this stage, the state can be divided into multiple stripes, each further divided into $f+1$ shards and managed as described above, with encoding performed stripe by stripe.
-After collecting all $f+1$ shards, nodes independently encode them to produce $2f$ parity shards.
-Finally, each node stores a hash vector of all shards and retains only one of the $3f+1$ shards according to its node index.
-When reconstruction is needed, a node retrieves stored shards from all nodes and verifies their integrity using the hash vector.
-As discussed, the node can always retrieve at least $f+1$ correct shards, ensuring successful reconstruction.
-After encoding all stripes, nodes can discard the snapshotted shards and commitments.
-The nodes can also perform garbage collection on both active and archive tiers up to the archived version, removing the unnecessary past values and archived shards.
-Then, the nodes proceed to the next encoding round.
+After a checkpoint is completed, it is deterministically available (until the next checkpoint is completed).
+This is because a checkpoint completes with at least $2f+1$ votes, among which at least $f+1$ are from correct nodes, who have encoded the state and stored a chunk.
+The RS($3f+1$, $f+1$) erasure code guarantees that any $f+1$ chunks are sufficient to reconstruct the original state.
+Thus, those $f+1$ voted correct nodes always host enough chunks to reconstruct the original state.
+\lijl{It is not immediately clear how does the original $f+1$ shards are available during this encoding process based on this line of reasoning.} \gd{Clarified.}
+When the retrieval for the \fetch or the following checkpoint stalls, the replica nodes vote to trigger a recovery and reconfigure process via atomic broadcast.
+The votes provide a random seed, according to which the $r$ responsible nodes of each shard are re-selected.
+The storage nodes then retrieve the last checkpointed chunks from all nodes, verify their integrity using the stored hashes, and reconstruct the original state.
+Finally, they re-shard the state and store them according to the new shard placement.
 
-The archive tier and active tier complement each other.
-The archive tier upgrades the availability guarantee of the active tier from probabilistic to deterministic.
-The deterministic availability not only serves as an anchor point for garbage collection, but also effectively defends against a slowly adaptive adversary: as long as encoding occurs before the adversary compromises $f+1$ nodes, compromised nodes can only cause loss after the last archived version.
-\lijl{Need to finish encoding before the attack is done? A secure backup mechanism is that all nodes store transaction blocks since the last archived version, and replay the transactions if they cannot find any of the $f+1$ shards during encoding. This should only occupy constant storage size.}
-If such loss occurs, the system can recover by reconfiguring the active tier and re-executing transactions after the last archived version.
-\gd{Should mention reconfigure somewhere.}
-Meanwhile, the active tier provides correct shards to the archive tier for encoding and efficiently serves shards to the execution layer for transaction execution, while the archive tier handles the heavy encoding workload off the critical path of execution.
+The description above requires the storage nodes to hold the entire state during the encoding process.
+To avoid this infeasible requirement, we further divide the entire state into multiple \emph{stripes}, each containing multiple shards.
+The active tier operates each stripe independently, and the archive tier checkpoints and reconstructs each stripe sequentially.
+
+The active and archive tiers defend slowly adaptive adversaries together.
+The archive tire can checkpoint the state as long as the adversary has not compromised $f+1$ nodes, and it can reset the active tier from the compromised state.
+As long as the adversary cannot compromise $f+1$ nodes between two consecutive checkpoints, the system can keep available.
+As we will see in \autoref{sec:eval}, the checkpoint can be finished within reasonable time intervals.
+\lijl{Need to finish encoding before the attack is done? A secure backup mechanism is that all nodes store transaction blocks since the last archived version, and replay the transactions if they cannot find any of the $f+1$ shards during encoding. This should only occupy constant storage size.} \gd{Added explanation.}
 
 \subsection{Reasoning about Properties}
 
-In the previous section, we focused primarily on the intuition behind the correctness and availability properties.
+In the previous sections, we focused primarily on the intuition behind the correctness and availability properties.
 \gd{If necessary, add a formal proof sketch in the appendix?}
 We now analyze the storage overhead.
-For simplicity, we assume there is a single stripe in the following discussion, as each stripe is managed independently and the number of stripes does not affect the overall storage overhead.
+For simplicity, we analyze the storage overhead from the perspective of a single stripe, as the stripes are independent and identical in design.
+We also only consider the storage overhead of shards and checkpoints, as the other metadata (e.g., past values and proofs, update information, hashes) are negligible and reside in memory.
 
-The active tier stores $r$ replicas of each shard, totaling $r(f+1)$ shards.
-The archive tier also stores $r(f+1)$ shards that are snapshotted for archiving.
-Additionally, it stores $3f+1$ shards per archiving, and at most two rounds of archived shards may exist simultaneously, resulting in up to $2(3f+1)$ shards.
-The sizes of commitments, past values, and hash vectors are negligible compared to the size of shards and are omitted from the analysis.
-
-Therefore, the total number of shards stored in the system is at most $r(f+1) + r(f+1) + 2(3f+1) = (2r+6)f + 2r + 2$, for a state of size $f+1$ shards.
-Thus, the aggregate storage overhead is
-$$
-\frac{(2r+6)f + 2r + 2}{f+1} < 2r + 6
-$$
-relative to the state size.
+The active tier stores $r$ replicas of each shard, and its total storage is $r$ times the state size.
+The archive tier stores the checkpoint which is $\frac{3f+1}{f+1} < 3$ times the state size.
+During checkpointing, the storage overhead is temporarily doubled as each shard is snapshotted and two checkpoints coexist.
+Thus, the total storage overhead of the system is at most $2(r+3)$ times the state size.
 Since $r$ is a constant independent of the total number of nodes, we achieve storage scalability.
