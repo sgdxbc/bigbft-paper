@@ -1,6 +1,24 @@
 \section{Design Details}
 \label{sec:design}
 
+\begin{figure}
+    \includegraphics[width=0.9\linewidth]{figures/normal-path}
+    \caption{Message flow in normal operation.}
+    \label{fig:normal-path}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=0.9\linewidth]{figures/push-checkpoint}
+    \caption{Message flow for initiating a checkpoint round.}
+    \label{fig:push-checkpoint}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=\linewidth]{figures/skip}
+    \caption{Skip execution.}
+    \label{fig:skip-execution}
+\end{figure}
+
 In this section, we detail the data structures and the algorithms of the replica and the storage nodes and the protocol between them.
 There are three kinds of network channels.
 The first kind is between the replica nodes and all storage nodes, where the replica nodes send \retrievev and \retrieveu requests to the storage nodes and receive responses.
