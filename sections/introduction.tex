@@ -19,7 +19,8 @@ Consequently, these approaches fail to uphold the conventional security assuranc
 \begin{figure}
     \includegraphics[width=0.9\linewidth]{figures/approach-compare}
     \caption{Comparison of BFT scalability approaches.
-    Each rounded rectangle represents a replicated node.}
+    Each rounded rectangle represents a replicated node.
+    Each sharded area represents a fault-tolerant unit: a consensus committee can tolerate $f$ faulty nodes with $3f+1$ nodes, while a storage shard can tolerate $f$ faulty nodes with $f+1$ nodes.}
     \label{fig:approach-compare}
 \end{figure}
 
