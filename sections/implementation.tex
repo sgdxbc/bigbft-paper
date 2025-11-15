@@ -3,20 +3,40 @@
 
 \subsection{Authenticated storage.}
 
-\paragraph{Merkle trees.}
+In this section, we discuss several candidate constructions for the authenticated dictionary abstraction required by \sys, detailed in \autoref{sec:design}.
+Each construction offers different trade-offs in terms of storage and computation overheads and practicality.
 
-\paragraph{Vector commitments.}
+\paragraph{Merkle trees.}
+The classic approach to building an authenticated dictionary is to use a Merkle tree~\cite{merkle1987digital}.
+The key-value pairs are organized in a tree structure, where each leaf node corresponds to a key-value pair, and each internal node contains the hash of its child nodes.
+The commitment is the root hash of the tree.
+To \open or \update a value, the server provides an \emph{authentication path} as the proof or update information, which consists of the hashes of the sibling nodes along the path from the leaf node to the root.
+The client can \verify the proof by recomputing the hashes along the path and comparing the resulting root hash with the commitment, or it can \cupdate the commitment by updating the hashes along the path accordingly.
+
+Merkle trees are simple and widely used.
+Merkle Patricia Trie, a dense variant of Merkle tree, is used in Ethereum~\cite{wood2014ethereum} to organize the state data.
+The sparse variant features Jellyfish Merkle tree~\cite{gao2021jellyfish}, a modern construction that is specifically designed for optimal write amplification in log-structured storage like RocksDB and is used in Libra/Diem and Aptos.
+
+The main drawback of Merkle trees is that \open and \update operations have an $O(\log n)$ read overhead, where $n$ is the number of key-value pairs in the dictionary.
+Recent study shows that this overhead can be significant in practice~\cite{li2024lvmt}.
+Nonetheless, Merkle trees can be a good fit for the cases where the application also requires an authenticated storage for, e.g., \open to external clients and choose Merkle trees as the authenticated dictionary construction.
+In such case \sys can directly leverage the existing Merkle tree without introducing additional overhead.
+Also, the recent QMDB~\cite{zhang2025qmdb} construction decouples the Merkle tree into in-memory nodes and on-disk entries, achieving \open and \update with 1 disk read.
+While the work didn't mention stateless updatability, it's straightforward to extend it to support \cupdate by providing the authentication path as the update information.
+QMDB shows great potential to be an efficient authenticated dictionary construction for \sys.
+
+\paragraph{Vector commitments~\cite{nitulescu2021sok}.}
 
 \paragraph{Trusted hardware-based storage.}
 
 \subsection{Optimizations}
 
 \paragraph{Mask \fetch latencies by concurrent fetches and bounded staleness.}
-The on-path retrieval of \fetch introduces latency penalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed nodes.
+The on-path retrieval of \fetch introduces latency penalties, ranging from microsecond to millisecond level when retrieving from geologically-distributed storage nodes.
 Because the execution layer stalls until \fetch completes, the utilization is undermined, resulting in throughput degradation.
 To recover the throughput, we introduce concurrent fetches.
 The execution layer not only issue \fetch for the current transaction, but also pre-issues \fetch-es for the pending transactions in the execution queue.
-When a transaction completes, its \fetch-ed values are likely already retrieved, allowing the transaction to proceed without stalling.
+By the time the transaction is ready to execute, its \fetch-ed values are likely already retrieved, allowing the transaction to proceed without stalling.
 
 To perform concurrent fetches, the execution layer must predict the \fetch-es issued for the transactions before their proceeding transactions complete.
 This is usually possible, and for certain common types of transactions (including UTXO ones), the \fetch-es can be completely determined by static analysis.
@@ -24,7 +44,7 @@ This is usually possible, and for certain common types of transactions (includin
 Nonetheless, for transactions whose \fetch-es cannot be (accurately) predicted, the execution layer can always issue on-path \fetch to execute the transactions.
 \sys supports all kinds of transactions with an additional optimization for common types of transactions.
 
-However, if the storage nodes can only respond to the retrieval requests for their current versions, they cannot respond to the concurrent \fetch-es before their trusted repica nodes \bump to the corresponding versions, and the sequential data dependency remains.
+However, if the storage nodes can only respond to the retrieval requests for their current versions, they cannot respond to the concurrent \fetch-es before their trusted replica nodes \bump to the corresponding versions, and the sequential data dependency remains.
 To address these, we introduce a bounded staleness semantic for \fetch.
 The execution layer is configured with a staleness bound $s$, and it only issues \fetch-es for versions within $s$ of the current version.
 At the same time, the storage nodes are configured with the same $s$, and they can respond to retrieval requests with values up to $s$ versions stale from the requested one.
