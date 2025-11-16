@@ -89,3 +89,13 @@ This cache not only guarantees to mask the staleness introduced by concurrent fe
 \lijl{Is it beneficial to also cache a small set of non-hosting key-values for skewed workloads?} \gd{Mentioned.}
 
 \paragraph{Designated pushing nodes.}
+In \autoref{sec:design}, the \retrievev and \retrieveu requests are broadcast to all $r$ responsible storage nodes, and the first response is used.
+This design amplifies the network traffic by $r$ times.
+To reduce the network traffic, we can designate one storage node among the $r$ responsible nodes as the \emph{pushing node} for each version.
+The pushing node actively broadcast \retrievev and \retrieveu responses to all replica nodes when they are available.
+The replica nodes only send \retrievev and \retrieveu requests if they haven't received the corresponding responses from the pushing node after a timeout.
+
+If the pushing node is faulty, this optimization may introduce additional latency due to the timeout.
+To mitigate this, we order the $r$ responsible nodes deterministically, and a storage node only \emph{suppress} its pushing if it has observed that (one of) the preceding node pushes correctly for consecutive $K$ versions.
+At the same time, the replica nodes send \retrievev and \retrieveu requests for $K$ versions after the pushing node times out.
+This way, after the pushing node becomes faulty, the next correct responsible node takes over the pushing role immediately, and the faulty pushing node can only affect the latency of 1 version in every $K$ versions.
