@@ -75,27 +75,31 @@ We adopt a key-value abstraction for the state: the state is represented as a ma
 This abstraction is compatible with most blockchain applications, including both account-based and UTXO-based models.
 \lijl{Can also mention that most distributed databases use such storage interface.}
 
-The interfaces of the SMS are defined as two operations: \fetch and \bump.
-Typically, \fetch($k$) returns the value associated with key $k$, and \bump($[k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots]$) updates the values of keys $k_i$ to $v_i$ and returns \texttt{OK}.
-During executing a transaction, the execution layer invokes \fetch as the transaction reads the keys. 
-\lijl{It is not immediately clear when should the execution layer perform a \bump. After completing one transaction?} \gd{Done.}
-After executing a transaction (or a block of transactions), the execution layer invokes \bump to update the keys written by the transaction(s).
-In the special case where a node lags behind and needs to catch up, \fetch and \bump may return \forward($s$), indicating the next $s$ \bump calls are expected to be skipped, and the execution layer should skip executing the corresponding transactions or blocks.
-\lijl{Should we expose state version to the execution layer, i.e., all \fetch and \bump should specify the version number?} \gd{Try explained in the next sentence.}
-The \fetch, \bump and \forward are implicitly associated with a state \emph{version}.
-The \fetch returns the value of the current version of the state, the \bump updates the state to the next version, and the \forward indicates skipping to the next $s$ versions.
-For clarity, we do not include the version parameter in the interface definitions, as it is not allowed to \fetch for the values of any version other than the current one, and \bump may only update the current version to the next one.
-\lijl{I wonder if this skip logic should be done in the state layer? Or would it be more appropriate in the execution layer? Maybe can refer to the CORFU line of work, where the storage layer is dumb.} \gd{Has to be initiated by the state layer, because the state layer has lost liveness on the \fetch or \bump.}
+From the view of state management, we abstract the transaction execution as continuously generating new \emph{versions} of the state and read from those versions.
+Initially, there is only the version 0 of the state, containing the genesis state.
+Then, more and more versions are created during the transaction execution by modifying the values of certain keys in the current version.
+SMS provides interfaces for creating new versions and accessing existing versions of the state.
+We define $\bump_{i}([k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots])$ as the interface to create version $i$ of the state as the same as version $i-1$ except that the values of keys $k_j$ are updated to $v_j$ for the key value pairs specified in the call.
+Then, we define $\fetch_{i}(k)$ as the interface to read the value associated with key $k$ in version $i$ of the state.
+The execution layer can execute transactions with these interfaces.
+Starting with $i=0$, it first $\fetch_{i}$ to construct the state needed to execute a transaction or a block of transactions.
+Then it executes the transaction(s) deterministically, producing a set of key-value pairs to update.
+Finally, it invokes $\bump_{i+1}$ with these key-value pairs, increments $i$ by 1 and continues creating the next version.
 
-Next, we define the security properties of the SMS that are necessary to ensure the overall security of the system.
-Informally, the SMS behaves like a local state store to the execution layer, except for returning \forward in a restricted manner.
-The SMS expects a consistent sequence of \fetch and \bump calls from the execution layer, and guarantees the following properties:
-\begin{itemize}
-    \item \textbf{Correctness}: on correct nodes, \fetch can observe all preceding \bump operations.
-    That is, given a sequence: \bump($[k \mapsto v]$), $\dots$, \fetch($k$) that every \bump in between does not update $k$, the \fetch($k$) returns $v$.
-    \item \textbf{Availability}: every \fetch-ed value is revealed to at least $f+1$ correct nodes.
-    In another word, the \fetch and \bump calls eventually return on all correct nodes, and at most $f$ of them may return \forward.
-\end{itemize}
+Because the execution is replicated, SMS expects all create nodes to create identical state versions and access the same keys at each version.
+By guaranteeing this to SMS, SMS can ensure the following properties.
+
+\paragraph{Correctness.}
+On correct nodes, $\fetch_{i}(k)$ correctly returns $k$'s value in version $i$.
+This means SMS acts like a local state store to the execution layer.
+
+\paragraph{Availability.}
+In the idea case, every $\fetch$ and $\bump$ call returns on all correct nodes.
+However, because $f$ nodes may be arbitrarily slower than the others, ensuring this would require maintaining infinite versions of the state.
+To address this, we define the \emph{lowest alive version} as the largest version that has been created by at least $2f+1$ correct nodes.
+Then, SMS ensures that every $\fetch$ and $\bump$ call at version $i$ returns on all correct nodes if $i$ is no smaller than the lowest alive version at the time of the call.
+If $i$ is smaller than the lowest alive version, SMS may return \forward($i'$), hinting the execution layer with the lowest alive version $i'$ and indicating that all versions lower than $i'$ (including $i$) have lost liveness.
+The execution layer can then skip executing the transactions that create these lost versions.
 
 \subsection{From SMS Properties to System Security}
 
