@@ -14,7 +14,8 @@ That means that for each transaction, the state it accesses can only be stored o
 If only the nodes storing the accessed state can execute the transaction, the number of executing nodes is also limited.
 As the number of $f$ faulty nodes increases with the total number of nodes, the faulty nodes can eventually outnumber the executing nodes, making it impossible to achieve security guarantees (without seeking unconventional extensions to the security model).
 This fundamental theoretical limitation forces sharded and stateless blockchains to trade off security guarantees in various ways (\autoref{sec:bg}) in exchange for storage scalability.
-\lijl{We can probably frame this into an informal impossibility result. That is, a system can choose at most one of the two properties. Then informally ``prove'' that if security is chosen, then storage scalability can't be achieved, and vice versa.}
+\lijl{This is an important insight. We can make this part even stronger.}
+%\lijl{We can probably frame this into an informal impossibility result. That is, a system can choose at most one of the two properties. Then informally ``prove'' that if security is chosen, then storage scalability can't be achieved, and vice versa.}
 
 \paragraph{State-execution decoupling.}
 On the other hand, we observe that serving consistent state is a fundamentally easier problem than ensuring consistent execution.
@@ -24,17 +25,18 @@ Based on this observation, we propose to \emph{decouple state from execution}.
 
 With the proposed approach, each transaction is executed by \emph{all} nodes, regardless of the state they maintain.
 The nodes are allowed to maintain only a portion of the state or even no state at all.
-\lijl{One point can be made here: transaction execution only requires state being available when a transaction accesses it. Traditional approaches are pessimistic: a node needs to always maintain all state. This is an overkill for execution. We are doing is on-demand or optimistically.} \gd{Done with next sentence.}
 We exploit the fact that while the entire state is necessary to execute all possible transactions, each \emph{individual} transaction may not access the entire state, and most transactions in practice access only a small portion of the state.
 When executing a transaction, if a node needs to access state that it does not maintain locally, it retrieves the required state from other nodes to complete the execution.
 With this state-execution decoupling, we can independently design state management to achieve storage scalability, while all nodes execute all transactions to retain security guarantees.
 \lijl{Can relate to other systems designs, e.g., memory is separated from CPU execution logic (CPU only maintains registers and caches), prior disaggregated memory.}
 If a transaction accesses a state shard not stored locally, the node retrieves it from other nodes to complete the execution.
 By carefully designing the placement of state shards, we ensure that each shard is stored on a limited subset of nodes, thereby achieving storage scalability.
+\lijl{A key principle we are arguing here: strong security requires nodes proportional to $f$ to execute the transactions, but availability of data can be done in a scalable fashion.}
+
 \lijl{Another point to make: why do nodes need to maintain some state locally, and how much to store? There are two reasons: state availability and performance. State availability determines the storage lower bound on each node. Storing more state than the lower bound could improve performance.}
 
 \paragraph{The size of the retrieved temporary state.}
-A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state. 
+A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state.
 We emphasize that this is a theoretical worst case and is unlikely to occur in practice.
 Empirically, most transactions access only an extremely small fraction of the state.
 \gd{Copilot contributed the following sentence, try to cite information source or remove if not found.}
@@ -59,10 +61,12 @@ Thus, the peak size of the retrieved temporary state equals the total size of th
 Following the state-execution decoupling principle, we propose a dual node architecture where each participant a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \autoref{fig:approach-compare}.
 The replica node is similar to a traditional BFT node: it contributes to consensus and executes all transactions.
 However, it does not maintain the execution state.
+\lijl{Shall we name ``execution state'' something else?}
 Instead, it is accessible to the interfaces of the \emph{state management system} (SMS), which allow it to read and write state as needed during transaction execution, as if it were maintaining the state locally.
 The SMS consists of the storage nodes of all participants.
 Behind the scenes, the SMS interfaces retrieve and push the state from and to the storage nodes as required.
 We will detail the SMS interfaces and their security properties in the next section.
+\lijl{Wonder if we should go with three layers: consensus layer (totally ordering transactions), execution layer (deterministically perform transaction logic), state layer (availability of state). Previous work actually has already argued for separating agreement from execution. Are we building on top of that? Our idea can also be applied to an architecture that does not separate consensus from execution.}
 
 In this work, we examine the canonical BFT setting, where each participant operates one replica node and one storage node.
 This configuration is sufficient to the goal of achieving storage scalability under a conventional BFT security model.
