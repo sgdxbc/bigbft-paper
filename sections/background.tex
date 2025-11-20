@@ -135,3 +135,29 @@ In fully replicated systems, every node processes every transaction, and the sys
 In processing sharding systems, not all nodes process every transaction, enabling storage scalability but trades off security.
 Finally, in stateless blockchains, while all nodes participate in the agreement part, none of them execute transactions.
 Thus, the system can achieve storage scalability and safety but losing liveness.
+
+%%%%%%%%%%%%%%
+% Background %
+%%%%%%%%%%%%%%
+
+\section{Background}
+
+\subsection{Blockchain Architecture}
+
+In a blockchain system, a set of mutually distrusted nodes collectively implements a replicated state machine~\cite{rsm}.
+The system maintains a \emph{world state}, typically an abstract mapping between keys or addresses to arbitrary values.
+Clients submit requests in the form of transactions.
+Each transaction can read and/or update the world state.
+A blockchain provides linearizability~\cite{linearizability} to clients, \ie, the observable behavior of the system is equivalent to a single correct server that executes transactions sequentially while respecting real-time invocation/response ordering constraints.
+It offers such guarantee even when nodes may fail or behave arbitrarily, and the network can delay, drop, or reorder messages.
+
+Most existing blockchains~\cite{bitcoin,ethereum,algorand,sui} follow the \emph{order-execute} model.
+In this model, the blockchain nodes collectively run an atomic broadcast~\cite{pbft,hotstuff,honeybadger,narwhal,bullshark} protocol to reach agreement on a total order of client transactions (typically batched in large transaction blocks).
+Each node maintains a local copy of the world state, sequentially executes the finalized transactions following the agreement order, and updates its local state based on the transaction logic.
+Given deterministic execution and the guarantees of atomic broadcast, world state on correct replicas remain consistent.
+
+Some blockchains~\cite{hyperledger} apply the \emph{execute-order} model, in which nodes execute the transactions first, and then run atomic broadcast to totally order the transaction outcomes.
+This model can result in more scalable transaction execution, and permits non-deterministic transaction logic.
+Our solution can be applied to both models, but considering the wider adoption rate, we focus on the order-execute model in this paper.
+
+\subsection{Blockchain Storage Layer}
