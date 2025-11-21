@@ -16,8 +16,13 @@ As the number of $f$ faulty nodes increases with the total number of nodes, the 
 This fundamental theoretical limitation forces sharded and stateless blockchains to trade off security guarantees in various ways (\autoref{sec:bg}) in exchange for storage scalability.
 \lijl{We can probably frame this into an informal impossibility result. That is, a system can choose at most one of the two properties. Then informally ``prove'' that if security is chosen, then storage scalability can't be achieved, and vice versa.}
 
-Diverging from this common practice, we propose to \emph{decouple state from execution}.
-Each transaction is executed by \emph{all} nodes, regardless of the state they maintain.
+\paragraph{State-execution decoupling.}
+On the other hand, we observe that serving consistent state is a fundamentally easier problem than ensuring consistent execution.
+The state can be self-verifiable, and receivers can be sure they obtain the correct state even if it is served by single data source.
+This is unlike execution which is generally not verifiable without re-execution, so $f+1$ nodes need to execute the same transaction.
+Based on this observation, we propose to \emph{decouple state from execution}.
+
+With the proposed approach, each transaction is executed by \emph{all} nodes, regardless of the state they maintain.
 The nodes are allowed to maintain only a portion of the state or even no state at all.
 \lijl{One point can be made here: transaction execution only requires state being available when a transaction accesses it. Traditional approaches are pessimistic: a node needs to always maintain all state. This is an overkill for execution. We are doing is on-demand or optimistically.} \gd{Done with next sentence.}
 We exploit the fact that while the entire state is necessary to execute all possible transactions, each \emph{individual} transaction may not access the entire state, and most transactions in practice access only a small portion of the state.
@@ -62,7 +67,7 @@ We will detail the SMS interfaces and their security properties in the next sect
 In this work, we examine the canonical BFT setting, where each participant operates one replica node and one storage node.
 This configuration is sufficient to the goal of achieving storage scalability under a conventional BFT security model.
 However, the dual node architecture is flexible and can accommodate various configurations.
-\sys can tolerate up to $f$ participants that host at most $k$ storage nodes totally with $3f+1$ participants hosting at least $3k+1$ storage nodes in total.
+\sys can tolerate up to $f$ participants that host at most $f'$ storage nodes totally with $3f+1$ participants hosting at least $3f'+1$ storage nodes in total.
 This flexibility is especially beneficial in permissionless settings, where participants may have heterogeneous storage capacities.
 In such systems, the powerful participants can be incentivized to host multiple storage nodes to enhance the overall storage capacity of the system, while each participant only needs to operate one replica node to contribute to consensus and execution.
 As the result, the powerful participants can make profit from their storage capacities that are potentially even larger than the state size, while the less powerful participants can still participate in consensus and execution without being burdened by storage requirements, maximizing the decentralization of the system.

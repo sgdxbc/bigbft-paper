@@ -1,119 +1,69 @@
 \section{System Design}
 \label{sec:overview}
 
-\subsection{Preliminaries}
+% \subsection{Preliminaries}
 
-\paragraph{Authenticated dictionaries.}
-The key-value state is stored in the form of \emph{authenticated dictionaries}, which allow untrusted servers to serve key-value queries with proofs that can be efficiently verified by clients holding only a short commitment, and the clients are able to update their commitments according to the updates and continuously verify the server responses against the mutable state.
+% \paragraph{Erasure coding.}
 
-Specifically, an authenticated dictionary scheme supports the following operations, following the definitions introduced by \cite{peng2020falcondb}.
-\begin{itemize}
-    \item \commit($D$): given a dictionary $D$, output a commitment $c$;
-    \item \open($D, k$): given a dictionary $D$ and a key $k$, output the value $v$ associated with $k$ in $D$ and a proof $\pi$;
-    \item \verify($c, k, v, \pi$): given a commitment $c$, a key $k$, a value $v$ and a proof $\pi$, output true if $\pi$ is a valid proof that $v$ is the value associated with $k$ in the dictionary committed by $c$, and false otherwise;
-    \item \update($D, k, v$): given a dictionary $D$, a key $k$ and a new value $v$, output a dictionary $D'$ that updates the value associated with $k$ in $D$ to $v$, and an auxiliry update information $\delta$;
-    \item \cupdate($c, k, v, \delta$): given a commitment $c$, a key $k$, a new value $v$ and update information $\delta$.
-    If $\delta$ is valid, that is, it is the output of \update($D, k, v$) for some dictionary $D$ committed by $c$ (i.e., \commit($D$) outputs $c$), output true and the updated commitment $c'$ that commits to the updated dictionary $D'$; otherwise, output false and $\bot$.
-\end{itemize}
+\subsection{System Architecture}
 
-The \cupdate operation enables clients to update their commitments in a \emph{stateless} manner, i.e., without needing to re-execute \commit on the entire updated dictionary from scratch.
-In practice, clients only need to run \commit once at the beginning to obtain the initial commitment of an empty dictionary, and then can keep updating their commitments using \cupdate as the dictionary evolves.
+The participants are logically divided into two types of nodes: \emph{replica nodes} and \emph{storage nodes}.
+Each participant operates one replica node and one storage node.
+The replica nodes operate a Byzantine atomic broadcast protocol to agree on the order of transactions and two storage signals: checkpoint and reconfigure.
+They also execute all transactions in the agreed order.
+On each checkpoint signal, a specific version of the state is snapshotted and collectively stored on the storage nodes.
+The replica nodes maintain the updates since the last checkpoint locally, and retrieve the missing state from the storage nodes when necessary.
+The storage nodes determine the part of the state they store according to a hybrid scheme consisting of randomized replication and erasure coding.
+They serve the retrieval requests with the replication and recover the state with the erasure coding when the replication fails.
 
-There are multiple constructions of authenticated dictionaries based on different cryptographic primitives, varying in their computation and space efficiency.
-\gd{cite}
-We will discuss and compare these constructions in \autoref{sec:impl}.
+\subsection{Storing Format}
 
-\paragraph{Erasure coding.}
+The state is divided into certain number of \emph{shards}, each of which is independently checkpointed, managed and reconstructed.
+Each shard is a key-value map.
+The stored value of each key is a tuple consisting of the actual value, the successor key according to lexicographic order, and an aggregated signature from $f+1$ replica nodes signed over the key, actual value, successor key and the checkpoint version.
+When retrieving values from the storage nodes, the replica nodes can verify the signatures with the aggregated public keys of the replica nodes.
+If the signature is valid, the replica nodes are assured that at least one correct replica node has endorsed the value and can accept it.
+To prove the non-existence of a key, the storage nodes return the values of its predecessor, which contains the successor key showing the absence of the requested key.
 
-\subsection{Active Tier}
+\subsection{Checkpoint and Reconfigure}
 
-We divide the key space into multiple shards and store them across all storage nodes in the system.
-For fault tolerance, each shard is replicated on $r$ storage nodes, referred as the \emph{responsible nodes} of the shard.
-These $r$ nodes are selected randomly and independently for each shard using consistent hashing.
-To \fetch the values of a shard, a replica node retrieves the values from the responsible nodes and returns the first correct response it receives.
+The storage nodes periodically vote for checkpoint via atomic broadcast, and a new checkpoint signal is triggered after receiving $2f+1$ votes.
+For each checkpoint, the storage nodes first send the previously checkpointed shard to the replica nodes
+The replica nodes then flush the updates since the last checkpoint into the shard and construct their \emph{shard shares} for the new checkpoint with the updated successor keys, checkpoint version and their signature shares.
+The replica nodes send their shard shares to all storage nodes.
+Each storage node collects matching shard shares from $f+1$ replica nodes, aggregate the signature shares into signatures and construct the shard for checkpointing.
 
-To ensure storage scalability, $r$ is a constant independent of the total number of storage nodes and may be less than $f$.
-However, since the placement of shards is randomized, the probability that all $r$ nodes storing a shard are faulty decreases exponentially with $r$, regardless of the total number of storage nodes.
-As long as there is at least one correct node among the $r$ responsible nodes of a shard, the shard is available.
-This random sampling technique has been widely adopted in previous sharded blockchain systems for their \emph{committee formation}.
-\gd{cite.}
-However, they require a much larger committee size (i.e., large $r$) to ensure at least $\frac{2}{3}$ of the committee members are correct with high probability, because their systems also rely on the committees for the correctness of execution.
+Each shard is stored on the storage nodes in two forms simultaneously: it is replicated on $r$ random storage nodes for retrieval and also distributed among all storage nodes with a $RS(3f+1, f+1)$ erasure code for reconstruction.
+The $r$ full copies ensure the shard can be retrieved with high probability: the probability that all $r$ nodes storing the full copies of a shard are faulty is $(\frac{f}{3f+1})^r$, which decreases exponentially with $r$.
+To achieve storage scalability, $r$ is a constant independent of the total number of storage nodes and may be less than $f$.
+On the other hand, the erasure coding deterministically ensures that the shard can be reconstructed as long as no more than $f$ nodes are faulty.
+There are at least $2f+1$ nodes participating in checkpointing, among which at least $f+1$ are correct nodes.
+These $f+1$ correct nodes store distinct chunks of the shard, which are sufficient to reconstruct the original shard.
 
-Even if the availability of each shard is secured with high probability, a faulty storage node can still return incorrect or stale values for \fetch requests, jeopardizing the correctness of execution.
-To combat this issue, we further employ the authenticated dictionary scheme where each shard is a separated authenticated dictionary, the storage nodes are servers and the replica nodes are clients.
-The replica nodes maintain the lightweight commitments of all shards.
-When retrieving values from the responsible nodes, the storage nodes \open the retrieved keys and response both the values and the proofs.
-The replica nodes \verify the retrieved values using the proofs and their locally stored commitments and discard any malformed or stale values.
-For \bump operations, the storage nodes receive the pushed updates from their trusted replica nodes.
-The responsible nodes \update their local shards and get the update information, while the other storage nodes ignore the updates.
-Then, every replica nodes retrieve the update information from the responsible nodes and \cupdate their local commitments.
+To retrieve a value of a key, the replica nodes contact the $r$ storage nodes responsible for the shard containing the key.
+The replica nodes verify the retrieved value as described above and return the first correct response.
+If all $r$ nodes are faulty, the retrieval may stall.
+In such case, the replica nodes vote to trigger a reconfigure signal via atomic broadcast.
+The reconfigure signal provides a random seed, according to which the $r$ random storage nodes storing the full copies of each shard are re-selected.
+The storage nodes then exchange the encoded chunks of the last checkpointed shards and verify their integrity using the stored hashes.
+Then, they reconstruct the original shards and store full copies of them according to the new shard placement.
+After reconfiguration is done, the replica nodes replay the execution from the last checkpoint and retry the stalled retrieval request with another set of $r$ storage nodes.
 
-The storage nodes need to respond to retrieval requests from multiple replica nodes, potentially on different versions of the state.
-As the result, the retrieval requests should be tagged with the version of the state they are issued for, and the storage nodes must maintain past values and proofs of the retrieved keys to serve these requests.
-Notice that the storage nodes do not need to maintain the entire past state shards, but only the values of keys that have been accessed by the trusted replica node in previous versions.
-As discussed in \autoref{sec:approach}, SMS expects a consistent sequence of \fetch invoked from the replica nodes, so the storage nodes can simply treat any retrieval on the unexpected keys as malformed requests and ignore them.
-Nonetheless, the storage nodes must perform garbage collection on the past values to bound their memory overhead, which we detail after introducing the archive tier.
+\subsection{Garbage Collection}
 
-\subsection{Archive Tier}
-
-The active tier can achieve correctness and probabilistic availability with decent performance.
-However, probabilistic availability may not be sufficient in some scenarios.
-It is also vulnerable to a slowly adaptive adversary that can compromise nodes over time. \gd{cite}
-To achieve deterministic availability, we introduce the archive tier.
-\lijl{Does this deterministic availability depend on properties of the active tier?} \gd{No and explain here.}
-In a nutshell, the archive tier periodically \emph{checkpoints} the entire state stored in the active tier using erasure coding.
-The checkpoint will be \emph{deterministically} available as long as no more than $f$ nodes are compromised.
-So that, even if the active tier loses some shards due to probabilistic failure or slow adaptive attacks, the system can always restart from the last checkpoint and \emph{reconfigure} the active tier to bring it back to an operational state.
-
-To checkpoint the state, the storage nodes first agree on a specific version of the state to checkpoint by voting via atomic broadcast.
-\lijl{This statement is a bit ambiguous. This is a past version or a future version? Any specific requirement on the version?} \gd{Clarified.}
-The version where $2f+1$ storage nodes have voted is selected as the checkpoint version.
-Each storage node snapshot the checkpoint version of their responsible shards and gather all the shards with a retrieval protocol similar to \fetch.
-Each node then individually encodes the gathered shards using an RS($3f+1$, $f+1$) erasure code, dividing the original state into $f+1$ chunks and producing $2f$ parity chunks.
-Finally, the node stores the hashes of all $3f+1$ chunks and retains only one chunk according to its node index.
-The nodes signal the completion of checkpointing via voting the next checkpoint version.
-By starting a new round of checkpoint, the nodes learn that the previous checkpoint has been completed and can safely discard the transaction history and past values and proofs up to the checkpointed version and the stored hashes and chunk of the checkpoint(s) prior to the previous one.
-
-After a checkpoint is completed, it is deterministically available (until the next checkpoint is completed).
-This is because a checkpoint completes with at least $2f+1$ votes, among which at least $f+1$ are from correct nodes, who have encoded the state and stored a chunk.
-The RS($3f+1$, $f+1$) erasure code guarantees that any $f+1$ chunks are sufficient to reconstruct the original state.
-Thus, those $f+1$ voted correct nodes always host enough chunks to reconstruct the original state.
-\lijl{It is not immediately clear how does the original $f+1$ shards are available during this encoding process based on this line of reasoning.} \gd{Clarified.}
-When the retrieval for the \fetch or the following checkpoint stalls, the replica nodes vote to trigger a recovery and reconfigure process via atomic broadcast.
-The votes provide a random seed, according to which the $r$ responsible nodes of each shard are re-selected.
-The storage nodes then retrieve the last checkpointed chunks from all nodes, verify their integrity using the stored hashes, and reconstruct the original state.
-Finally, they re-shard the state and store them according to the new shard placement.
-
-The description above requires the storage nodes to hold the entire state during the encoding process.
-To avoid this infeasible requirement, we further divide the entire state into multiple \emph{stripes}, each containing multiple shards.
-The active tier operates each stripe independently, and the archive tier checkpoints and reconstructs each stripe sequentially.
-
-The active and archive tiers defend slowly adaptive adversaries together.
-The archive tire can checkpoint the state as long as the adversary has not compromised $f+1$ nodes, and it can reset the active tier from the compromised state.
-As long as the adversary cannot compromise $f+1$ nodes between two consecutive checkpoints, the system can keep available.
-As we will see in \autoref{sec:eval}, the checkpoint can be finished within reasonable time intervals.
-\lijl{Need to finish encoding before the attack is done? A secure backup mechanism is that all nodes store transaction blocks since the last archived version, and replay the transactions if they cannot find any of the $f+1$ shards during encoding. This should only occupy constant storage size.} \gd{Added explanation.}
-
-\paragraph{Garbage collection and \forward.}
-To ensure the liveness, checkpointing and garbage collection are finished with $2f+1$ nodes.
-The other $f$ nodes may retrieve values and shards that are prior to the last checkpoint and have been garbage collected.
-In such case, the retrieval requests cannot be fulfilled.
-These $f$ nodes can eventually detect the situation when they receive the $2f+1$ votes for completing a checkpoint of a later version than their local state.
-They can then return \forward to the SMS calls, and catch up to the checkpoint version by reconstructing the state similar to the recovery process described above.
-We can guarantee the liveness property of SMS.
-The \fetch and \bump calls eventually return because the atomic broadcast eventually delivers the votes.
-And at most $f$ nodes may return \forward, because returning \forward requires to observe votes from $2f+1$ nodes, none of which has returned \forward.
+After a new checkpoint is created, the storage nodes can safely delete the data of the previous checkpoint.
+The last checkpointed version corresponds to the lowest alive version in \autoref{sec:approach}, i.e., at least $2f+1$ replica nodes have passed this version, or the checkpoint cannot be created yet.
+If a replica node observes that a new checkpoint has been created (via $2f+1$ checkpoint votes for the next checkpoint) for the version later than its local execution version, it can conclude that it has fallen behind the lowest alive version and \forward to it.
 
 \subsection{Reasoning about Properties}
 
 In the previous sections, we focused primarily on the intuition behind the correctness and availability properties.
 \gd{If necessary, add a formal proof sketch in the appendix?}
 We now analyze the storage overhead.
-For simplicity, we analyze the storage overhead from the perspective of a single stripe, as the stripes are independent and identical in design.
-We also only consider the storage overhead of shards and checkpoints, as the other metadata (e.g., past values and proofs, update information, hashes) are negligible and reside in memory.
+For simplicity, we analyze the storage overhead from the perspective of a single shard, as the shards are independent and identical in design.
+We also only consider the storage overhead of checkpoints, as the other data (e.g., updates since last checkpoint, encoded chunk hashes) are negligible and reside in memory.
 
-The active tier stores $r$ replicas of each shard, and its total storage is $r$ times the state size.
-The archive tier stores the checkpoint which is $\frac{3f+1}{f+1} < 3$ times the state size.
-During checkpointing, the storage overhead is temporarily doubled as each shard is snapshotted and two checkpoints coexist.
-Thus, the total storage overhead of the system is at most $2(r+3)$ times the state size.
-Since $r$ is a constant independent of the total number of nodes, we achieve storage scalability.
+Each shard is replicated on $r$ storage nodes and also encoded into $3f+1$ chunks with a $RS(3f+1, f+1)$ erasure code.
+The replication contributes a storage overhead of $r$ times, and the erasure coding contributes a storage overhead of $\frac{3f+1}{f+1} < 3$ times.
+There are at most two checkpoints stored on the storage nodes at any time.
+Therefore, the total storage overhead per shard is less than $2(r+3)$ times.
