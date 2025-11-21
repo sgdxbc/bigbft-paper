@@ -47,7 +47,7 @@ In such case, the replica nodes vote to trigger a reconfigure signal via atomic 
 The reconfigure signal provides a random seed, according to which the $r$ random storage nodes storing the full copies of each shard are re-selected.
 The storage nodes then exchange the encoded chunks of the last checkpointed shards and verify their integrity using the stored hashes.
 Then, they reconstruct the original shards and store full copies of them according to the new shard placement.
-After reconfiguration is done, the replica nodes replay the execution from the last checkpoint and retry the stalled retrieval request with another set of $r$ storage nodes.
+After reconfiguration is done, the replica nodes can retry the stalled retrieval request with another set of $r$ storage nodes.
 
 \subsection{Garbage Collection}
 
