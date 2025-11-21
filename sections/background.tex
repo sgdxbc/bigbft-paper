@@ -151,7 +151,7 @@ Each transaction can read and/or update the world state.
 A blockchain provides linearizability~\cite{linearizability} to clients, \ie, the observable behavior of the system is equivalent to a single correct server that executes transactions sequentially while respecting real-time invocation/response ordering constraints.
 It offers such guarantee even when nodes may fail or behave arbitrarily, and the network can delay, drop, or reorder messages.
 
-Most existing blockchains~\cite{bitcoin,ethereum,algorand,sui} follow the \emph{order-execute} model.
+Most deployed blockchains~\cite{bitcoin,ethereum,algorand,sui} follow the \emph{order-execute} model.
 In this model, the blockchain nodes collectively run an atomic broadcast~\cite{pbft,hotstuff,honeybadger,narwhal,bullshark} protocol to reach agreement on a total order of client transactions (typically batched in large transaction blocks).
 Each node maintains a local copy of the world state, sequentially executes the finalized transactions following the agreement order, and updates its local state based on the transaction logic.
 Given deterministic execution and the guarantees of atomic broadcast, world state on correct replicas remain consistent.
