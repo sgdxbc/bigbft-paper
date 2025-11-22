@@ -16,3 +16,7 @@ Therefore, $k$ should be chosen to balance these trade-offs based on the system 
 \subsection{Concurrent Pre-issued \fetch-es}
 
 As long as not cross checkpoint boundaries, multiple \fetch requests can be pre-issued and handled concurrently to improve throughput.
+
+\subsection{Replica local cache.}
+RocksDB style LRU cache at every replica node.
+Equivalent to RocksDB block cache of locally stored state.
