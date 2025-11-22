@@ -1,53 +1,59 @@
 \section{System Design}
 \label{sec:overview}
 
-% \subsection{Preliminaries}
-
-% \paragraph{Erasure coding.}
-
 \subsection{System Architecture}
 
 The participants are logically divided into two types of nodes: \emph{replica nodes} and \emph{storage nodes}.
 Each participant operates one replica node and one storage node.
 The replica nodes operate a Byzantine atomic broadcast protocol to agree on the order of transactions and two storage signals: checkpoint and reconfigure.
 They also execute all transactions in the agreed order.
-On each checkpoint signal, a specific version of the state is snapshotted and collectively stored on the storage nodes.
-The replica nodes maintain the updates since the last checkpoint locally, and retrieve the missing state from the storage nodes when necessary.
-The storage nodes determine the part of the state they store according to a hybrid scheme consisting of randomized replication and erasure coding.
-They serve the retrieval requests with the replication and recover the state with the erasure coding when the replication fails.
+The storage nodes can vote for checkpoint and the replica nodes can vote for reconfiguration.
+A checkpoint signal is triggered when at least $2f+1$ storage nodes vote for it, indicating sufficient amount of storage nodes are ready to participate in checkpointing.
+Then, a specific version of the state is snapshotted and collectively stored on the storage nodes.
 
-\subsection{Storing Format}
+Every replica node maintains a local update table, which records all updates to the state since the last checkpoint.
+So the storage nodes only need to serve the keys that have not been updated since the last checkpoint.
+This design significantly reduces the complexity of the storage nodes.
+They are decoupled from the highly dynamic current state, which requires complex algorithms and protocols to be authenticated. \gd{Cite}
+Instead, they only need to manage static checkpointed states, authenticate which can be done efficiently with Merkle trees as described later.
 
-The state is divided into certain number of \emph{shards}, each of which is independently checkpointed, managed and reconstructed.
-Each shard is a key-value map.
-The stored value of each key is a tuple consisting of the actual value, the successor key according to lexicographic order, and an aggregated signature from $f+1$ replica nodes signed over the key, actual value, successor key and the checkpoint version.
-When retrieving values from the storage nodes, the replica nodes can verify the signatures with the aggregated public keys of the replica nodes.
-If the signature is valid, the replica nodes are assured that at least one correct replica node has endorsed the value and can accept it.
-To prove the non-existence of a key, the storage nodes return the values of its predecessor, which contains the successor key showing the absence of the requested key.
+For easy management and workload balance, the state is divided into multiple \emph{shards}, each of which is independently checkpointed, stored and served by the storage nodes.
+In the following discussion, we focus on the management of a single shard.
 
-\subsection{Checkpoint and Reconfigure}
+\subsection{A Hybrid Design of SMS}
 
-The storage nodes periodically vote for checkpoint via atomic broadcast, and a new checkpoint signal is triggered after receiving $2f+1$ votes.
-For each checkpoint, the storage nodes first send the previously checkpointed shard to the replica nodes
-The replica nodes then flush the updates since the last checkpoint into the shard and construct their \emph{shard shares} for the new checkpoint with the updated successor keys, checkpoint version and their signature shares.
-The replica nodes send their shard shares to all storage nodes.
-Each storage node collects matching shard shares from $f+1$ replica nodes, aggregate the signature shares into signatures and construct the shard for checkpointing.
+The design of SMS needs to answer three key questions: 
+(1) How the replica nodes can verify the data retrieved from the storage nodes, ensuring correctness?
+(2) How to ensure the availability of the stored data, ensuring liveness, while keep the storage overhead scalable?
+(3) How to enable efficient online retrieval of data from the storage nodes?
 
-Each shard is stored on the storage nodes in two forms simultaneously: it is replicated on $r$ random storage nodes for retrieval and also distributed among all storage nodes with a $RS(3f+1, f+1)$ erasure code for reconstruction.
-The $r$ full copies ensure the shard can be retrieved with high probability: the probability that all $r$ nodes storing the full copies of a shard are faulty is $(\frac{f}{3f+1})^r$, which decreases exponentially with $r$.
-To achieve storage scalability, $r$ is a constant independent of the total number of storage nodes and may be less than $f$.
-On the other hand, the erasure coding deterministically ensures that the shard can be reconstructed as long as no more than $f$ nodes are faulty.
-There are at least $2f+1$ nodes participating in checkpointing, among which at least $f+1$ are correct nodes.
+Following numerous prior storage works, \sys employs erasure coding as the availability and storage scalability technique.
+More specifically, \sys employs a $RS(3f+1, f+1)$ code to encode each shard into $3f+1$ chunks and distribute them among all storage nodes.
+During checkpointing, at least $2f+1$ storage nodes participate, among which at least $f+1$ are correct nodes.
 These $f+1$ correct nodes store distinct chunks of the shard, which are sufficient to reconstruct the original shard.
+The nodes also store the hashes of all chunks for integrity verification during reconstruction.
 
-To retrieve a value of a key, the replica nodes contact the $r$ storage nodes responsible for the shard containing the key.
-The replica nodes verify the retrieved value as described above and return the first correct response.
-If all $r$ nodes are faulty, the retrieval may stall.
-In such case, the replica nodes vote to trigger a reconfigure signal via atomic broadcast.
-The reconfigure signal provides a random seed, according to which the $r$ random storage nodes storing the full copies of each shard are re-selected.
-The storage nodes then exchange the encoded chunks of the last checkpointed shards and verify their integrity using the stored hashes.
-Then, they reconstruct the original shards and store full copies of them according to the new shard placement.
-After reconfiguration is done, the replica nodes can retry the stalled retrieval request with another set of $r$ storage nodes.
+Erasure coding scheme is an ideal solution for question (1) and (2), however, it is not efficient for online retrieval of individual keys.
+To retrieve a value of a key, the replica nodes need to reconstruct the entire shard first, which incurs significant computation and communication overhead.
+On the other hand, replication can maximize the efficiency of online retrieval.
+To ensure the correctness of the retrieved values, we manage the shard with a binary Merkle tree.
+The leaf nodes of the tree are the hashes of all key-value pairs in the shard, and each internal node is the hash of two nodes below it.
+The root hash of the tree, called \emph{shard commitment}, is stored by the replica nodes for verification.
+When retrieving a value of a key, the storage nodes return the value along with its inclusion proof in the Merkle tree, which consists of the hashes of the sibling nodes along the path from the leaf node to the root.
+The replica nodes can verify the retrieved value with the inclusion proof and the shard commitment.
+Thus, replication is capable to answer question (1) and (3).
+
+To ensure storage scalable replication, the full copies of the shard are only stored on $r$ storage nodes, where $r$ is a system parameter independent of the total number of storage nodes.
+They are called the \emph{responsible nodes} of the shard.
+With sufficiently large $f$, it is possible that all $r$ responsible nodes are faulty, making the retrieval unavailable.
+To address this issue, \sys combines \emph{randomized} replication with erasure coding.
+The retrieval is efficiently served by replication, while the storage nodes internally maintain the erasure-coded chunks for reconstruction.
+If liveness failure is suspected, the replica nodes vote to trigger a reconfigure signal via atomic broadcast.
+The reconfiguration signal is triggered when at least $f+1$ replica nodes vote for it, including at least one correct node.
+Then, $r$ new random storage nodes are re-selected to store the full copies of the shard, and they retrieve the erasure-coded chunks from other storage nodes to reconstruct the shard.
+The system can repeatedly reconfigure until at least one correct storage node is responsible for the shard and the retrieval can succeed.
+At the same time, the randomized replication assigns a uniform distribution of the probability that each node is responsible for a given shard across all nodes, so the probability that all $r$ responsible nodes are faulty decreases exponentially with $r$.
+With a properly chosen $r$, the retrieval can succeed with high probability without reconfiguration.
 
 \subsection{Garbage Collection}
 
@@ -55,15 +61,15 @@ After a new checkpoint is created, the storage nodes can safely delete the data 
 The last checkpointed version corresponds to the lowest alive version in \autoref{sec:approach}, i.e., at least $2f+1$ replica nodes have passed this version, or the checkpoint cannot be created yet.
 If a replica node observes that a new checkpoint has been created (via $2f+1$ checkpoint votes for the next checkpoint) for the version later than its local execution version, it can conclude that it has fallen behind the lowest alive version and \forward to it.
 
-\subsection{Reasoning about Properties}
+\subsection{Reasoning About Storage Overhead}
 
 In the previous sections, we focused primarily on the intuition behind the correctness and availability properties.
 \gd{If necessary, add a formal proof sketch in the appendix?}
 We now analyze the storage overhead.
 For simplicity, we analyze the storage overhead from the perspective of a single shard, as the shards are independent and identical in design.
-We also only consider the storage overhead of checkpoints, as the other data (e.g., updates since last checkpoint, encoded chunk hashes) are negligible and reside in memory.
+We also only consider the storage overhead of checkpoints, as the replica node data and the other data of storage nodes (e.g., updates since last checkpoint, encoded chunk hashes) are negligible and reside in memory.
 
 Each shard is replicated on $r$ storage nodes and also encoded into $3f+1$ chunks with a $RS(3f+1, f+1)$ erasure code.
 The replication contributes a storage overhead of $r$ times, and the erasure coding contributes a storage overhead of $\frac{3f+1}{f+1} < 3$ times.
 There are at most two checkpoints stored on the storage nodes at any time.
-Therefore, the total storage overhead per shard is less than $2(r+3)$ times.
+Therefore, the total storage overhead per shard is less than $2(r+3)$ times, which is independent to the number of nodes and storage scalable.

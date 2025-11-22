@@ -11,6 +11,8 @@ Secondly, to ensure load balancing among the storage nodes, $k$ should be signif
 On the other hand, having too many shards increases the overhead of managing them (e.g., the number of shard hashes in \votec messages) and increase the latency of checkpointing.
 Therefore, $k$ should be chosen to balance these trade-offs based on the system parameters and resource constraints.
 
+Reconfiguration can be simply extended to support changing the number of storage nodes and/or shards.
+
 \subsection{Efficient Flushing of Updates}
 
 \subsection{Concurrent Pre-issued \fetch-es}
