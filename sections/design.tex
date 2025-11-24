@@ -31,7 +31,7 @@
     & \pushss{}             & round, shard ID, shard data \\
 \addlinespace
 \multirow{2}{*}{Atomic broadcast}
-    & \votec{}              & round, storage node ID, shard hashes of previous round \\
+    & \votec{}              & round, storage node ID \\
     & \voter{}              & epoch, round, replica node ID, nonce \\
 \bottomrule
 \end{tabular}
@@ -93,7 +93,7 @@ The SMS suspects liveness failure if the \retrieve requests are not (correctly) 
 In this case, it increments the epoch and sends \voter messages with its current checkpoint round and a random nonce to the atomic broadcast protocol.
 
 The SMS also records the forwarded \votec and \voter messages.
-When it collects $2f+1$ \votec with matching shard hashes from distinct storage nodes for round $c'$ greater than its current checkpoint round $c$, it enters checkpoint round $c'$.
+When it collects $2f+1$ \votec from distinct storage nodes for round $c'$ greater than its current checkpoint round $c$, it enters checkpoint round $c'$.
 If $c'>c+1$, it returns \forward to the execution layer to skip to the version at round $c'-1$.
 It snapshots the update table before handling further \bump operations.
 It is crucial that the \votec messages are ordered respect to the client transactions to ensure consistent checkpointing across all replica nodes.
@@ -111,11 +111,11 @@ They respond to \retrieve and \retrieves requests by returning the requested val
 If the requests are for a different round, they ignore them.
 
 The storage nodes send \votec messages for the next checkpoint round after finishing checkpointing all shards for the current round, and send \votec messages for round 0 at system startup.
-After receiving $2f+1$ \votec messages with matching shard hashes for round $c'$ greater than its current checkpoint round $c$, the storage node starts to checkpoint round $c'$.
-To checkpoint a shard, the storage node collects matching \pushss messages from $f+1$ replica nodes.
-Then it computes shard hash for the next \votec message, and it computes the internal hashes of the shard and caches them in memory for producing the proofs in \retrieve responses.
+After receiving $2f+1$ \votec messages for round $c'$ greater than its current checkpoint round $c$, the storage node starts to checkpoint round $c'$.
+To checkpoint a shard, the storage node collects matching \pushss messages from $f+1$ replica nodes to ensure the integrity of the shard.
 Then it encodes the shard into $3f+1$ chunks and stores the chunk corresponding to itself.
 If the storage node is one of the responsible nodes of the shard according to the current placement, it also stores a full copy of the shard for retrieval.
+It further constructs and stores the Merkle tree for the shard for producing the proofs in \retrieve responses.
 
 If the storage node receives $f+1$ \voter messages with matching epoch and round from distinct replica nodes, and the round matches its current checkpoint round, it reseeds the randomized placement scheme with the nonces and reconstructs the full copies of the shards it is now responsible for.
 It sends \getsc requests to other storage nodes to retrieve the necessary shard chunks for reconstruction.

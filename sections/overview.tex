@@ -34,14 +34,17 @@ These $f+1$ correct nodes store distinct chunks of the shard, which are sufficie
 The nodes also store the hashes of all chunks for integrity verification during reconstruction.
 
 Erasure coding scheme is an ideal solution for question (1) and (2), however, it is not efficient for online retrieval of individual keys.
-To retrieve a value of a key, the replica nodes need to reconstruct the entire shard first, which incurs significant computation and communication overhead.
+To retrieve a value of a key, the replica nodes need to reconstruct the entire shard first\footnotemark, which incurs significant computation and communication overhead.
 On the other hand, replication can maximize the efficiency of online retrieval.
-To ensure the correctness of the retrieved values, we manage the shard with a binary Merkle tree.
+To ensure the correctness of the retrieved values, we organize the shard into a binary Merkle tree.
 The leaf nodes of the tree are the hashes of all key-value pairs in the shard, and each internal node is the hash of two nodes below it.
-The root hash of the tree, called \emph{shard commitment}, is stored by the replica nodes for verification.
+The root hash of the tree, referred as \emph{shard commitment}, is stored by the replica nodes for verification.
 When retrieving a value of a key, the storage nodes return the value along with its inclusion proof in the Merkle tree, which consists of the hashes of the sibling nodes along the path from the leaf node to the root.
 The replica nodes can verify the retrieved value with the inclusion proof and the shard commitment.
 Thus, replication is capable to answer question (1) and (3).
+
+\footnotetext{It is possible to retrieve individual keys directly from the original chunk that contains them, but it requires the chunks to be aware of application-level data structures, and the faulty nodes can force fallback degraded read with high probability.
+This situation is extensively discussed in prior works~\cite{qi2020bft}.}
 
 To ensure storage scalable replication, the full copies of the shard are only stored on $r$ storage nodes, where $r$ is a system parameter independent of the total number of storage nodes.
 They are called the \emph{responsible nodes} of the shard.
