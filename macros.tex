@@ -1,18 +1,14 @@
 \ifdraft
 \newcommand{\editorial}[2]{{\textcolor{#1}{#2}}\xspace}
+\newenvironment{outline}{\color{blue} \textbf{Outline:}}{}
 \else
 \newcommand{\editorial}[2]{\ignorespaces}
+\excludecomment{outline}
 \fi
 \newcommand{\XXX}{\editorial{red}{XXX}}
 \newcommand{\xxx}[1]{\editorial{red}{XXX #1}}
 \newcommand{\lijl}[1]{\editorial{cyan}{JL: #1}}
 \newcommand{\gd}[1]{\editorial{olive}{GD: #1}}
-
-\ifdraft
-\newenvironment{outline}{\color{blue} \textbf{Outline:}}{}
-\else
-\excludecomment{outline}
-\fi
 
 \newcommand{\eg}{e.g.\@\xspace}
 \newcommand{\ie}{i.e.\@\xspace}
@@ -32,3 +28,5 @@
 \newcommand{\pushss}{\textsc{PushShard}\xspace}
 \newcommand{\voter}{\textsc{VoteReconfig}\xspace}
 \newcommand{\getsc}{\textsc{RetrieveChunk}\xspace}
+
+\newcommand{\code}[1]{\texttt{#1}\xspace}
