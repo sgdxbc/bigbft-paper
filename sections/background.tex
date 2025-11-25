@@ -1,5 +1,4 @@
 \section{Motivation}
-\label{sec:bg}
 
 \paragraph{Problem Settings.}
 Our work functions as a replicated service for arbitrary state machines~\cite{lamport1978implementation} exhibiting tolerance to Byzantine faults akin to conventional BFT protocols.
@@ -140,11 +139,13 @@ Thus, the system can achieve storage scalability and safety but losing liveness.
 % Background %
 %%%%%%%%%%%%%%
 
-\section{Background}
+\section{Background and Motivation}
 \label{sec:bg}
 
 \subsection{Blockchain Architecture}
 \label{sec:bg:blockchain}
+
+\lijl{Add a figure for the overall architecture}
 
 In a blockchain system, a set of mutually distrusted nodes collectively implements a replicated state machine~\cite{rsm}.
 The system maintains a \emph{world state}, typically an abstract mapping between keys or addresses to arbitrary values.
@@ -166,6 +167,8 @@ however, we only focus on the order-execute model in this paper given their wide
 \subsection{Blockchain Storage Layer}
 \label{sec:bg:storage}
 
+\lijl{Add a figure for the storage layer}
+
 Blockchain nodes may crash and lose all volatile state.
 When a node recovers, it needs to reconstruct its prior world state to continue normal operation.
 In theory, a node can replay the entire transaction history or transfer the entire state from other correct nodes.
@@ -173,3 +176,13 @@ However, both approaches have impractical overhead for large-scale blockchains.
 All deployed blockchains~\cite{bitcoin,ethereum,sui,algorand}, therefore, include a storage layer in which each node stores the world state on non-volatile storage medium (\eg, SSD).
 Instead of reinventing storage solutions, existing blockchains typically reuse well-established persistent key-value stores such as LevelDB~\cite{leveldb} and RocksDB~\cite{rocksdb}.
 Accessing and updating the world state then use the \code{get(k)} and \code{put(k, v)} interfaces of the persistent key-value store.
+
+Concrete world state storage typically consists multiple search trees (trie).
+A transaction trie stores the committed (by the consensus layer) but yet to be executed transaction blocks.
+\lijl{Does it retain recently executed blocks?}
+A state trie maintains detailed information of each blockchain account (\eg, account balance).
+For blockchains that support smart contracts, a separate trie stores the contract data for each created smart contract.
+
+Several techniques have been applied to optimize the blockchain storage layer performance.
+Blockchains such as Ethereum store the world state as a Patricia trie~\cite{taocpv3} to reduce storage overhead.
+To overcome the slow storage I/O performance, prior systems commonly apply batched state updates and in-memory caching for hot state entries.
