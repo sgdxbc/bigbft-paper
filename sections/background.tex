@@ -141,8 +141,10 @@ Thus, the system can achieve storage scalability and safety but losing liveness.
 %%%%%%%%%%%%%%
 
 \section{Background}
+\label{sec:bg}
 
 \subsection{Blockchain Architecture}
+\label{sec:bg:blockchain}
 
 In a blockchain system, a set of mutually distrusted nodes collectively implements a replicated state machine~\cite{rsm}.
 The system maintains a \emph{world state}, typically an abstract mapping between keys or addresses to arbitrary values.
@@ -158,6 +160,16 @@ Given deterministic execution and the guarantees of atomic broadcast, world stat
 
 Some blockchains~\cite{hyperledger} apply the \emph{execute-order} model, in which nodes execute the transactions first, and then run atomic broadcast to totally order the transaction outcomes.
 This model can result in more scalable transaction execution, and permits non-deterministic transaction logic.
-Our solution can be applied to both models, but considering the wider adoption rate, we focus on the order-execute model in this paper.
+Our solution can be applied to both models;
+however, we only focus on the order-execute model in this paper given their wider adoption.
 
 \subsection{Blockchain Storage Layer}
+\label{sec:bg:storage}
+
+Blockchain nodes may crash and lose all volatile state.
+When a node recovers, it needs to reconstruct its prior world state to continue normal operation.
+In theory, a node can replay the entire transaction history or transfer the entire state from other correct nodes.
+However, both approaches have impractical overhead for large-scale blockchains.
+All deployed blockchains~\cite{bitcoin,ethereum,sui,algorand}, therefore, include a storage layer in which each node stores the world state on non-volatile storage medium (\eg, SSD).
+Instead of reinventing storage solutions, existing blockchains typically reuse well-established persistent key-value stores such as LevelDB~\cite{leveldb} and RocksDB~\cite{rocksdb}.
+Accessing and updating the world state then use the \code{get(k)} and \code{put(k, v)} interfaces of the persistent key-value store.
