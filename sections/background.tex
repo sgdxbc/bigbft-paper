@@ -1,3 +1,106 @@
+\section{Background and Motivation}
+\label{sec:bg}
+
+\subsection{Blockchain Architecture}
+\label{sec:bg:blockchain}
+
+\lijl{Add a figure for the overall architecture}
+
+In a blockchain system, a set of mutually distrusted nodes collectively implements a replicated state machine~\cite{rsm}.
+The system maintains a \emph{world state}, typically an abstract mapping between keys or addresses to arbitrary values.
+Clients submit requests in the form of transactions.
+Each transaction can read and/or update the world state.
+A blockchain provides linearizability~\cite{linearizability} to clients, \ie, the observable behavior of the system is equivalent to a single correct server that executes transactions sequentially while respecting real-time invocation/response ordering constraints.
+It offers such guarantee even when nodes may fail or behave arbitrarily, and the network can delay, drop, or reorder messages.
+
+Most deployed blockchains~\cite{bitcoin,ethereum,algorand,sui} follow the \emph{order-execute} model.
+In this model, the blockchain nodes collectively run an atomic broadcast~\cite{pbft,hotstuff,honeybadger,narwhal,bullshark} protocol to reach agreement on a total order of client transactions (typically batched in large transaction blocks).
+Each node maintains a local copy of the world state, sequentially executes the finalized transactions following the agreement order, and updates its local state based on the transaction logic.
+Given deterministic execution and the guarantees of atomic broadcast, world state on correct replicas remain consistent.
+
+Some blockchains~\cite{hyperledger} apply the \emph{execute-order} model, in which nodes execute the transactions first, and then run atomic broadcast to totally order the transaction outcomes.
+This model can result in more scalable transaction execution, and permits non-deterministic transaction logic.
+Our solution can be applied to both models;
+however, we only focus on the order-execute model in this paper given their wider adoption.
+
+\subsection{Blockchain Storage Layer}
+\label{sec:bg:storage}
+
+\lijl{Add a figure for the storage layer}
+
+Blockchain nodes may crash and lose all volatile state.
+When a node recovers, it needs to reconstruct its prior world state to continue normal operation.
+In theory, a node can replay the entire transaction history or transfer the entire state from other correct nodes.
+However, both approaches have impractical overhead for large-scale blockchains.
+All deployed blockchains~\cite{bitcoin,ethereum,sui,algorand}, therefore, include a storage layer in which each node stores the world state on non-volatile storage medium (\eg, SSD).
+Instead of reinventing storage solutions, existing blockchains typically reuse well-established persistent key-value stores such as LevelDB~\cite{leveldb} and RocksDB~\cite{rocksdb}.
+Accessing and updating the world state then use the \code{get(k)} and \code{put(k, v)} interfaces of the persistent key-value store.
+
+Concrete world state storage typically consists multiple search trees (trie).
+A transaction trie stores the committed (by the consensus layer) but yet to be executed transaction blocks.
+\lijl{Does it retain recently executed blocks?}
+A state trie maintains detailed information of each blockchain account (\eg, account balance).
+For blockchains that support smart contracts, a separate trie stores the contract data for each created smart contract.
+
+Several techniques have been applied to optimize the blockchain storage layer performance.
+Blockchains such as Ethereum store the world state as a Patricia trie~\cite{taocpv3} to reduce storage overhead.
+To overcome the slow storage I/O performance, prior systems commonly apply batched state updates and in-memory caching for hot state entries.
+
+
+\subsection{The Need for Storage Scalability}
+\label{sec:bg:motv}
+
+\begin{figure}
+    \includegraphics[width=0.7\linewidth]{graphs/states-grow}
+    \caption{
+        Blockchain state size has exhibited rapid growth in recent years.
+        The reductions observed in Ethereum's state size correspond to several client software updates incorporating more efficient storage mechanisms and enhanced pruning strategies.
+    }
+    \label{fig:bc-state-size}
+\end{figure}
+
+To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system \lijl{find citations here}.
+However, they still mandate each participating node to store the entire world state in its storage layer.
+As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
+\lijl{I wonder if persistence storage also improves security of the entire network against wider failures.}
+
+The size of blockchain world state is not constant.
+
+% original text starts from here
+The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
+From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\autoref{fig:states-grow}).
+While lacking open data on the permissioned settings side, it is reasonable to infer even much larger state sizes based on the significantly higher processing throughput.
+% Google reports 4, 20 and 70 TB data sizes respectively for personalized search, processed Google Analytics and Google Earth images data, dates back to 2006~\cite{chang2008bigtable}.
+
+The permissionless blockchains consist of decentralized nodes with heterogeneous storage capacities.
+While the state sizes rapidly increase, more and more nodes cannot afford the storage costs and are forced to drop out.
+This leads to a gradual centralization of the network, as only nodes with sufficient resources can continue to participate.
+At the same time, the nodes with abundant storage resources are not able to utilize their extra storage to benefit the system.
+\sys, on the other hand, features storage scalability, is more flexible in configuring the storage load of the nodes.
+The increased total number of nodes can effectively alleviate the storage pressure on every node, enabling nodes with limited storage capacity to continue participating in the system.
+At the same time, by spawning more virtual nodes, the nodes with abundant storage resources can be further incentivized for contributing more storage to the system \lijl{This last part is not very clear}.
+
+In the permissioned settings, it may seem like the storage overhead is less concerning than in permissionless settings due to the more abundant resources normally found in the deployed environments.
+However, because of the static and known membership, these systems cannot replace the participating nodes as easily.
+Without storage scalability, the system would require every node to store the entire state.
+The system must be halted if any \emph{single} node does not meet the storage requirements.
+As more nodes join the network and more data is ingested, the early participants may be overwhelmed.
+Thanks to storage scalability, while the state data is growing because of the joining nodes, the storage resources of these joining nodes amortize the storage pressure of these data at the same time.
+As the result, the early nodes can enjoy a much slower increasing or even nearly constant storage overhead.
+\lijl{When storage capacity is reached, requiring all participating nodes to upgrade their storage. Probably okay when managed by a single organization, but permissioned blockchain usually follows a federated model.}
+
+\lijl{Can also mention that horizontal scaling is a desired property for distributed systems. DAG-based protocols enable horizontal scaling for block dissemination. We are horizontally scaling storage capacity.}
+
+
+\subsection{Prior Storage Scaling Solutions}
+\label{sec:bg:prior}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\if{0}
+
 \section{Motivation}
 
 \paragraph{Problem Settings.}
@@ -135,54 +238,4 @@ In processing sharding systems, not all nodes process every transaction, enablin
 Finally, in stateless blockchains, while all nodes participate in the agreement part, none of them execute transactions.
 Thus, the system can achieve storage scalability and safety but losing liveness.
 
-%%%%%%%%%%%%%%
-% Background %
-%%%%%%%%%%%%%%
-
-\section{Background and Motivation}
-\label{sec:bg}
-
-\subsection{Blockchain Architecture}
-\label{sec:bg:blockchain}
-
-\lijl{Add a figure for the overall architecture}
-
-In a blockchain system, a set of mutually distrusted nodes collectively implements a replicated state machine~\cite{rsm}.
-The system maintains a \emph{world state}, typically an abstract mapping between keys or addresses to arbitrary values.
-Clients submit requests in the form of transactions.
-Each transaction can read and/or update the world state.
-A blockchain provides linearizability~\cite{linearizability} to clients, \ie, the observable behavior of the system is equivalent to a single correct server that executes transactions sequentially while respecting real-time invocation/response ordering constraints.
-It offers such guarantee even when nodes may fail or behave arbitrarily, and the network can delay, drop, or reorder messages.
-
-Most deployed blockchains~\cite{bitcoin,ethereum,algorand,sui} follow the \emph{order-execute} model.
-In this model, the blockchain nodes collectively run an atomic broadcast~\cite{pbft,hotstuff,honeybadger,narwhal,bullshark} protocol to reach agreement on a total order of client transactions (typically batched in large transaction blocks).
-Each node maintains a local copy of the world state, sequentially executes the finalized transactions following the agreement order, and updates its local state based on the transaction logic.
-Given deterministic execution and the guarantees of atomic broadcast, world state on correct replicas remain consistent.
-
-Some blockchains~\cite{hyperledger} apply the \emph{execute-order} model, in which nodes execute the transactions first, and then run atomic broadcast to totally order the transaction outcomes.
-This model can result in more scalable transaction execution, and permits non-deterministic transaction logic.
-Our solution can be applied to both models;
-however, we only focus on the order-execute model in this paper given their wider adoption.
-
-\subsection{Blockchain Storage Layer}
-\label{sec:bg:storage}
-
-\lijl{Add a figure for the storage layer}
-
-Blockchain nodes may crash and lose all volatile state.
-When a node recovers, it needs to reconstruct its prior world state to continue normal operation.
-In theory, a node can replay the entire transaction history or transfer the entire state from other correct nodes.
-However, both approaches have impractical overhead for large-scale blockchains.
-All deployed blockchains~\cite{bitcoin,ethereum,sui,algorand}, therefore, include a storage layer in which each node stores the world state on non-volatile storage medium (\eg, SSD).
-Instead of reinventing storage solutions, existing blockchains typically reuse well-established persistent key-value stores such as LevelDB~\cite{leveldb} and RocksDB~\cite{rocksdb}.
-Accessing and updating the world state then use the \code{get(k)} and \code{put(k, v)} interfaces of the persistent key-value store.
-
-Concrete world state storage typically consists multiple search trees (trie).
-A transaction trie stores the committed (by the consensus layer) but yet to be executed transaction blocks.
-\lijl{Does it retain recently executed blocks?}
-A state trie maintains detailed information of each blockchain account (\eg, account balance).
-For blockchains that support smart contracts, a separate trie stores the contract data for each created smart contract.
-
-Several techniques have been applied to optimize the blockchain storage layer performance.
-Blockchains such as Ethereum store the world state as a Patricia trie~\cite{taocpv3} to reduce storage overhead.
-To overcome the slow storage I/O performance, prior systems commonly apply batched state updates and in-memory caching for hot state entries.
+\fi
