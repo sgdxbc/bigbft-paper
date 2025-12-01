@@ -40,14 +40,14 @@ We implement a client-coordinated two-phase commit protocol, closely following t
 For each transaction, the client submits it twice: in the first phase, the input clusters lock the input UTXO and respond signed messages to the client; in the second phase, the client submits the transaction along with the collected signed messages to both the input and output clusters to finalize the transaction.
 
 \paragraph{Skewness and caching.}
-Multiple studies~\cite{notallstate2025,krol2021shard,said2021detailed,kim2019ethanos} have confirmed that the access patterns of public blockchain states are extremely skewed.
+Multiple studies~\cite{notallstate2025,krol2021shard,said2021detailed,kim2019ethanos,lin2025parallelevm} have confirmed that the access patterns of public blockchain states are extremely skewed.
 \cite{kim2019ethanos} found that more than 95\% of the Ethereum accounts are inactive for more than a week from the respect of the current block.
 \cite{krol2021shard} observed that in Ethereum, 20\% of the accounts contribute to 92\% of the transactions.
-And the recent report~\cite{notallstate2025} shows that 63.3\% of the Ethereum state is never accessed after setting.
+At state level, \cite{lin2025parallelevm} reported that the top 0.1\% state accounts for 62\% of all state accesses, while a recent report~\cite{notallstate2025} shows that 63.3\% of the Ethereum state is never accessed after setting.
 As the result, caching is highly effective for blockchain execution.
-BNB Smart Chain reports 90\% cache hit rate with their in-memory caching layer with just basic tuning and archieves 99\% cache hit rate with prefetching~\cite{nodereal2022_bsc_cache_hit_rate}.
+BNB Smart Chain reports 90\% cache hit rate with their in-memory caching layer with just basic tuning and achieves 99\% cache hit rate with prefetching~\cite{nodereal2022_bsc_cache_hit_rate}.
 In our YCSB workload, we simulate such skewed access patterns by setting a Zipfian distribution with a skewness factor of 1.24 for the accessed keys.
-With this setting, the top 1\% most frequently accessed keys account for around 98\% of all accesses, and the 95\% ``cold'' keys are accessed only around 2\% of the time.
+With this setting, the top 1\% most frequently accessed keys account for around 98\% of all accesses, and we simulate the cold or untouched majority state with 95\% keys which are accessed only around 1\% of the time.
 We set the replica local cache size to 4 GiB and preload the cache with the 1 million (1\% of total) most frequently accessed keys before starting the experiments.
 This results in around 90\% cache hit rate during the experiments.
 

@@ -38,13 +38,13 @@ By carefully designing the placement of state shards, we ensure that each shard 
 \paragraph{The size of the retrieved temporary state.}
 A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state.
 We emphasize that this is a theoretical worst case and is unlikely to occur in practice.
+Firstly, as our design will demonstrate into \autoref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
+Thus, the peak size of the retrieved temporary state equals to the \emph{working set}, i.e., the total size of the accessed keys and values, of the executing transactions.
 Empirically, most transactions access only an extremely small fraction of the state.
-\gd{Copilot contributed the following sentence, try to cite information source or remove if not found.}
-For example, in Ethereum, more than 90\% of transactions access only a single account.
-Moreover, as our design will demonstrate into \autoref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
-Thus, the peak size of the retrieved temporary state equals the total size of the accessed keys and values, which is sufficiently small to reside entirely in memory.
-\gd{In some way claim that this is also what blockchains like Ethereum are doing and assuming.}
-\lijl{Yes, should provide more concrete evidence and workload citations. Even better if we can do some empirical analysis of available traces.}
+According to the data over 100 days in 2024 from Ethereum, on average each block reads ~1600 slots, about 0.0001\% of the total 151 million slots in the state~\cite{ProperDiskIO_GasPricing_LRUcache_2024}.
+In practice, blockchain nodes preserve the working set of one or more recent blocks entirely in memory for performance reasons~\cite{nodereal2022_bsc_cache_hit_rate}.
+We follow this practice in our design, assuming trivial memory footprint for the retrieved temporary state without loss of generality.
+\lijl{Yes, should provide more concrete evidence and workload citations. Even better if we can do some empirical analysis of available traces.} \gd{Kind of elaborated.}
 
 % However, diverging from the common practice also sacrifices its advantages: executing with local state is efficient and does not require additional security analysis.
 % When the state is maintained locally, it is always correct and available to the node, and executing the same sequence of transactions from the same initial state will deterministically yield the same final state and output.
@@ -58,28 +58,28 @@ Thus, the peak size of the retrieved temporary state equals the total size of th
 
 \subsection{The Dual Node Architecture for State-execution Decoupling}
 
-Following the state-execution decoupling principle, we propose a dual node architecture where each participant a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \autoref{fig:approach-compare}.
+Following the state-execution decoupling principle, we propose a dual node architecture where each participant hosts a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \autoref{fig:approach-compare}.
 The replica node is similar to a traditional BFT node: it contributes to consensus and executes all transactions.
 However, it does not maintain the execution state.
 \lijl{Shall we name ``execution state'' something else?}
-Instead, it is accessible to the interfaces of the \emph{state management system} (SMS), which allow it to read and write state as needed during transaction execution, as if it were maintaining the state locally.
-The SMS consists of the storage nodes of all participants.
-Behind the scenes, the SMS interfaces retrieve and push the state from and to the storage nodes as required.
-We will detail the SMS interfaces and their security properties in the next section.
-\lijl{Wonder if we should go with three layers: consensus layer (totally ordering transactions), execution layer (deterministically perform transaction logic), state layer (availability of state). Previous work actually has already argued for separating agreement from execution. Are we building on top of that? Our idea can also be applied to an architecture that does not separate consensus from execution.}
+Instead, it reads from and writes to the state through a \emph{state management system} (SMS), which in turn communicates with both the storage nodes of the participant and the ones of other participants.
+This architecture practices a clear \emph{separation of concerns}: the storage scalability is fully responsible by the SMS and the storage nodes and will not be impeded by the fully replicated execution.
+On the other hand, the replica nodes can ensure the correctness and liveness properties of BFT systems by putting certain requirements on the SMS semantics, which we will elaborate on later in this section.
+Because SMS is specialized for state management, the faulty behaviors can be detected by \emph{individual} replica nodes, e.g., by checking the hash of the retrieved data, allowing us to focus on designing a scalable and highly available storage.
+This has been the topic of extensive prior research in distributed storage systems.
 
 In this work, we examine the canonical BFT setting, where each participant operates one replica node and one storage node.
 This configuration is sufficient to the goal of achieving storage scalability under a conventional BFT security model.
 However, the dual node architecture is flexible and can accommodate various configurations.
-\sys can tolerate up to $f$ participants that host at most $f'$ storage nodes totally with $3f+1$ participants hosting at least $3f'+1$ storage nodes in total.
+\sys can tolerate up to $f$ faulty participants that host at most $f'$ storage nodes totally with $3f+1$ participants hosting at least $3f'+1$ storage nodes in total.
 This flexibility is especially beneficial in permissionless settings, where participants may have heterogeneous storage capacities.
-In such systems, the powerful participants can be incentivized to host multiple storage nodes to enhance the overall storage capacity of the system, while each participant only needs to operate one replica node to contribute to consensus and execution.
+In such systems, the powerful participants can be incentivized to host multiple storage nodes to enhance the overall storage capacity of the system, while a ``stateless'' participant only needs to operate one replica node to contribute to consensus and execution.
 As the result, the powerful participants can make profit from their storage capacities that are potentially even larger than the state size, while the less powerful participants can still participate in consensus and execution without being burdened by storage requirements, maximizing the decentralization of the system.
 
 \subsection{Interfaces and Security Properties of State Management}
 
-In our design, the replica nodes run a Byzantine atomic broadcast (BAB) protocol and the execution layer that accesses the SMS interfaces, and the SMS is operated by both the replica nodes and the storage nodes.
-We specify the design of the SMS and the execution layer, while the BAB protocol can be any existing protocol that satisfies the standard properties (validity, agreement, integrity, and total order)~\gd{cite here}.
+The SMS functions as an abstraction layer between the replica node and the storage nodes.
+It allows the replica node to read from and write to the state as if it were stored locally.
 We adopt a key-value abstraction for the state: the state is represented as a mapping from keys to values, and each transaction accesses a set of keys to read or write their associated values.
 This abstraction is compatible with most blockchain applications, including both account-based and UTXO-based models.
 \lijl{Can also mention that most distributed databases use such storage interface.}
@@ -95,7 +95,7 @@ Starting with $i=0$, it first $\fetch_{i}$ to construct the state needed to exec
 Then it executes the transaction(s) deterministically, producing a set of key-value pairs to update.
 Finally, it invokes $\bump_{i+1}$ with these key-value pairs, increments $i$ by 1 and continues creating the next version.
 
-Because the execution is replicated, SMS expects all create nodes to create identical state versions and access the same keys at each version.
+Because the execution is replicated, SMS expects all replica nodes to create identical state versions and access the same keys at each version.
 By guaranteeing this to SMS, SMS can ensure the following properties.
 
 \paragraph{Correctness.}
