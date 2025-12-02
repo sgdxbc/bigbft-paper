@@ -14,6 +14,8 @@ Therefore, $k$ should be chosen to balance these trade-offs based on the system 
 We implemented \sys with $k=1000$ shards, which works well in our evaluation settings.
 Reconfiguration can be simply extended to support changing the number of storage nodes and/or shards.
 
+We set $r=7$ in our implementation, corresponding to 99.9\% data availability of the replication.
+
 In the following, we discuss several important considerations in practice.
 
 \paragraph{Replica node local caching.}

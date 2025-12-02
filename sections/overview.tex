@@ -1,24 +1,24 @@
 \section{System Design}
 \label{sec:overview}
 
-\subsection{System Architecture}
-
-The participants are logically divided into two types of nodes: \emph{replica nodes} and \emph{storage nodes}.
-Each participant operates one replica node and one storage node.
-The replica nodes operate a Byzantine atomic broadcast protocol to agree on the order of transactions and two storage signals: checkpoint and reconfigure.
-They also execute all transactions in the agreed order.
-The storage nodes can vote for checkpoint and the replica nodes can vote for reconfiguration.
-A checkpoint signal is triggered when at least $2f+1$ storage nodes vote for it, indicating sufficient amount of storage nodes are ready to participate in checkpointing.
-Then, a specific version of the state is snapshotted and collectively stored on the storage nodes.
-
-The SMS maintains an update table locally replicated to every replica node, which records all updates to the state since the last checkpoint.
-So the storage nodes only need to serve the keys that have not been updated since the last checkpoint.
-This design significantly reduces the complexity of the storage nodes.
-They are decoupled from the highly dynamic current state, which requires complex algorithms and protocols to be authenticated. \gd{Cite}
-Instead, they only need to manage static checkpointed states, authenticate which can be done efficiently with Merkle trees as described later.
-
 For easy management and workload balance, the state is divided into multiple \emph{shards}, each of which is independently checkpointed, stored and served by the storage nodes.
 In the following discussion, we focus on the management of a single shard.
+
+\subsection{Checkpoint-Based Storage Management}
+
+The state data is highly dynamic, and the replica nodes may work on different versions of the state.
+To simplify the task of the storage nodes, the SMS employs a \emph{checkpoint-based} storage management approach.
+The replica nodes periodically trigger \emph{checkpoint signals} via atomic broadcast.
+A checkpoint captures an immutable snapshot of the entire state at the point the checkpoint signal is triggered.
+The storage nodes then create the checkpoint.
+After the checkpoint is created, the replica nodes can trigger the next checkpoint signal, indicating both that the storage nodes are ready to serve data for the previous checkpoint and that they should start to create the new checkpoint.
+Then the storage nodes serve data from the established checkpoint and create the new checkpoint in the background.
+At the same time, the SMS maintains an update table locally replicated to every replica node, which records all updates to the state since the last established checkpoint.
+So the storage nodes only need to serve the keys that have not been updated since the last checkpoint.
+
+The immutability of checkpoints simplifies the design of the storage nodes significantly.
+They are decoupled from the highly dynamic current state, which requires complex algorithms and protocols to be authenticated. \gd{Cite}
+Instead, they only need to manage static checkpointed states, authenticate which can be done efficiently with Merkle trees as described later.
 
 \subsection{A Hybrid Design of SMS}
 
