@@ -4,6 +4,8 @@
 We implemented a prototype of \sys to validate its design and evaluate its performance.
 The atomic broadcast protocol used by the replica nodes is a partial synchronous Bullshark~\cite{spiegelman2022bullshark} implemented from scratch.
 It offers scalable performance and works well with large number of replica nodes.
+We choose RocksDB as the underlying storage engine.
+
 The choice of the number of shards $k$ has several constraints.
 Firstly, the shard size is determined by the state size divided by $k$, which must be fit in the memory of the replica and storage nodes.
 Secondly, to ensure load balancing among the storage nodes, $k$ should be significantly larger than the number of storage nodes $N$.
@@ -11,7 +13,15 @@ On the other hand, having too many shards increases the overhead of managing the
 Therefore, $k$ should be chosen to balance these trade-offs based on the system parameters and resource constraints.
 We implemented \sys with $k=1000$ shards, which works well in our evaluation settings.
 Reconfiguration can be simply extended to support changing the number of storage nodes and/or shards.
+
 In the following, we discuss several important considerations in practice.
+
+\paragraph{Replica node local caching.}
+RocksDB employs an in-memory LRU cache to cache frequently accessed key-value pairs.
+While this cache may enable storage nodes to serve \retrieve without disk access, we still pay for the network traffic and latency and the verification overhead.
+So we move the cache from the storage nodes to the replica nodes by disabling RocksDB's cache in the storage nodes and manually employ an in-memory LRU cache in the replica nodes.
+This does not change the memory usage of the replica nodes compared to the full replication approach, which has the RocksDB with its cache on the replica nodes.
+In our evaluation, we set the same cache size to this cache of \sys and the RocksDB cache of the compared systems.
 
 \paragraph{Batched fetching and retrieval.}
 While the retrieval supported by replication is lightweight in computation and network, the latency of retrieval can cause significant performance degradation.
@@ -62,9 +72,9 @@ Finally, they broadcast \votec with the new shard commitments.
 The separation of replica and storage nodes is logical, and the participants may choose to co-locate them on the same physical machines or even the same processes for resource efficiency.
 However, this co-location may cause performance interference between the fetching and checkpointing operations of the storage nodes.
 Notably, \retrieve RPCs are latency-sensitive with small data size, while \retrieves RPCs during checkpoints are bulk data transfers and only sensitive to throughput.
-This divergent quality of service requirement conflicts with each other, and the deployment that optimizes one may degrade the performance of the other.
+This discrepancy in quality of service requirements causes that the deployment that optimizes one may degrade the performance of the other.
 
-To address this issue, we propose an alternative arrangement that consist of an \emph{online} machine and an \emph{offline} machine for each participant.
+To address this issue, we propose to rearrange the replica and storage node into an \emph{online} machine and an \emph{offline} machine for each participant.
 The online machine contains the replica node and the primary copies stored by the storage node(s).
 It is optimized for low-latency fetching and execution and equipped with low-latency network with relatively low bandwidth, sufficient memory and fast storage.
 The storage capacity of the online machine can be relatively small, since it only needs to store the primary copies of the shards, amount of which may even fit in memory.

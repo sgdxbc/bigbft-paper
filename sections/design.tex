@@ -23,7 +23,7 @@
 \midrule
 \multirow{7}{*}{Storage nodes RPC}
     & \retrieve{} request   & round, key \\
-    & \retrieve{} response  & round, key, value, successor key, inclusion proof \\
+    & \retrieve{} response  & round, key, value, inclusion proof \\
     & \retrieves{} request  & round, shard ID \\
     & \retrieves{} response & round, shard ID, shard data \\
     & \getsc{} request      & round, shard ID \\
@@ -46,8 +46,7 @@ The storage nodes RPC channel is unordered and unreliable point-to-point communi
 The \retrieve and \retrieves requests and \pushss are sent by the replica nodes, while the \getsc requests are sent by the peer storage nodes.
 
 The atomic broadcast channel is a reliable total order broadcast provided by the underlying BFT atomic broadcast protocol.
-The broadcast messages are sent by submitting them as client transactions to the atomic broadcast protocol.
-The \votec messages are published by the storage nodes while the \voter messages are published by the replica nodes.
+The broadcast messages are sent by the replica nodes submitting them as client transactions to the atomic broadcast protocol.
 Both types of messages are subscribed by both the replica and storage nodes.
 The storage nodes can subscribe to the messages via relaying by their trusted replica nodes, i.e., the replica nodes hosted by their operators.
 
@@ -58,8 +57,8 @@ The \voter messages also contain an \emph{epoch} number to indicate the number o
 \subsection{Randomized Replication Scheme}
 
 The SMS first maps each key to a shard ID using a hash function.
-Next, for each shard, it needs to set up full copies on distinct storage nodes for retrieval.
-We call these storage nodes the \emph{responsible nodes} of the shard, and the mapping from shards to their responsible nodes the \emph{placement}.
+Next, for each shard, it needs to set up full copies on the responsible storage nodes for retrieval.
+We call the mapping from shards to their responsible nodes the \emph{placement}.
 Suppose there are $N$ storage nodes and $k$ shards, we want the placement to:
 \begin{itemize}
     \item Replicate each shard to exact $r$ storage nodes;
@@ -76,6 +75,18 @@ The randomization procedure is performed with a seeded pseudo-random number gene
 Each node can independently compute the placement for the shards with the seed during each reconfiguration.
 These \voter messages are agreed upon via atomic broadcast, so the placement is consistent across all nodes.
 Because at least one of the $f+1$ replica nodes sending the \voter messages is correct, the seed is unpredictable to the adversary.
+
+\subsection{Storage Nodes}
+
+The storage nodes are designed as ``dumb'' storage servers with minimal logic.
+The stored unit is a shard, and the storage nodes store a shard of a round when it receives $f+1$ matching \pushss messages from distinct replica nodes, ensuring the integrity of the shard.
+Then, the stored shard can be retrieved in three different ways: via \retrieve, \retrieves, and \getsc requests, and the storage nodes store the shard in two formats to serve these requests.
+Every storage node encode each stored shard into $3f+1$ chunks with the RS code, and store the chunk corresponding to itself, and they serves the \getsc requests with these chunks.
+The $r$ responsible storage nodes for a shard also store a full copy of the shard and the Merkle tree constructed for the shard.
+They serve the \retrieves requests with the full shard, and for the \retrieve requests, they first prove the inclusion of key value pair with the Merkle tree and then return the value with the inclusion proof.
+
+
+While not strictly necessary, the storage nodes can also subscribe to the checkpoint signals, and only accept \pushss messages for the current checkpoint round.
 
 \subsection{Replica Nodes}
 
@@ -104,19 +115,3 @@ SMS then computes the new shard commitments and send \pushss messages with the n
 The update table snapshot is kept until the SMS pushes all the shards for round $c'$.
 
 When SMS collects $f+1$ \voter messages with matching epoch and round from distinct replica nodes, it reseeds the randomized placement scheme with the nonces and redirects the subsequent \retrieve requests to the new responsible storage nodes.
-
-\subsection{Storage Nodes}
-
-The storage nodes store for two checkpoints: the last completed one and the one being constructed for the current round.
-They respond to \retrieve and \retrieves requests by returning the requested values with their proofs and shards from the last completed checkpoint.
-If the requests are for a different round, they ignore them.
-
-The storage nodes send \votec messages for the next checkpoint round after finishing checkpointing all shards for the current round, and send \votec messages for round 0 at system startup.
-After receiving $2f+1$ \votec messages for round $c'$ greater than its current checkpoint round $c$, the storage node starts to checkpoint round $c'$.
-To checkpoint a shard, the storage node collects matching \pushss messages from $f+1$ replica nodes to ensure the integrity of the shard.
-It constructs the Merkle tree for the shard, recording the shard commitment for the later \votec message.
-Then it encodes the shard into $3f+1$ chunks, records their hashes, and stores the chunk corresponding to itself.
-If the storage node is one of the responsible nodes of the shard according to the current placement, it also stores a full copy of the shard and the Merkle tree for serving retrieval.
-
-If the storage node receives $f+1$ \voter messages with matching epoch and round from distinct replica nodes, and the round matches its current checkpoint round, it reseeds the randomized placement scheme with the nonces and reconstructs the full copies of the shards it is now responsible for.
-It sends \getsc requests to other storage nodes to retrieve the necessary shard chunks for reconstruction.
