@@ -65,19 +65,6 @@ However, they still mandate each participating node to store the entire world st
 As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
 \lijl{I wonder if persistence storage also improves security of the entire network against wider failures. This part requires a bit more consideration.}
 
-\lijl{Outline:
-\begin{itemize}
-    \item World state size increases. New account, new smart contract, remain in state (no delete).
-    \item Account and contract state is not small
-    \item More information will be stored on chain
-    \item Show measurement results of BTC and ETH
-    \item Permissionless setting: centralization, only nodes with large storage capacity can participate. Cost of storage has not been dropping significantly, translates to higher cost to operate a node. Even if a node has higher storage capacity, the under-utilized resources can not benefit the network.
-    \item Permissioned setting: nodes operated under multiple administrative domains. Handling larger state would require all participating domains to upgrade their storage.
-    \item In traditional distributed storage and database systems, horizontal scaling storage capacity by adding new nodes is common practice.
-    \item Our goal is to enable horizontal scaling of storage for blockchain systems. Besides handling growing world state sizes, the property also enables nodes with spare storage capacity to benefit the network.
-\end{itemize}
-}
-
 World state size of deployed blockchains does not remain constant.
 New user, wallet, and contract accounts are continuously being created.
 It is also common for inactive accounts to remain on a blockchain for years or even decades \lijl{or maybe forever? Find sources to support the presence of many dormant accounts}.
