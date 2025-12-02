@@ -104,6 +104,12 @@ Handling larger world state would require \emph{every} organization in the netwo
 Any non-compliant organization may result in the halting of the entire system.
 This leads to weaker liveness and resilience guarantees, since the blockchain now relies on highly coordinated hardware upgrades from all participating organizations.
 
+Handling larger state is not a unique problem for blockchains.
+Prior distributed storage~\cite{gfs, bigtable} and database~\cite{spanner} systems address this challenge by \emph{horizontally scaling} the system to provide higher aggregated storage capacity.
+It is, therefore, desirable to enable similar \emph{storage scalability} to blockchain system.
+Storage scalability here means that with any additional storage capacity (\eg, more nodes joining or a subset of the nodes expanding their storage), the blockchain can accommodate larger world state.
+Besides horizontal scaling, the property also enables nodes with larger capacity to fully utilized their storage resources, while nodes with smaller disks can still participate in the network.
+\lijl{Do we need to explain this last point?}
 
 \subsection{Prior Storage Scaling Solutions}
 \label{sec:bg:prior}
