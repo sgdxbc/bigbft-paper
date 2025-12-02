@@ -51,6 +51,7 @@ To overcome the slow storage I/O performance, prior systems commonly apply batch
 \label{sec:bg:motv}
 
 \begin{figure}
+    \centering
     \includegraphics[width=0.7\linewidth]{graphs/states-grow}
     \caption{
         Blockchain state size has exhibited rapid growth in recent years.
@@ -62,34 +63,46 @@ To overcome the slow storage I/O performance, prior systems commonly apply batch
 To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system \lijl{find citations here}.
 However, they still mandate each participating node to store the entire world state in its storage layer.
 As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
-\lijl{I wonder if persistence storage also improves security of the entire network against wider failures.}
+\lijl{I wonder if persistence storage also improves security of the entire network against wider failures. This part requires a bit more consideration.}
 
-The size of blockchain world state is not constant.
+\lijl{Outline:
+\begin{itemize}
+    \item World state size increases. New account, new smart contract, remain in state (no delete).
+    \item Account and contract state is not small
+    \item More information will be stored on chain
+    \item Show measurement results of BTC and ETH
+    \item Permissionless setting: centralization, only nodes with large storage capacity can participate. Cost of storage has not been dropping significantly, translates to higher cost to operate a node. Even if a node has higher storage capacity, the under-utilized resources can not benefit the network.
+    \item Permissioned setting: nodes operated under multiple administrative domains. Handling larger state would require all participating domains to upgrade their storage.
+    \item In traditional distributed storage and database systems, horizontal scaling storage capacity by adding new nodes is common practice.
+    \item Our goal is to enable horizontal scaling of storage for blockchain systems. Besides handling growing world state sizes, the property also enables nodes with spare storage capacity to benefit the network.
+\end{itemize}
+}
 
-% original text starts from here
-The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
-From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\autoref{fig:states-grow}).
-While lacking open data on the permissioned settings side, it is reasonable to infer even much larger state sizes based on the significantly higher processing throughput.
-% Google reports 4, 20 and 70 TB data sizes respectively for personalized search, processed Google Analytics and Google Earth images data, dates back to 2006~\cite{chang2008bigtable}.
+World state size of deployed blockchains does not remain constant.
+New user, wallet, and contract accounts are continuously being created.
+It is also common for inactive accounts to remain on a blockchain for years or even decades \lijl{or maybe forever? Find sources to support the presence of many dormant accounts}.
+Moreover, the state associated with each account can have non-trivial size.
+For instance, besides the account balance, each account in Ethereum contains also stores a nonce and multiple hash values;
+each contract account can contain 20~KB of code data, tens of KBs of contract storage, and up to a few MBs of calldata.
+To understand the storage consumption trend of deployed blockchains, we collected open measurement data of the Bitcoin and Ethereum public networks.
+As shown in \autoref{fig:bc-state-size}, the world state size (this excludes transaction history) of Bitcoin and Ethereum have grown from 180~GB in 2019 to 660~GB~\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410~GB~\footnote{\url{https://etherscan.io/chartsync/chaindefault}} respectively in 2025, a 3.7$\times$ and 7.8$\times$ increase over five years.
+The blockchain communities have also projected further state explosions in the near future~\cite{eth-state, state-bloat}.
 
-The permissionless blockchains consist of decentralized nodes with heterogeneous storage capacities.
-While the state sizes rapidly increase, more and more nodes cannot afford the storage costs and are forced to drop out.
-This leads to a gradual centralization of the network, as only nodes with sufficient resources can continue to participate.
-At the same time, the nodes with abundant storage resources are not able to utilize their extra storage to benefit the system.
-\sys, on the other hand, features storage scalability, is more flexible in configuring the storage load of the nodes.
-The increased total number of nodes can effectively alleviate the storage pressure on every node, enabling nodes with limited storage capacity to continue participating in the system.
-At the same time, by spawning more virtual nodes, the nodes with abundant storage resources can be further incentivized for contributing more storage to the system \lijl{This last part is not very clear}.
+The growing state sizes create several issues for existing blockchain architectures.
+Since each participating node needs to store the entire state, the storage capacity requirement increases in tandem with the state size.
+As of 2022, the recommended SSD capacity for an Ethereum full node has already reached 2~TBs~\cite{eth-requirement}.
+At the same time, SSD price has not seen noticeable decline in the past 18 months~\cite{ssd-price}.
+In combination, the cost of operating a blockchain node continues to increase.
+This will lead to gradual centralization, where only large organizations with enough storage resources can operate a blockchain node, weakening the resilience of the overall blockchain network.
+Earlier participants are forced to leave the network when the state size out-grows their storage capacity.
+Moreover, under-utilized storage capacity on any node has zero utility to the rest of the blockchain network.
 
-In the permissioned settings, it may seem like the storage overhead is less concerning than in permissionless settings due to the more abundant resources normally found in the deployed environments.
-However, because of the static and known membership, these systems cannot replace the participating nodes as easily.
-Without storage scalability, the system would require every node to store the entire state.
-The system must be halted if any \emph{single} node does not meet the storage requirements.
-As more nodes join the network and more data is ingested, the early participants may be overwhelmed.
-Thanks to storage scalability, while the state data is growing because of the joining nodes, the storage resources of these joining nodes amortize the storage pressure of these data at the same time.
-As the result, the early nodes can enjoy a much slower increasing or even nearly constant storage overhead.
-\lijl{When storage capacity is reached, requiring all participating nodes to upgrade their storage. Probably okay when managed by a single organization, but permissioned blockchain usually follows a federated model.}
-
-\lijl{Can also mention that horizontal scaling is a desired property for distributed systems. DAG-based protocols enable horizontal scaling for block dissemination. We are horizontally scaling storage capacity.}
+In permissioned blockchains~\cite{hyperledger}, only authorized nodes can join the network.
+However, even in this more managed setting, growing state sizes still present a challenge.
+Unlike traditional distributed systems operated by a single organization, nodes in a permissioned blockchain are managed by multiple administrative domains.
+Handling larger world state would require \emph{every} organization in the network to upgrade the storage capacity of \emph{all} their nodes.
+Any non-compliant organization may result in the halting of the entire system.
+This leads to weaker liveness and resilience guarantees, since the blockchain now relies on highly coordinated hardware upgrades from all participating organizations.
 
 
 \subsection{Prior Storage Scaling Solutions}
