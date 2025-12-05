@@ -103,7 +103,7 @@ The chunk is stored in a dedicated column family of RocksDB with the shard ID as
 On the reconfiguration signals, the storage nodes reseed the randomized placement scheme and determine their new responsibilities.
 Then, they exchange necessary chunks with each other via \getsc RPCs.
 After the new $r$ responsible nodes have reconstructed the shard, they start to respond to \retrieve and \retrieves requests for the shard.
-While not strictly necessary, the storage nodes can also subscribe to the checkpoint signals, and only accept \pushss messages for the current checkpoint round.
+On the checkpoint signals of round $c$, the storage nodes discard all stored data for rounds before $c-1$ and starts to accept \pushss messages for round $c$.
 
 \subsection{Replica Nodes}
 

@@ -4,8 +4,9 @@
 \subsection{Setup}
 
 We evaluate our system on an AWS cluster.
-We run up to 70 replica nodes on \texttt{m5ad.2xlarge} instances with 8 vCPUs, 32 GiB memory, 300 GB NVMe SSD storage, and 10 Gbps network bandwidth.
+We run up to 70 nodes on \texttt{m5ad.2xlarge} instances with 8 vCPUs, 32 GiB memory, 300 GB NVMe SSD storage, and 10 Gbps network bandwidth.
 In all experiments, $f$ replicas keep silent to simulate availability attacks with maximum attacking power.
+For the online performance benchmarks, these nodes serve as the online machines; for the checkpoint performance benchmark, they serve as the offline machines, and for the network traffic benchmark, they serve as both online and offline machines.
 We run 20 \texttt{c5a.2xlarge} instances as clients to generate workload.
 All the nodes are within the same availability zone.
 For wide-area network experiments, we simulate network latency by applying artificial delays before sending outbound packets.
@@ -59,6 +60,8 @@ This results in around 90\% cache hit rate during the experiments.
     \label{fig:nodes-storage}
 \end{figure}
 
+We prefill the nodes with the 100 million key-value pairs YCSB state and measure the storage overhead of the nodes, including both the online and offline machine.
+
 \subsection{Performance Under Different Network Conditions}
 
 \begin{figure}
@@ -93,6 +96,8 @@ This results in around 90\% cache hit rate during the experiments.
     \label{fig:checkpoint}
 \end{figure}
 
+We prefill the nodes with an initial YCSB state checkpoint and measure the time taken to create a new checkpoint with zero-sized update table.
+
 \subsection{Bandwidth Analysis}
 
 \begin{figure}
@@ -102,4 +107,6 @@ This results in around 90\% cache hit rate during the experiments.
     \label{fig:nodes-network}
 \end{figure}
 
-\autoref{fig:nodes-network}.
+We configure \sys with a 500 MiB update table size budget.
+With the YCSB workload, it executes 10 million operations during each checkpoint period.
+We measure the network traffic of each node during executing 1 million operations.
