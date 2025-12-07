@@ -68,7 +68,7 @@ Instead of storing constructed shards, the replica nodes can send the original u
 (The replica nodes without trusted storage nodes do not need to participate in checkpointing.)
 Leveraging the direct transmission within the trust domain, the storage nodes do not need to collect matching update tables from multiple replica nodes.
 The storage nodes then load the shards of the previous checkpoint locally or \retrieves them from other storage nodes, apply the updates in the update tables, and construct the new shards themselves.
-Finally, they broadcast \votec with the new shard commitments.
+After they store the new constructed shards according to the storage schema, the storage nodes broadcast \votec with the new shard commitments.
 
 \paragraph{Performance isolation between fetching and checkpointing.}
 The separation of replica and storage nodes is logical, and the participants may choose to co-locate them on the same physical machines or even the same processes for resource efficiency.
@@ -78,9 +78,11 @@ This discrepancy in quality of service requirements causes that the deployment t
 
 To address this issue, we propose to rearrange the replica and storage node into an \emph{online} machine and an \emph{offline} machine for each participant.
 The online machine contains the replica node and the primary copies stored by the storage node(s).
-It is optimized for low-latency fetching and execution and equipped with low-latency network with relatively low bandwidth, sufficient memory and fast storage.
+It is equipped with low-latency network with relatively low bandwidth, sufficient memory and fast storage.
 The storage capacity of the online machine can be relatively small, since it only needs to store the primary copies of the shards, amount of which may even fit in memory.
 The offline machine contains the remaining part of the storage node(s).
 It is optimized for high-throughput bulk data transfer and equipped with high-bandwidth network and large storage.
-During operation, the online machines exchange transactions with atomic broadcast, and state values with \retrieve RPCs, and they stream state updates and forward checkpoint and reconfiguration signals to the trusted offline machines.
-the offline machines exchange shards with \retrieves RPCs and (rarely) chunks with \getsc RPCs.
+
+During normal operations, the online machines exchange transactions with atomic broadcast and state values with \retrieve RPCs with their low latency network for maximum online performance.
+For checkpointing, the online machines directly apply the updates to their locally stored primary copies, and they stream state updates and forward checkpoint signals to their trusted offline machines.
+The offline machines exchange shards with \retrieves RPCs via the bulk transfer network and complete the checkpointing process without interfering with the online machines.
