@@ -52,6 +52,7 @@ In our YCSB workload, we simulate such skewed access patterns by setting a Zipfi
 With this setting, the top 1\% most frequently accessed keys account for around 98\% of all accesses, and we simulate the cold or untouched majority state with 95\% keys which are accessed only around 1\% of the time.
 We set the replica local cache size to 4 GiB and preload the cache with the 1 million (1\% of total) most frequently accessed keys before starting the experiments.
 This skewness and caching combination results in around 90\% cache hit rate during the experiments.
+We also evaluate the systems under different skewness factors.
 
 \subsection{Storage Overhead}
 \begin{figure}
@@ -97,34 +98,56 @@ The sharded BFT system achieves the highest throughput in all cases, because eac
 However, because the consensus overhead is aligned among all systems and the workload is skewed, the performance gap for YCSB workload is only around 2.24$\times$.
 For the UTXO workload, while the workload is not skewed, the cross-shard communication overhead and two-phase commit protocol puts even more pressure on the performance of the sharded BFT system, resulting in a even smaller performance gap of around 1.5$\times$.
 
-\subsection{Performance Scalability}
+\subsection{Performance Under Different Skewness Factors}
+
+\begin{figure}
+    \includegraphics[width=\linewidth]{graphs/skew-tput}
+    \caption{Saturated YCSB throughput under different Zipfian skewness factors.
+    }
+    \label{fig:skew-tput}
+\end{figure}
+
+We compare the saturated YCSB throughput of \sys and the fully-replicated BFT system under different Zipfian skewness factors ranging from 0.0 (uniform distribution) to 1.24 (highly skewed distribution).
+The results are shown in \autoref{fig:skew-tput}.
+While \sys experiences significant performance degradation when the skewness factor is low, it is able to keep outperforming the fully-replicated BFT system at all skewness factors.
+With uniform distribution, \sys achieves around 13.7\% of the throughput of highly skewed distribution, while the fully-replicated BFT system achieves around 12.1\%.
+This result also confirms that the per-read overhead of \sys is comparable to that of the fully-replicated BFT system, even when the cache is ineffective and most \fetch operations need to be served remotely.
 
 \begin{figure}
     \includegraphics[width=\linewidth]{graphs/nodes-tput}
-    \caption{
+    \caption{Saturated throughput under different numbers of nodes.
     }
     \label{fig:nodes-tput}
 \end{figure}
 
-\begin{figure}
-    \includegraphics[width=\linewidth]{graphs/skew-tput}
-    \caption{
-    }
-    \label{fig:skew-tput}
-\end{figure}
 
 \subsection{Checkpoint Latency}
 
 \begin{figure}
     \includegraphics[width=\linewidth]{graphs/checkpoint}
-    \caption{
+    \caption{The time taken to create a new checkpoint.
+    Left: with 100 nodes and different state sizes.
+    Right: with 100 GiB state and different numbers of nodes.
     }
     \label{fig:checkpoint}
 \end{figure}
 
-We prefill the nodes with an initial YCSB state checkpoint and measure the time taken to create a new checkpoint with zero-sized update table.
+In the next experiment, we go back to the prefilled stage.
+Instead of running online machines and benchmark for performance, we run offline machines against the prefilled state to measure the time taken to create a new checkpoint with zero-sized update table.
+We vary both the state size and the number of nodes, and show the breakdown of time taken in each stage in \autoref{fig:checkpoint}.
+With 100 nodes and 100 GiB state, the (minimum) checkpoint interval is around 28 minutes.
+This is acceptable for practical blockchain systems, who generate MiB level of update data in such interval.
 
-\subsection{Bandwidth Analysis}
+As the state size increases, the time taken in each stage increases linearly from 168s for 10 GiB state to 1670s for 100 GiB state.
+10.5\% of the time is spent in scanning the locally-stored shards for previous checkpoint, 51.0\% in retrieving the shards from other storage nodes, 8.8\% in verifying the retrieved shards and 29.6\% in constructing, encoding and storing the new shards.
+The results for checkpointing 100 GiB state with different numbers of nodes in more interesting.
+As the number of nodes increases from 4 to 40, the time taken in the scan and retrieve stages decreases significantly, and the total checkpoint time decreases by more than half.
+This is because of more storage nodes concurrently scan and transmit the shards, so the nodes spent much less time scanning and waiting for the retrieved shards.
+However, as the number of nodes further increases to 100, the time taken in the network strage increases at the higher rate than the decrease of the scan stage, resulting in overall longer checkpoint time.
+This is because as the number of nodes increases, each node stores less data, so it needs to scan less local shards while retrieves more remote shards.
+Overall, \sys is able to efficiently checkpoint large states with moderately large number of nodes.
+
+\subsection{Network Scalability}
 
 \begin{figure}
     \includegraphics[width=\linewidth]{graphs/nodes-network}
@@ -136,3 +159,4 @@ We prefill the nodes with an initial YCSB state checkpoint and measure the time 
 We configure \sys with a 500 MiB update table size budget.
 With the YCSB workload, it executes 10 million operations during each checkpoint period.
 We measure the network traffic of each node during executing 1 million operations.
+
