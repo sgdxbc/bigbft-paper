@@ -3,7 +3,36 @@
 
 \subsection{Storage Scalability and Security Trade-off}
 
+\lijl{Outline:
+\begin{itemize}
+    \item Tension between storage scalability and strong security
+    \item Full state replication guarantees security, but no storage scalability
+    \item Sharding scales blockchain storage, but compromises security
+    \item This trade-off seems to be fundamental:
+    \item To provide strong security, \ie, the system can tolerate any $f$ adversaries, the number of nodes executing each transaction needs to be at least $f+1$.
+    \item When adding more nodes to the system, $f$ also increases proportionally
+    \item That means, proportionally more nodes need to maintain the state to execute the transactions
+    \item The total state capacity of the system remains unchanged
+    \item We can similarly show that scaling storage will result in weaker security
+\end{itemize}
+}
+
 \subsection{The Case for Decoupling State from Execution}
+
+\lijl{Outline:
+\begin{itemize}
+    \item This trade-off stems from a deep-rooted architectural decision
+    \item In existing blockchain architectures, state and transaction execution are tightly coupled
+    \item A node only executes a transaction (or part of a transaction) if it has all the state accessed in the transaction
+    \item In traditional blockchain, each node maintains a full copy of the state, and executes all transactions
+    \item In sharded blockchains, a node only executes transactions that access its responsible shards
+    \item In stateless blockchains, only external nodes execute transactions
+    \item Given this tight coupling, it is fundamentally hard to overcome the security and storage scalability trade-off
+    \item In this work, we argue for a new blockchain architecture, where transaction execution and state storage are logically decoupled
+    \item Clear separation of responsibility: blockchain execution performs transaction statements but is stateless; state storage only maintains blockchain world state, and is agnostic to transaction logic.
+    \item This decoupling enables simultaneous storage scalability and the strongest security guarantees.
+\end{itemize}
+}
 
 From prior research on fully replicated blockchains, sharded blockchains, and stateless blockchains, we observe a common principle: nodes store the state necessary to execute transactions independently.
 In other words, the set of transactions a node can execute is determined by the state it maintains locally.
