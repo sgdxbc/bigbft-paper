@@ -101,6 +101,31 @@ Besides horizontal scaling, the property also enables nodes with larger capacity
 \subsection{Prior Storage Scaling Solutions}
 \label{sec:bg:prior}
 
+\paragraph{Sharding.}
+The most prominent approach to blockchain storage scaling is sharding~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard,kokoris2018omniledger,dang2019towards,zamani2018rapidchain}.
+Similar to distributed databases, these solutions partition the blockchain state into shards, and assign each shard to a subset of blockchain nodes, called a committee.
+A committee only stores state for its responsible shards;
+it also only processes transactions that access its shards.
+For transactions that span multiple shards, sharded blockchains commonly apply a two phase commit protocol.
+By adding more committees, the approach can scale the overall storage capacity of a blockchain.
+
+Committee formation is a key design decision for sharded blockchains.
+One line of work~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard} assigns fault-tolerant clusters as natural committees.
+Another line of research~\cite{kokoris2018omniledger,dang2019towards,zamani2018rapidchain} proposes more sophisticated protocols to form committees dynamically, aiming to provide stronger security properties in a permissionless setting.
+
+Sharding improves blockchain scalability, but at the expense of weaker security guarantees.
+Traditional BFT-based blockchains have guaranteed safety even when \emph{any} $\frac{1}{3}$ of the nodes are faulty.
+However, a sharded blockchain is secure only if \emph{every committee} in the system is secure.
+With each committee having only a fraction of the total participants (or total computational power for PoW or total stake for PoS), the likelihood of adversaries taking over a single committee or a committee loses liveness increases.
+Mathematical formulations in prior research~\cite{shard-model,shard-sybil} have proven weaker security properties of smaller committee sizes.
+Prior solutions all make compromises on the security guarantees or assumptions.
+Systems that use randomized committees~\cite{kokoris2018omniledger,dang2019towards,zamani2018rapidchain,algorand} require very large committee sizes for strong probabilistic security, and are vulnerable to biases and predictability in randomness.
+OmniLedger~\cite{kokoris2018omniledger} can only tolerate $\frac{1}{4}$ faulty nodes.
+RapidChain~\cite{zamani2018rapidchain} assumes a synchronous network model.
+The sharded blockchain in \cite{dang2019towards} requires trusted execution environment on all participants.
+
+\paragraph{Stateless blockchains.}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
