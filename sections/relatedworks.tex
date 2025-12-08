@@ -1,78 +1,61 @@
 \section{Related Works}
 \label{sec:rel}
 
-Stateless client or stateless cryptocurrency.
-The ADS research is motivated by the stateless client problem.
-\gd{Elaborate background.}
-Compare to \sys, stateless cryptocurrencies take a binary view of the nodes: either full nodes that store the entire state or light clients that store no state, and the features strict unidirectional flow of data from full nodes to light clients.
-\sys explores a novel scenario where all nodes store partial states and serve each other.
-This is more challenging regarding performance, as the workload is unfriendly to batching (and even needs prefetching).
-These works also do not develop a security notation for the availability of the state, but simply assume that there will always be some full nodes that host the state and serve the light clients, e.g., for economics incentives.
-Also, most of these works assume a permissionless setting and focus on a specialized cryptocurrency application like UTXO model, while \sys defaults to a permissioned setting (while still can be applied to permissionless setting) and targets general applications.
+\paragraph{Reduce storage overhead in state machine replication.}
+As previously mentioned in \autoref{sec:bg}, horizontal scaling is a common practice in distributed storage and databases to handle large data volumes~\cite{gfs,bigtable,spanner}.
+In these systems, data is partitioned into multiple shards which are individually replicated, similar to the sharded blockchains.
 
-Erasure-coded (crash-fault tolerant) state machine replication.
-Racos~\cite{zarnstorff2024racos}.
-\gd{Cite the rest works in the line.}
-The BFT settings makes the problem fundamentally different.
-In Racos, each parity shard only need to be encoded once and the proposer can encode the parity shards locally and send to the replicas.
-Under BFT settings, the encoding must be replicated by every node, rendering impractical to perform on-path encoding.
-\gd{Elaborate more.}
+Several prior works have explored reducing storage overhead in state machine replication with crash-fault tolerance.
+RS-Paxos~\cite{mu2014paxos} and CRaft~\cite{wang2020craft} utilize erasure coding to replicate the logs.
+Only the leader node stores full logs, while the followers maintain coded fragments.
+Racos~\cite{zarnstorff2024racos} further introduces leaderless replication to resolve the bottleneck on the leader, which achieve storage scalability.
+The demand for Byzantine fault tolerance substantially complicates the challenge of reducing storage overhead.
+In these systems, usually only the proposing node executes the transactions, while other nodes store the coded fragments of the logs to ensure the state is recoverable after the proposer fails.
+Under Byzantine faults, the single execution result cannot be trusted, which brings the dilemma between security and storage scalability as discussed in \autoref{sec:bg}.
 
-\lijl{Can omit in the workshop version. Can merge the important ones with the background section.}
+\paragraph{Storage scalable solutions for cryptocurrencies.}
+Vault~\cite{leung2018vault} proposes a sharded storage solution for account-based blockchains.
+With the stateless approach, Utreexo~\cite{dryja2019utreexo} proposes a stateless blockchain for UTXO based cryptocurrencies, while \textsc{Edrax}~\cite{chepurnoy2018edrax} is capable for both UTXO and account-based models.
+In this scenario, the clients hold the piece of state relevant to themselves (e.g., the UTXOs they own or their account balances) and the storage nodes in general stateless blockchains are unnecessary.
+All these works are specific to cryptocurrencies.
 
-\paragraph{Availability of historical transactions, i.e., blocks.}
-In contrast to prior research maintaining partial states on nodes, as discussed in \autoref{sec:bg}, certain other studies propose availability solutions for historical transactions.
-All committed transactions are preserved for an extended duration, and the state (either the current iteration or any prior one) can consistently be reconstituted by re-executing the transactions.
+\paragraph{Execute-order blockchains.}
+Hyperledger Fabric~\cite{androulaki2018hyperledger} introduces the execute-order-validate paradigm for permissioned blockchains.
+The execution is performed on few designated execution peers before ordering, and the updates are then ordered by the consensus layer and applied to the storage nodes.
+While the consensus is secure, the execution must be performed by sufficient peers to ensure correctness, and the state must be stored by sufficient storage nodes to ensure availability.
+Thus, Fabric also suffers from trading off storage scalability and security.
 
-In public blockchains, \emph{archival nodes} voluntarily supply historical blocks for auditing or analytical purposes.
-BFT-store~\cite{qi2020bft} constitutes a space-efficient block-availability solution tailored for permissioned blockchains.
-Blocks undergo erasure coding and subsequent distribution across nodes to achieve storage scalability; this work demonstrates a fault tolerance of $f$ faulty nodes out of a total of $3f+1$ while ensuring block availability.
-Danksharding~\cite{eip4844} proposes augmenting Ethereum's blocks with \emph{blobs}, which are erasure coded and collaboratively stored by the nodes.
-Distinct from BFT-store, Ethereum ensures blob availability only for a defined period (e.g., currently 18 days), as the rationale for blob storage pertains to auditing rather than archival.
+% \paragraph{Stateless blockchains.}
+% Several methodologies advocate for nodes to maintain \emph{no} state.
+% The storage overhead per node remains constant, irrespective of state size.
+% Piperine~\cite{lee2020replicated} aims to delegate state storage and execution to an external, untrusted prover.
+% The state is structured using ADS, and the prover generates succinct execution proofs verifiable by the nodes.
+% Consequently, nodes effectively "execute" transactions through verification.
+% \textsf{SlimChain}~\cite{xu2021slimchain} employs verifiable computation~\cite{ben2014succinct,costan2016intel} to accommodate diverse transaction workloads and facilitate efficient storage sharding.
+% Within permissionless scenarios, rollups~\cite{ethereum_scaling_docs} represent the primary scaling solution for Ethereum.
+% These rollups store state and execution transactions off-chain, periodically submitting state commitments and executed transactions to the blockchain.
+% Security is ensured either through verifiable computation or decentralized auditing, in conjunction with the inherent security of the blockchain itself, i.e., the consensus on submitted commitments and transactions.
 
-On one hand, scaling block storage solutions is simpler than scaling state storage solutions.
-The historical blocks are immutable and certainly structured in an append-only list, while the state is a piece of arbitrary data that is both added with new content and modified in place.
-Thus, collaborative block storage is a simpler approach than state management system on reasoning about the availability.
-On the other hand, the block data is much more than the state and also increases much faster.
-It's infeasible to store the whole block history forever by the operating nodes of the blockchains.
-Also, many blockchain systems require to \emph{validate} transactions before proposing them in the network.
-The validators still need to store the whole states, and a scalable state management solution is still required if the state size is beyond the validators' storage capacities.
+% Although stateless blockchains can attain optimal storage scalability on the nodes, they necessitate the introduction of supplementary components to the system.
+% The nodes are no longer self-sufficient in ensuring liveness, but rather depend on external executors.
+% Certain methodologies also delegate transaction ordering externally, in addition to execution.
+% In such scenarios, the nodes must additionally safeguard against potential discrimination, such as censorship, by external \emph{sequencers}.
+% Notwithstanding these considerations, \sys can also be employed to decentralize rollups, which currently exhibit relative centralization.
 
-\paragraph{Stateless blockchains.}
-Several methodologies advocate for nodes to maintain \emph{no} state.
-The storage overhead per node remains constant, irrespective of state size.
-Piperine~\cite{lee2020replicated} aims to delegate state storage and execution to an external, untrusted prover.
-The state is structured using ADS, and the prover generates succinct execution proofs verifiable by the nodes.
-Consequently, nodes effectively "execute" transactions through verification.
-\textsf{SlimChain}~\cite{xu2021slimchain} employs verifiable computation~\cite{ben2014succinct,costan2016intel} to accommodate diverse transaction workloads and facilitate efficient storage sharding.
-Within permissionless scenarios, rollups~\cite{ethereum_scaling_docs} represent the primary scaling solution for Ethereum.
-These rollups store state and execution transactions off-chain, periodically submitting state commitments and executed transactions to the blockchain.
-Security is ensured either through verifiable computation or decentralized auditing, in conjunction with the inherent security of the blockchain itself, i.e., the consensus on submitted commitments and transactions.
+% \paragraph{Availability of historical transactions, i.e., blocks.}
+% In contrast to prior research maintaining partial states on nodes, as discussed in \autoref{sec:bg}, certain other studies propose availability solutions for historical transactions.
+% All committed transactions are preserved for an extended duration, and the state (either the current iteration or any prior one) can consistently be reconstituted by re-executing the transactions.
 
-Although stateless blockchains can attain optimal storage scalability on the nodes, they necessitate the introduction of supplementary components to the system.
-The nodes are no longer self-sufficient in ensuring liveness, but rather depend on external executors.
-Certain methodologies also delegate transaction ordering externally, in addition to execution.
-In such scenarios, the nodes must additionally safeguard against potential discrimination, such as censorship, by external \emph{sequencers}.
-Notwithstanding these considerations, \sys can also be employed to decentralize rollups, which currently exhibit relative centralization.
+% In public blockchains, \emph{archival nodes} voluntarily supply historical blocks for auditing or analytical purposes.
+% BFT-store~\cite{qi2020bft} constitutes a space-efficient block-availability solution tailored for permissioned blockchains.
+% Blocks undergo erasure coding and subsequent distribution across nodes to achieve storage scalability; this work demonstrates a fault tolerance of $f$ faulty nodes out of a total of $3f+1$ while ensuring block availability.
+% Danksharding~\cite{eip4844} proposes augmenting Ethereum's blocks with \emph{blobs}, which are erasure coded and collaboratively stored by the nodes.
+% Distinct from BFT-store, Ethereum ensures blob availability only for a defined period (e.g., currently 18 days), as the rationale for blob storage pertains to auditing rather than archival.
 
-\paragraph{Decomposing the consensus and execution layers.}
-Execute-order-validate blockchains~\cite{kapritsos2012all,androulaki2018hyperledger} decouple consensus from execution, employing stateless consensus nodes.
-In Fabric, a \emph{chaincode} is deployed on a subset of execution peers, and only these peers maintain the state manipulated by the chaincode.
-Within permissionless environments, \textsc{Ohie}~\cite{yu2020ohie} proposes a sharded consensus layer integrated with a unified execution layer to enhance consensus throughput without compromising security.
-These approaches also encounter the security-scalability trade-off (\autoref{sec:bg}).
-Fabric prioritizes storage scalability, but its security is limited by the number of execution peers and lacks scalability.
-Conversely, \textsc{Ohie} preserves security, but necessitates that each node maintain the entire state and be ready to participate in any subchain, thus lacking storage scalability.
-As discussed in \autoref{sec:approach}, separating the consensus and execution layers and applying distinct sharding strategies to them would not simultaneously achieve all three properties that \sys realizes.
-
-\paragraph{Transcoding in distributed storage.}
-Morph~\cite{kim2024morph} is a distributed storage system that utilizes \emph{transcoding} to optimize redundancy and storage consumption throughout the data lifecycle.
-Initially, data is stored using a hybrid approach of replication and erasure coding, subsequently transitioning to "wider" erasure coding schemes that reduce storage overhead while maintaining the same level of fault tolerance, thus preserving availability.
-The scheme conversion, termed transcoding, is optimized using convertible codes to minimize computational and network overhead.
-While achieving comparable storage scalability and availability to \sys, this system features centralized management, serves as a basic data store, and is therefore not designed to tolerate Byzantine faults, nor does it address the safety or liveness properties of any execution layer built upon it.
-Future development of \sys might include a similar hybrid ingestion scheme to lessen the transition overhead from the active to the archive layer.
-
-\paragraph{Byzantine fault tolerance databases.}
-BigchainDB~\cite{mcconaghy2016bigchaindb} and blockchain relational databases~\cite{nathan2019blockchain} represent efforts that begin with a distributed database and integrate blockchain functionalities (referred to as the "out-of-database blockchain" approach in \cite{ruan2021blockchains}).
-In contrast to the sharded blockchains discussed in \autoref{sec:bg}, which inherit safety and liveness properties from blockchains and employ sharding to attain storage scalability, these endeavors might inherit storage scalability and are engineered for safety and liveness.
-Although this could constitute a viable alternative strategy, these works primarily emphasize high-level database functions rather than ensuring all three properties.
-BigchainDB possesses an ambiguous security model, and both systems fully replicate the database across every node.
+% On one hand, scaling block storage solutions is simpler than scaling state storage solutions.
+% The historical blocks are immutable and certainly structured in an append-only list, while the state is a piece of arbitrary data that is both added with new content and modified in place.
+% Thus, collaborative block storage is a simpler approach than state management system on reasoning about the availability.
+% On the other hand, the block data is much more than the state and also increases much faster.
+% It's infeasible to store the whole block history forever by the operating nodes of the blockchains.
+% Also, many blockchain systems require to \emph{validate} transactions before proposing them in the network.
+% The validators still need to store the whole states, and a scalable state management solution is still required if the state size is beyond the validators' storage capacities.

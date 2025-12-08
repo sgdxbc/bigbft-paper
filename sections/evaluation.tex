@@ -7,6 +7,7 @@ We evaluate \sys on an AWS cluster.
 We spawn up to 70 nodes on \texttt{m5ad.2xlarge} instances with 8 vCPUs, 32 GiB memory, 300 GB NVMe SSD storage, and 10 Gbps network bandwidth.
 They serve as the online machines (\autoref{sec:impl}) in the online performance benchmarks and as the offline machines in the checkpoint latency benchmarks, and they serve as both online and offline machines in the network traffic benchmarks.
 We evaluate \sys and the compared systems operated by 4-100 nodes with these instances, where the faulty nodes keep silent to simulate availability attacks with maximum attacking power and no instance is assigned to them.
+We deploy RocksDB database on the SSD storage formatted with XFS file system with discard option enabled, following RocksDB's benchmark practice.
 All the nodes are within the same availability zone.
 For wide-area network experiments, we simulate network latency by applying artificial delays before sending outbound packets.
 The latency values are taken from a public dataset~\cite{Reinheimer2020} of ping latencies between 247 cities worldwide.
