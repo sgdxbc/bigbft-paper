@@ -120,6 +120,14 @@ This result also confirms that the per-read overhead of \sys is comparable to th
     \label{fig:nodes-tput}
 \end{figure}
 
+In \autoref{fig:nodes-tput}, we vary the number of nodes from 4 to 100 and measure the saturated throughput of all the three systems of both applications.
+\sys, like the fully-replicated BFT system, shows good performance consistency as the number of nodes increases.
+While the storage nodes need to handle retrieval requests from more nodes as the number of nodes increases, there are also more of them to share the load, so the overhead per node remains almost constant.
+The sharded BFT system is able to scale the throughput with the number of nodes because of the lighter execution load per node.
+However, the scalability is sublinear and quickly saturates at 60 nodes (i.e., 6 shards), for multiple reasons.
+Firstly, the consensus overhead is not reduced with more shards and gradually dominates the overall performance.
+For the YCSB workload, the skewed access pattern also leads to unbalanced load among shards, where some shards become bottlenecks while other shards are underutilized.
+For the UTXO workload, the cross-shard communication and two-phase commit protocol make heavy use of the consensus layer and clients to coordinate the shards, further limiting the scalability.
 
 \subsection{Checkpoint Latency}
 
@@ -143,20 +151,22 @@ As the state size increases, the time taken in each stage increases linearly fro
 The results for checkpointing 100 GiB state with different numbers of nodes in more interesting.
 As the number of nodes increases from 4 to 40, the time taken in the scan and retrieve stages decreases significantly, and the total checkpoint time decreases by more than half.
 This is because of more storage nodes concurrently scan and transmit the shards, so the nodes spent much less time scanning and waiting for the retrieved shards.
-However, as the number of nodes further increases to 100, the time taken in the network strage increases at the higher rate than the decrease of the scan stage, resulting in overall longer checkpoint time.
-This is because as the number of nodes increases, each node stores less data, so it needs to scan less local shards while retrieves more remote shards.
+However, as the number of nodes further increases to 100, the time taken in the network stage increases at the higher rate than the decrease of the scan stage, resulting in overall longer checkpoint time.
+This is because as the number of nodes increases, each node stores fewer data, so it needs to scan less local shards while retrieves more remote shards.
 Overall, \sys is able to efficiently checkpoint large states with moderately large number of nodes.
 
 \subsection{Network Scalability}
 
 \begin{figure}
     \includegraphics[width=\linewidth]{graphs/nodes-network}
-    \caption{
+    \caption{The network traffic of each node for consensus, retrieval and checkpoint under various cluster sizes.
     }
     \label{fig:nodes-network}
 \end{figure}
 
-We configure \sys with a 500 MiB update table size budget.
-With the YCSB workload, it executes 10 million operations during each checkpoint period.
-We measure the network traffic of each node during executing 1 million operations.
-
+In this experiment, we measure of proportions of network traffic contributed by each component of \sys and how they scale with the number of nodes.
+We perform the measurement with 4 to 100 nodes under the YCSB workload of skewness factor 1.24 and 0.99.
+We adopt a realistic 500 MiB update table size budget, which means that during each checkpoint period, the nodes generate around 500 MiB update data in total.
+This means that the nodes execute 20 million operations and 2.2 million operations per checkpoint period under skewness factor 1.24 and 0.99 respectively.
+We measure the egress network traffic of each node during 1/10 of the checkpoint period.
+The results are shown in \autoref{fig:nodes-network}.
