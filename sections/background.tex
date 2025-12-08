@@ -101,7 +101,7 @@ Besides horizontal scaling, the property also enables nodes with larger capacity
 \subsection{Prior Storage Scaling Solutions}
 \label{sec:bg:prior}
 
-\paragraph{Sharding.}
+\paragraph{Sharded blockchains.}
 The most prominent approach to blockchain storage scaling is sharding~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard,kokoris2018omniledger,dang2019towards,zamani2018rapidchain}.
 Similar to distributed databases, these solutions partition the blockchain state into shards, and assign each shard to a subset of blockchain nodes, called a committee.
 A committee only stores state for its responsible shards;
@@ -124,7 +124,21 @@ OmniLedger~\cite{kokoris2018omniledger} can only tolerate $\frac{1}{4}$ faulty n
 RapidChain~\cite{zamani2018rapidchain} assumes a synchronous network model.
 The sharded blockchain in \cite{dang2019towards} requires trusted execution environment on all participants.
 
+\lijl{Should we discuss monoxide here?}
+
 \paragraph{Stateless blockchains.}
+Stateless blockchain~\cite{xu2021slimchain,boneh2019batching,chepurnoy2018edrax,tomescu2020aggregatable,xu2022l2chain,lee2020replicated} is a recent approach that outsources blockchain state and transaction execution to external nodes.
+These external nodes submit transaction execution results and succinct proofs to the blockchain nodes, which are only responsible for result validation and reaching agreement on execution order.
+The approach allows constant storage overhead on blockchain nodes.
+Ethereum plans to adopt similar designs~\cite{eip4844} in its rollup-centric roadmap~\cite{ethereum_scaling_docs,vbuterin2020rolluproadmap}.
+
+Given that the state is no longer maintained by the blockchain nodes, guarantees of a stateless blockchain depend on the security of external nodes.
+Liveness issues of the external nodes can impede blockchain progress.
+Any state loss in the external nodes halts the entire blockchain.
+The blockchain nodes also loses control of transaction ordering to ensure properties such as fairness.
+Moreover, the approach does not fundamentally address storage scalability, just pushing the issue to a different layer.
+Each external node still needs to store the entire state.
+Partitioning the state among external nodes suffer identical security issues in sharded blockchains.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
