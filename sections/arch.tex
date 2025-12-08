@@ -1,0 +1,82 @@
+\section{State-Decoupled Blockchain Architecture}
+\label{sec:arch}
+
+\subsection{The Dual Node Architecture for State-execution Decoupling}
+
+Following the state-execution decoupling principle, we propose a dual node architecture where each participant hosts a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \autoref{fig:approach-compare}.
+The replica node is similar to a traditional BFT node: it contributes to consensus and executes all transactions.
+However, it does not maintain the execution state.
+\lijl{Shall we name ``execution state'' something else?}
+Instead, it reads from and writes to the state through a \emph{state management system} (SMS), which in turn communicates with both the storage nodes of the participant and the ones of other participants.
+This architecture practices a clear \emph{separation of concerns}: the storage scalability is fully responsible by the SMS and the storage nodes and will not be impeded by the fully replicated execution.
+On the other hand, the replica nodes can ensure the correctness and liveness properties of BFT systems by putting certain requirements on the SMS semantics, which we will elaborate on later in this section.
+Because SMS is specialized for state management, the faulty behaviors can be detected by \emph{individual} replica nodes, e.g., by checking the hash of the retrieved data, allowing us to focus on designing a scalable and highly available storage.
+This has been the topic of extensive prior research in distributed storage systems.
+
+In this work, we examine the canonical BFT setting, where each participant operates one replica node and one storage node.
+This configuration is sufficient to the goal of achieving storage scalability under a conventional BFT security model.
+However, the dual node architecture is flexible and can accommodate various configurations.
+\sys can tolerate up to $f$ faulty participants that host at most $f'$ storage nodes totally with $3f+1$ participants hosting at least $3f'+1$ storage nodes in total.
+This flexibility is especially beneficial in permissionless settings, where participants may have heterogeneous storage capacities.
+In such systems, the powerful participants can be incentivized to host multiple storage nodes to enhance the overall storage capacity of the system, while a ``stateless'' participant only needs to operate one replica node to contribute to consensus and execution.
+As the result, the powerful participants can make profit from their storage capacities that are potentially even larger than the state size, while the less powerful participants can still participate in consensus and execution without being burdened by storage requirements, maximizing the decentralization of the system.
+
+\subsection{Interfaces and Security Properties of State Management}
+
+The SMS functions as an abstraction layer between the replica node and the storage nodes.
+It allows the replica node to read from and write to the state as if it were stored locally.
+We adopt a key-value abstraction for the state: the state is represented as a mapping from keys to values, and each transaction accesses a set of keys to read or write their associated values.
+This abstraction is compatible with most blockchain applications, including both account-based and UTXO-based models.
+\lijl{Can also mention that most distributed databases use such storage interface.}
+
+From the view of state management, we abstract the transaction execution as continuously generating new \emph{versions} of the state and read from those versions.
+Initially, there is only the version 0 of the state, containing the genesis state.
+Then, more and more versions are created during the transaction execution by modifying the values of certain keys in the current version.
+SMS provides interfaces for creating new versions and accessing existing versions of the state.
+We define $\bump_{i}([k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots])$ as the interface to create version $i$ of the state as the same as version $i-1$ except that the values of keys $k_j$ are updated to $v_j$ for the key value pairs specified in the call.
+Then, we define $\fetch_{i}(k)$ as the interface to read the value associated with key $k$ in version $i$ of the state.
+The execution layer can execute transactions with these interfaces.
+Starting with $i=0$, it first $\fetch_{i}$ to construct the state needed to execute a transaction or a block of transactions.
+Then it executes the transaction(s) deterministically, producing a set of key-value pairs to update.
+Finally, it invokes $\bump_{i+1}$ with these key-value pairs, increments $i$ by 1 and continues creating the next version.
+
+Because the execution is replicated, SMS expects all replica nodes to create identical state versions and access the same keys at each version.
+By guaranteeing this to SMS, SMS can ensure the following properties.
+
+\paragraph{Correctness.}
+On correct nodes, $\fetch_{i}(k)$ correctly returns $k$'s value in version $i$.
+This means SMS acts like a local state store to the execution layer.
+
+\paragraph{Availability.}
+In the idea case, every $\fetch$ and $\bump$ call returns on all correct nodes.
+However, because $f$ nodes may be arbitrarily slower than the others, ensuring this would require maintaining infinite versions of the state.
+To address this, we define the \emph{lowest alive version} as the largest version that has been created by at least $2f+1$ correct nodes.
+Then, SMS ensures that every $\fetch$ and $\bump$ call at version $i$ returns on all correct nodes if $i$ is no smaller than the lowest alive version at the time of the call.
+If $i$ is smaller than the lowest alive version, SMS may return \forward($i'$), hinting the execution layer with the lowest alive version $i'$ and indicating that all versions lower than $i'$ (including $i$) have lost liveness.
+The execution layer can then skip executing the transactions that create these lost versions.
+
+\subsection{From SMS Properties to System Security}
+
+Given that the SMS ensures these properties, the BAB protocol ensures its standard properties, and transaction execution is deterministic, we now show that the overall system can guarantee the conventional safety and liveness properties of BFT protocols regardless of the SMS implementation.
+The BAB protocol ensures that the execution layer of all non-faulty nodes receives the same sequence of transactions.
+Due to deterministic execution, the execution layer of all non-faulty nodes will translate transaction executions into the same sequence of \fetch and \bump calls, satisfying the SMS's expectation.
+Then, the availability of SMS ensures that for all transactions, at least $f+1$ non-faulty nodes execute them, i.e., do not receive \forward for the \fetch and \bump calls they invoke during executing these transactions.
+Finally, the correctness of the SMS ensures that as long as executions start from consistent pre-states, they yield consistent results and transition to consistent post-states that satisfy the transactions' semantics.
+Given that all nodes start from the same initial state, by induction, all non-faulty nodes will produce consistent results for all transactions they execute.
+As a result, for each transaction, the client can collect $f+1$ identical responses from executing non-faulty nodes, satisfying the safety and liveness properties of BFT protocols.
+
+\subsection{Challenges of Designing Scalable SMS}
+
+Ensuring availability is challenging.
+If a portion of state is stored exclusively on faulty nodes, it may be lost.
+However, storing each shard on at least $f+1$ nodes to prevent this results in storage overhead that scales with the number of nodes, thereby undermining storage scalability.
+
+Ensuring correctness is also challenging.
+Since the system may contain up to $f$ faulty nodes, these nodes may respond to retrieval requests with incorrect or outdated data.
+The node retrieving the state must be able to identify and discard such invalid data to prevent divergence in execution.
+A straightforward approach is to collect $f+1$ identical responses from distinct nodes, ensuring at least one correct response.
+However, this again leads to storage overhead proportional to the number of nodes.
+
+Last but not least, retrieving state from other nodes introduces additional network traffic and, more importantly, places retrieval on the critical path of execution.
+While waiting for retrieval, execution is blocked, and the node cannot process other transactions because execution must remain sequential to ensure consistency.
+This leads to increased latency and reduced throughput due to diminished node utilization.
