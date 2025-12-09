@@ -78,7 +78,8 @@ Since execution no longer maintains state, doing so does not hinder storage scal
 On the other hand, state storage is only responsible for ensuring \emph{state availability}, \ie, any correct node can eventually retrieve a successfully stored state.
 State availability is inherently a simpler problem that permits scalable designs.
 
-We highlight two insights that enables scalability while maintaining state availability.
+We highlight two insights that enables storage scalability while maintaining state availability.
+\lijl{Update this part.}
 First, correctness of a state can be independently validated through techniques such as threshold signatures and Merkle trees.
 This allows retrieving state from a single node without safety violations.
 Second, erasure coding can flexibly reduce the storage redundancy without compromising state availability.
