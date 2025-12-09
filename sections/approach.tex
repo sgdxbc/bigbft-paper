@@ -3,6 +3,7 @@
 
 \subsection{Storage Scalability and Security Trade-off}
 
+\if{0}
 \lijl{Outline:
 \begin{itemize}
     \item Tension between storage scalability and strong security
@@ -16,6 +17,20 @@
     \item We can similarly show that scaling storage will result in weaker security
 \end{itemize}
 }
+\fi
+
+The discussion in \autoref{sec:bg:prior} shows that there is a tension between storage scalability and strong security properties in existing blockchain architectures.
+Fully replicating world state on all blockchain nodes guarantees strong security, but the system storage capacity does not scale.
+Sharding can scale blockchain storage, but the approach compromises security guarantees.
+
+This trade-off between scalability and security appears to be fundamental.
+Conventional BFT-based blockchain security requires the system to tolerate \emph{any} $f$ adversaries within $3f + 1$ total nodes.
+To provide such strong guarantee, each transaction needs to execute on at least $f+1$ nodes.
+~\footnote{In typical blockchains, each transaction is executed on all nodes, so each node needs to maintain the entire state regardless of the system size.}
+When introducing additional nodes to the system, the potential failures to tolerate, $f$, also increases linearly.
+The number of nodes that maintains the necessary state to execute the transactions thus also increases proportionally.
+Consequently, the total state capacity of the system remains unchanged.
+We can similarly show that scaling storage by maintaining constant state size on each node would result in weaker security guarantees.
 
 \subsection{The Case for Decoupling State from Execution}
 
@@ -77,16 +92,6 @@ By carefully designing the placement of state shards, we ensure that each shard 
 
 \lijl{Another point to make: why do nodes need to maintain some state locally, and how much to store? There are two reasons: state availability and performance. State availability determines the storage lower bound on each node. Storing more state than the lower bound could improve performance.}
 
-\paragraph{The size of the retrieved temporary state.}
-A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state.
-We emphasize that this is a theoretical worst case and is unlikely to occur in practice.
-Firstly, as our design will demonstrate into \autoref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
-Thus, the peak size of the retrieved temporary state equals to the \emph{working set}, i.e., the total size of the accessed keys and values, of the executing transactions.
-Empirically, most transactions access only an extremely small fraction of the state.
-According to the data over 100 days in 2024 from Ethereum, on average each block reads ~1600 slots, about 0.0001\% of the total 151 million slots in the state~\cite{ProperDiskIO_GasPricing_LRUcache_2024}.
-In practice, blockchain nodes preserve the working set of one or more recent blocks entirely in memory for performance reasons~\cite{nodereal2022_bsc_cache_hit_rate}.
-We follow this practice in our design, assuming trivial memory footprint for the retrieved temporary state without loss of generality.
-\lijl{Yes, should provide more concrete evidence and workload citations. Even better if we can do some empirical analysis of available traces.} \gd{Kind of elaborated.}
 
 % However, diverging from the common practice also sacrifices its advantages: executing with local state is efficient and does not require additional security analysis.
 % When the state is maintained locally, it is always correct and available to the node, and executing the same sequence of transactions from the same initial state will deterministically yield the same final state and output.

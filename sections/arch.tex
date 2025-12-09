@@ -1,6 +1,17 @@
 \section{State-Decoupled Blockchain Architecture}
 \label{sec:arch}
 
+\paragraph{The size of the retrieved temporary state.}
+A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state.
+We emphasize that this is a theoretical worst case and is unlikely to occur in practice.
+Firstly, as our design will demonstrate into \autoref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
+Thus, the peak size of the retrieved temporary state equals to the \emph{working set}, i.e., the total size of the accessed keys and values, of the executing transactions.
+Empirically, most transactions access only an extremely small fraction of the state.
+According to the data over 100 days in 2024 from Ethereum, on average each block reads ~1600 slots, about 0.0001\% of the total 151 million slots in the state~\cite{ProperDiskIO_GasPricing_LRUcache_2024}.
+In practice, blockchain nodes preserve the working set of one or more recent blocks entirely in memory for performance reasons~\cite{nodereal2022_bsc_cache_hit_rate}.
+We follow this practice in our design, assuming trivial memory footprint for the retrieved temporary state without loss of generality.
+\lijl{Yes, should provide more concrete evidence and workload citations. Even better if we can do some empirical analysis of available traces.} \gd{Kind of elaborated.}
+
 \subsection{The Dual Node Architecture for State-execution Decoupling}
 
 Following the state-execution decoupling principle, we propose a dual node architecture where each participant hosts a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \autoref{fig:approach-compare}.
