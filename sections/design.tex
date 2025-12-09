@@ -1,17 +1,30 @@
 \section{Design Details}
 \label{sec:design}
 
-\begin{figure*}
-    \includegraphics[width=\linewidth]{figures/message-flow}
-    \caption{Message flow.}
+\begin{figure}
+    \center
+    \includegraphics[width=\linewidth]{figures/checkpoint-message}
+    \caption{Checkpoint message flow of a shard.
+    Storage node 1 is responsible for the shard.
+    Replica node 4 is failed.}
     \label{fig:message-flow}
-\end{figure*}
+\end{figure}
 
 \begin{figure}
-    \includegraphics[width=\linewidth]{figures/node-states}
-    \caption{Node states.}
-    \label{fig:node-states}
+    \center
+    \includegraphics[width=0.75\linewidth]{figures/reconfigure-message}
+    \caption{Reconfiguration message flow of a shard.
+    Storage node 1 is previously responsible for the shard and failed.
+    Storage node 2 is responsible for the shard after reconfiguration.}
+    \label{fig:message-flow}
 \end{figure}
+
+
+% \begin{figure}
+%     \includegraphics[width=\linewidth]{figures/node-states}
+%     \caption{Node states.}
+%     \label{fig:node-states}
+% \end{figure}
 
 \begin{table*}
 \centering
