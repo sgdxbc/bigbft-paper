@@ -145,3 +145,27 @@ SMS then computes the new shard commitments and send \pushss messages with the n
 After the SMS stores all the shards for round $c$, it discards the snapshot of the update table, and sends \votec messages for round $c+1$ with the new shard commitments.
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
+
+\subsection{Data Availability Proof}
+
+Now we prove that the SMS design described above provides data availability guarantees as stated in \autoref{sec:arch}.
+The data availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
+The values of version $i$ are created with the $\bump_{i}(k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots)$ operation, where the values of $k_1, k_2, \ldots$ are $v_1, v_2, \ldots$ respectively, and the values of other keys remain the same as version $i-1$.
+
+Firstly, we examine the last checkpointed version $v_c$, which is the version that the second last checkpoint signal corresponds to.
+We consider the $\fetch_{i}(k)$ operations where $i \geq v_c$, as we have discussed in \autoref{sec:overview} that there are at most $f$ correct replica nodes may issue \fetch calls with versions less than $v_c$, and those calls will return \forward.
+According to the garbage collection rule, the replica nodes keep all the updates since version $v_c$ locally in the update table.
+Thus, any $\fetch_{i}(k)$ operation where $k$ was updated after version $v_c$, i.e., appeared in some $\bump_{j}(\ldots)$ operation where $j > c$, will return correctly from the update table.
+Now we consider the keys that were not updated since version $v_c$.
+In this case, $\fetch_{i}(k)$ should return the same value as $\fetch_{c}(k)$, so the value of $k$ in the checkpoint is the desired value, and the replica nodes send \retrieve requests to the storage nodes.
+
+If there is at least one correct responsible storage node for the shard that contains key $k$, the \retrieve request will be responded correctly, and the replica nodes can verify the returned value with the inclusion proof and the shard commitment.
+On the other hand, the replica nodes are also able to detect malformed responses from faulty storage nodes with the stored shard commitments.
+Thus, if there is at least one correct responsible storage node for the shard, the \retrieve request will eventually return with the correct value.
+
+The system may need to reconfigure multiple times until at least one correct responsible storage node is assigned for the shard.
+Because the placement is uniformly random, the probability that all $r$ responsible storage nodes are faulty in $x$ consecutive reconfigurations is at most $(\frac{f}{N})^{rx}$, which decreases exponentially with both $r$ and $x$.
+At the same time, every reconfiguration is guaranteed to complete.
+During a reconfiguration, the correct responsible storage nodes (after reconfiguration) send \getsc requests to all storage nodes.
+They can detect faulty responses with the stored chunk hashes, and they are guaranteed to retrieve $f+1$ correct chunks from correct storage nodes and reconstruct the shard.
+In conclusion, the \retrieve requests will eventually return with the correct value after a finite number of reconfigurations with high probability.
