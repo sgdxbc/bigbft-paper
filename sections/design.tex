@@ -140,8 +140,8 @@ It sends \votec for the first round of checkpointing at system startup.
 On checkpoint signals of round $c$, the SMS performs the checkpointing procedure as follows, except if it's current round is less than $c-1$, in which case it absents from the checkpointing procedure and \forward to the version corresponds to round $c-1$.
 For checkpointing, SMS first snapshots the current update table.
 Then, it sends \retrieves requests to the responsible storage nodes, retrieves the shards, and verifies them against the shard commitments in the \votec messages.
-After that, it applies the relevant updates in the update table snapshot to the retrieved shards.
-SMS then computes the new shard commitments and send \pushss messages with the new shards to the storage nodes.
+After that, it applies the relevant updates in the update table snapshot to the retrieved shards and computes the new shard commitments
+SMS then sends \pushss messages with the new shards to all the storage nodes and waits for $2f+1$ acknowledgments.
 After the SMS stores all the shards for round $c$, it discards the snapshot of the update table, and sends \votec messages for round $c+1$ with the new shard commitments.
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
@@ -164,8 +164,11 @@ On the other hand, the replica nodes are also able to detect malformed responses
 Thus, if there is at least one correct responsible storage node for the shard, the \retrieve request will eventually return with the correct value.
 
 The system may need to reconfigure multiple times until at least one correct responsible storage node is assigned for the shard.
-Because the placement is uniformly random, the probability that all $r$ responsible storage nodes are faulty in $x$ consecutive reconfigurations is at most $(\frac{f}{N})^{rx}$, which decreases exponentially with both $r$ and $x$.
-At the same time, every reconfiguration is guaranteed to complete.
+We first show that every reconfiguration attempt will eventually complete.
+The last checkpoint has at least $f+1$ encoded chunks stored on distinct correct storage nodes.
+This is because that the \pushss messages for the last checkpoint must have been acknowledged by at least $2f+1$ storage nodes, among which at least $f+1$ are correct nodes.
 During a reconfiguration, the correct responsible storage nodes (after reconfiguration) send \getsc requests to all storage nodes.
 They can detect faulty responses with the stored chunk hashes, and they are guaranteed to retrieve $f+1$ correct chunks from correct storage nodes and reconstruct the shard.
-In conclusion, the \retrieve requests will eventually return with the correct value after a finite number of reconfigurations with high probability.
+Thus, every reconfiguration attempt will eventually complete.
+Because the placement is uniformly random, the probability that all $r$ responsible storage nodes are faulty in $x$ consecutive reconfigurations is at most $(\frac{f}{N})^{rx}$, which decreases exponentially with both $r$ and $x$.
+After sufficiently many reconfigurations, with high probability at least one correct storage node will be assigned as responsible for the shard, and the \retrieve requests will eventually return with the correct value.
