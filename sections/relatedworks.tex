@@ -20,7 +20,7 @@ In this scenario, the clients hold the piece of state relevant to themselves (e.
 All these works are specific to cryptocurrencies.
 
 \paragraph{Execute-order blockchains.}
-Hyperledger Fabric~\cite{androulaki2018hyperledger} introduces the execute-order-validate paradigm for permissioned blockchains.
+Hyperledger Fabric~\cite{hyperledger} introduces the execute-order-validate paradigm for permissioned blockchains.
 The execution is performed on few designated execution peers before ordering, and the updates are then ordered by the consensus layer and applied to the storage nodes.
 While the consensus is secure, the execution must be performed by sufficient peers to ensure correctness, and the state must be stored by sufficient storage nodes to ensure availability.
 Thus, Fabric also suffers from trading off storage scalability and security.
