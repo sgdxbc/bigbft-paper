@@ -31,6 +31,15 @@
     \item In this work, we argue for a new blockchain architecture, where transaction execution and state storage are logically decoupled
     \item Clear separation of responsibility: blockchain execution performs transaction statements but is stateless; state storage only maintains blockchain world state, and is agnostic to transaction logic.
     \item This decoupling enables simultaneous storage scalability and the strongest security guarantees.
+    \item Execution of each transaction can be done on at least $f+1$ nodes to guarantee deterministic safety and liveness.
+    \item State storage is only responsible for ensuring state availability.
+    \item Availability is a simpler problem which permits scalable designs.
+    \item We highlight two insights that enables scalability.
+    \item First, correctness of a state can be independently validated through techniques such as threshold signatures and Merkle trees.
+    \item This allows retrieval of state from a single node without safety violations
+    \item Second, erasure coding can flexibly reduce the storage redundancy without compromising state availability.
+    \item By adjusting the erasure coding parameters, the overall storage capacity can scale with additional storage devices in the system.
+    \item Given that the typical working set of a blockchain workload is small, the high computational overhead of symbol decoding can be masked by caching techniques.
 \end{itemize}
 }
 
