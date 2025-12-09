@@ -26,31 +26,33 @@
 %     \label{fig:node-states}
 % \end{figure}
 
-\begin{table*}
+\begin{table}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}lp{0.5\linewidth}@{}}
 \toprule
-\textbf{Channel} & \textbf{Message} & \textbf{Data} \\
+\textbf{Message} & \textbf{Data} \\
 \midrule
-\multirow{7}{*}{Storage nodes RPC}
-    & \retrieve{} request   & round, key \\
-    & \retrieve{} response  & round, key, value, inclusion proof \\
-    & \retrieves{} request  & round, shard ID \\
-    & \retrieves{} response & round, shard ID, shard data \\
-    & \getsc{} request      & round, shard ID \\
-    & \getsc{} response     & round, shard ID, storage node ID, chunk data \\
-    & \pushss{}             & round, shard ID, shard data \\
+\multicolumn{2}{@{}l}{\textit{Storage nodes RPC}} \\
+\midrule
+\retrieve{} request   & round, key \\
+\retrieve{} response  & value, inclusion proof \\
+\retrieves{} request  & round, shard ID \\
+\retrieves{} response & shard data \\
+\getsc{} request      & round, shard ID \\
+\getsc{} response     & storage node ID, chunk data \\
+\pushss{}             & round, shard ID, shard data \\
 \addlinespace
-\multirow{2}{*}{Atomic broadcast}
-    & \votec{}              & round, storage node ID, shard commitments from previous round \\
-    & \voter{}              & epoch, round, replica node ID, nonce \\
+\multicolumn{2}{@{}l}{\textit{Atomic broadcast}} \\
+\midrule
+\votec{}              & round, storage node ID, shard commitments from previous round \\
+\voter{}              & epoch, round, replica node ID, nonce \\
 \bottomrule
 \end{tabular}
 \caption{SMS messages grouped by channel.}
 \label{tab:messages}
-\end{table*}
+\end{table}
 
 In this section, we detail the data structures and the algorithms of the replica and the storage nodes and the protocol between them.
 The messages used in the protocol are summarized in \autoref{tab:messages}.
@@ -67,7 +69,7 @@ The \voter messages are ordered so that all nodes reconfigure with the same set 
 These signals are subscribed by both replica and storage nodes. 
 The storage nodes can subscribe to signals via relaying by their trusted replica nodes, i.e., the replica nodes hosted by their operators.
 
-Every message contains a \emph{round} number, which indicates the checkpoint round the message belongs to.
+Every RPC request and atomic broadcast message contains a \emph{round} number, which indicates the checkpoint round the message belongs to.
 The round number starts from 0 at system startup and increments by one after each checkpoint round.
 The \voter messages also contain an \emph{epoch} number to indicate the number of reconfigurations that have happened, because reconfiguring to the same round may happen multiple times.
 
