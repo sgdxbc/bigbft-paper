@@ -25,6 +25,19 @@ The execution is performed on few designated execution peers before ordering, an
 While the consensus is secure, the execution must be performed by sufficient peers to ensure correctness, and the state must be stored by sufficient storage nodes to ensure availability.
 Thus, Fabric also suffers from trading off storage scalability and security.
 
+\paragraph{Optimize state storage on nodes.}
+Several methodologies aim to optimize state storage on nodes without altering the fundamental architecture of blockchains.
+COLE~\cite{zhang2024cole} designs a column-based learned index for Blockchain systems and reports 94\% reduction in state storage overhead.
+Vault~\cite{leung2018vault} also proposed an expiration mechanism to prune zero-balance accounts.
+These techniques can be orthogonally applied to \sys to further reduce the storage overhead on nodes.
+
+\paragraph{Scaling BFT protocols.}
+Numerous research efforts have been dedicated to scaling BFT consensus protocols to accommodate a larger number of nodes.
+SBFT~\cite{gueta2019sbft}, Narwhal~\cite{narwhal} and Autobahn~\cite{giridharan2024autobahn} improve scalability of transaction dissemination.
+Some sharded BFT protocols like \textsc{Elastico}~\cite{luu2016secure}, \textsc{Ohie}~\cite{yu2020ohie} and Monoxide~\cite{wang2019monoxide} partition the consensus layer, so that each transaction is ordered by a subset of nodes.
+Monoxide further partitions the execution with a cross shard relaying mechanism.
+These works can improve the ordering (and execution for some works) scalability, but they do not reduce the storage overhead on each node.
+
 % \paragraph{Stateless blockchains.}
 % Several methodologies advocate for nodes to maintain \emph{no} state.
 % The storage overhead per node remains constant, irrespective of state size.
