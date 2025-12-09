@@ -34,6 +34,7 @@ We can similarly show that scaling storage by maintaining constant state size on
 
 \subsection{The Case for Decoupling State from Execution}
 
+\if{0}
 \lijl{Outline:
 \begin{itemize}
     \item This trade-off stems from a deep-rooted architectural decision
@@ -57,7 +58,38 @@ We can similarly show that scaling storage by maintaining constant state size on
     \item Given that the typical working set of a blockchain workload is small, the high computational overhead of symbol decoding can be masked by caching techniques.
 \end{itemize}
 }
+\fi
 
+This trade-off between scalability and security stems from a deep-rooted architectural constraint.
+In all existing designs, blockchain state and transaction execution are \emph{tightly coupled}:
+A node only executes a transaction (or a partial transaction) if it stores all the state that are accessed in the transaction.
+In traditional blockchains, each node maintains a full copy of the state, and therefore executes all transactions;
+a node in a sharded blockchain only executes transactions that access its responsible shards;
+in stateless blockchains, only external nodes, which maintain state, execute transactions.
+Given this tight coupling, it is fundamentally hard to overcome the security and storage scalability trade-off.
+
+In this work, we argue for a radical blockchain design where transaction execution and state storage are logically \emph{decoupled}.
+The design results in a clear \emph{separation of responsibility}: Blockchain execution performs transaction statements but is \emph{stateless}; state storage only maintains blockchain world state, but is agnostic to transaction logic.
+A surprising benefit of this decoupling approach is that it simultaneously enables storage scalability and the strongest security guarantees.
+
+Execution of each transaction can be done on at least $f+1$ nodes to guarantee deterministic safety and liveness.
+\lijl{Can formally define the guarantees of the execution layer}
+Since execution no longer maintains state, doing so does not hinder storage scalability.
+On the other hand, state storage is only responsible for ensuring \emph{state availability}, \ie, any correct node can eventually retrieve a successfully stored state.
+State availability is inherently a simpler problem that permits scalable designs.
+
+We highlight two insights that enables scalability while maintaining state availability.
+First, correctness of a state can be independently validated through techniques such as threshold signatures and Merkle trees.
+This allows retrieving state from a single node without safety violations.
+Second, erasure coding can flexibly reduce the storage redundancy without compromising state availability.
+By adjusting the erasure coding parameters, the overall storage capacity can scale with additional storage devices in the system.
+Given that the typical working sets of blockchain workloads are a small constant, the computational overhead of symbol decoding in erasure coding can be effectively masked by caching techniques.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\if{0}
 From prior research on fully replicated blockchains, sharded blockchains, and stateless blockchains, we observe a common principle: nodes store the state necessary to execute transactions independently.
 In other words, the set of transactions a node can execute is determined by the state it maintains locally.
 In fully replicated blockchains, every node maintains the complete state and executes all transactions.
@@ -102,3 +134,4 @@ By carefully designing the placement of state shards, we ensure that each shard 
 % Even if retrieval completes but is inefficient, execution will be delayed and throughput will decrease.
 % We will elaborate on these challenges and outline our solutions in \autoref{sec:overview}; before that, we first formalize the interfaces and security properties of state management.
 % \lijl{I think we can move these challenge discussions later.}
+\fi
