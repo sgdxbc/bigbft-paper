@@ -17,7 +17,8 @@ In this work, we advocate for a design that consists of \emph{logically} separat
 A replica node implements protocols in the consensus layer and the execution layer.
 It also includes a client-side state management library.
 The storage nodes collectively implement the state management layer.
-The two node types are, however, only logical entities and do not represent physical deployment.
+Each storage node only stores a subset of the entire world state.
+The two node types are only logical entities, and do not represent physical deployment.
 In our basic configuration, each physical node maintains one replica node and one storage node.
 This setting offers canonical BFT correctness guarantees: A deployment of $3f+1$ physical nodes can tolerate any $f$ Byzantine failures.
 Our model is flexible and supports other configurations.
@@ -47,14 +48,14 @@ Following this model, the state management interface exposes two API calls:
 \end{itemize}
 
 All replica nodes invoke \fetch and \bump calls to access blockchain state.
-Correctness of state management relies on the guarantees of the consensus and the execution layers.
+Correctness of state management relies on the guarantees provided by the consensus and the execution layers.
 Specifically, with a linearizable consensus protocol and correct, deterministic transaction executions, non-faulty replica nodes should generate an \emph{identical sequence} of \fetch and \bump calls.
 Given this identical call sequence, the state management layer guarantees the following properties:
 
 \begin{itemize}
     \item \textbf{State Safety}: If a correct replica node issues a $\fetch_{i}(k)$, the call returns the value of key $k$ in version $i$, where state version $i$ reflects the effect of applying $\bump_{1} \dots \bump_{i}$ to the initial state.
 
-    \item \textbf{State availability}: Every \fetch and \bump call issued by a correct replica node returns eventually.
+    \item \textbf{State Availability}: Every \fetch and \bump call issued by a correct replica node returns eventually. \lijl{Should this only care about \fetch calls?}
 \end{itemize}
 
 Since some correct replica node may run arbitrarily slow, naively enforcing state availability would require maintaining potentially unbounded state versions.
@@ -68,27 +69,21 @@ this is safe as the state version $p$ guarantees to be available in the system.
 \subsection{Design Challenges}
 \label{sec:arch:challenges}
 
-A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state.
-We emphasize that this is a theoretical worst case and is unlikely to occur in practice.
-Firstly, as our design will demonstrate into \autoref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
-Thus, the peak size of the retrieved temporary state equals to the \emph{working set}, i.e., the total size of the accessed keys and values, of the executing transactions.
-Empirically, most transactions access only an extremely small fraction of the state.
-According to the data over 100 days in 2024 from Ethereum, on average each block reads ~1600 slots, about 0.0001\% of the total 151 million slots in the state~\cite{ProperDiskIO_GasPricing_LRUcache_2024}.
-In practice, blockchain nodes preserve the working set of one or more recent blocks entirely in memory for performance reasons~\cite{nodereal2022_bsc_cache_hit_rate}.
+Realizing a state-execution decoupled architecture faces several challenges.
+First, state availability requires a state version to survive any $f$ faulty nodes.
+The naive approach of storing all state versions on at least $f+1$ nodes, however, violates our storage scalability goal.
 
-Ensuring availability is challenging.
-If a portion of state is stored exclusively on faulty nodes, it may be lost.
-However, storing each shard on at least $f+1$ nodes to prevent this results in storage overhead that scales with the number of nodes, thereby undermining storage scalability.
+Second, in traditional blockchain architectures, a correct node maintains all world state.
+The node can therefore trust any locally stored state.
+In our decoupled architecture, a replica node may fetch state from remote nodes.
+To guarantee state safety, a correct node needs to validate the correctness of remotely retrieved state to tolerate Byzantine behavior.
+The straw man solution of collecting $f+1$ matching states works, but requires all state to be stored on at least $f+1$ nodes.
+This again violates our storage scalability requirement.
 
-Ensuring correctness is also challenging.
-Since the system may contain up to $f$ faulty nodes, these nodes may respond to retrieval requests with incorrect or outdated data.
-The node retrieving the state must be able to identify and discard such invalid data to prevent divergence in execution.
-A straightforward approach is to collect $f+1$ identical responses from distinct nodes, ensuring at least one correct response.
-However, this again leads to storage overhead proportional to the number of nodes.
+Lastly, the decoupled architecture places potential remote state fetches on the critical path of transaction execution.
+This introduces additional network traffic and latency penalty compared to a traditional design.
+Moreover, the latency overhead also reduces execution throughput, since the transaction execution is serialized.
 
-Last but not least, retrieving state from other nodes introduces additional network traffic and, more importantly, places retrieval on the critical path of execution.
-While waiting for retrieval, execution is blocked, and the node cannot process other transactions because execution must remain sequential to ensure consistency.
-This leads to increased latency and reduced throughput due to diminished node utilization.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
