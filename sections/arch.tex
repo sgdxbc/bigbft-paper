@@ -29,32 +29,41 @@ For the remainder of the paper, we only consider the basic setup to simplify dis
 \subsection{State Management Layer}
 \label{sec:arch:layer}
 
-\lijl{Outline:
+The logically decoupled state management layer is the main research contribution of our work.
+The layer exposes a key-value interface, similar to many existing storage systems.
+Each transaction generates a set of read and write keys, and invokes the interface to retrieve and update the state.
+Such an abstraction is compatible with most blockchain applications, including account-based smart contracts and UTXO-based transactions.
+
+The state managed by the layer is versioned.
+Unlike prior versioned data stores, each transaction that mutate keys creates a new version of the entire state.
+That is, given an initial state version $v$ and a sequence of read-write transactions, the $i$th transaction reads from state version $v+i$ and updates the state version to $v+i+1$.
+Following this model, the state management interface exposes two API calls:
+
 \begin{itemize}
-    \item The logically decoupled state management layer is the main research contribution of our work.
-    \item The layer exposes a key-value interface, similar to many existing storage systems.
-    \item Each transaction generates a set of read and write keys, and invokes the interface to retrieve and update the state.
-    \item Such abstraction is compatible with most blockchain applications, including account-based smart contracts and UTXO-based transactions.
-    \item The state managed by the layer is versioned.
-    \item Unlike prior versioned data stores, each non-read-only transaction creates a new version of the entire state.
-    \item That is, given an initial state version $v$ and a sequence of transactions (assuming each transaction has some updates), the $i$th transaction reads from state version $v+i$ and updates the state version to $v+i+1$.
-    \item Following this model, the state management interface exposes two API calls.
-    \item $\fetch_{i}(k)$ returns the value of key $k$ in version $i$.
-    \item $\bump_{i}([k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots])$ creates a state version $i$. All keys in version $i$ maintains the same value in version $i-1$, except keys $k_1, k_2, \ldots$ which are updated to $v_1, v_2, \ldots$.
-    \item All replica nodes invoke the \fetch and \bump calls to access blockchain state.
-    \item Correctness of state management relies on the guarantees of the consensus and the execution layers.
-    \item Specifically, with a linearizable consensus protocol and correct, deterministic transaction executions, non-faulty replica nodes should generate an \emph{identical sequence} of \fetch and \bump calls.
-    \item Given this identical call sequence, the state management layer guarantees the following properties
-    \item State safety: On a correct replica node, $\fetch_{i}(k)$ returns the value of key $k$ in version $i$, where state version $i$ reflects the effect of applying $\bump_{1} \dots \bump_{i}$ to the initial state.
-    \item State availability: Every \fetch and \bump call issued by a correct replica node returns eventually.
-    \item Given that some correct replica node may run arbitrarily slow, naively enforcing state availability would require maintaining potentially unbounded state versions.
-    \item To address this issue, the state management layer defines a \emph{state persistence} property.
-    \item A state version is \emph{persistent} if the entire state can be retrieved or reconstructed from correct nodes.
-    \item We now refine the \fetch and \bump interface.
-    \item Suppose the highest persistent state version is $p$, a $\fetch_{i}$ or $\bump_{i}$ call on a correct node with $i < p$ returns $\forward(p)$.
-    \item A \forward indicates that the replica node can safely skip all transaction execution until version $p$, given that state version $p$ guarantees to be available in the system.
+    \item $\fetch_{i}(k)$ --- returns the value of key $k$ in version $i$.
+
+    \item $\bump_{i}([k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots])$ --- creates a state version $i$.
+    All keys in version $i$ have the same value as in version $i-1$, except keys $k_1, k_2, \ldots$ which are updated to $v_1, v_2, \ldots$.
 \end{itemize}
-}
+
+All replica nodes invoke \fetch and \bump calls to access blockchain state.
+Correctness of state management relies on the guarantees of the consensus and the execution layers.
+Specifically, with a linearizable consensus protocol and correct, deterministic transaction executions, non-faulty replica nodes should generate an \emph{identical sequence} of \fetch and \bump calls.
+Given this identical call sequence, the state management layer guarantees the following properties:
+
+\begin{itemize}
+    \item \textbf{State Safety}: If a correct replica node issues a $\fetch_{i}(k)$, the call returns the value of key $k$ in version $i$, where state version $i$ reflects the effect of applying $\bump_{1} \dots \bump_{i}$ to the initial state.
+
+    \item \textbf{State availability}: Every \fetch and \bump call issued by a correct replica node returns eventually.
+\end{itemize}
+
+Since some correct replica node may run arbitrarily slow, naively enforcing state availability would require maintaining potentially unbounded state versions.
+To address this issue, the state management layer defines a \emph{state persistence} property.
+A state version is \emph{persistent} if the entire state can be retrieved or reconstructed from correct nodes.
+We now refine the \fetch and \bump interface.
+Suppose the highest persistent state version is $p$, a $\fetch_{i}$ or $\bump_{i}$ call on a correct node with $i < p$ returns $\forward(p)$.
+A \forward indicates that the replica node can safely skip all transaction execution until version $p$;
+this is safe as the state version $p$ guarantees to be available in the system.
 
 \subsection{Design Challenges}
 \label{sec:arch:challenges}
