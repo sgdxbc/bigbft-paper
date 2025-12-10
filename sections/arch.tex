@@ -4,31 +4,27 @@
 \subsection{Architecture Overview}
 \label{sec:arch:overview}
 
-\lijl{Outline:
-\begin{itemize}
-    \item Architectural figure
-    \item Following our design principle in \autoref{sec:approach:case}, we propose a new blockchain architecture.
-    \item In this new architecture, a blockchain is logically partitioned into three layers: a consensus layer, an execution layer, and a state management layer.
-    \item The consensus layer and the execution layer are similar to traditional designs: the consensus layer establishes a total order of transactions, while the execution layer executes transactions in the agreed order.
-    \item However, the execution layer is stateless.
-    \item The state management layer maintains all world state.
-    \item It exposes an interface to retrieve and update state.
-    \item While executing a transaction, the execution layer invokes the state management interface to read and write world state.
-    \item This state-execution decoupled architecture supports multiple design options.
-    \item In this work, we advocate for a design that consists of \emph{logically} separated replica nodes and storage nodes.
-    \item A replica node implements protocols in the consensus layer and the execution layer.
-    \item It also includes a client-side state management library.
-    \item The storage nodes collectively implement the state management layer.
-    \item They are, however, only logical entities and do not represent physical deployment.
-    \item In our basic setup, each physical node maintains one logical replica node and storage node.
-    \item This setting offers canonical BFT correctness guarantees: a deployment of $3f+1$ physical nodes can tolerate any $f$ Byzantine failures.
-    \item Our model is flexible and supports other configurations.
-    \item For instance, each physical node can host more than one logical storage node.
-    \item Such deployment allows some participants to contribute more storage to increase the overall system capacity.
-    \item In this setting, the system can also tolerate any $f$ Byzantine physical nodes with a constraint that the number of storage nodes on the faulty nodes is within $\frac{1}{3}$ of the total storage nodes.
-    \item For the remainder of the paper, we only consider the basic setup to simplify discussion.
-\end{itemize}
-}
+Following our design principle in \autoref{sec:approach:case}, we propose a new state-execution decoupled blockchain architecture.
+As shown in \XXX, a blockchain is logically partitioned into three layers: a consensus layer, an execution layer, and a state management layer.
+The consensus layer and the execution layer follow the traditional design;
+the consensus layer establishes a total order of transactions, while the execution layer executes transactions in the agreed order.
+However, the execution layer is stateless.
+Instead, The state management layer maintains all world state, and exposes an interface to retrieve and update state.
+While executing a transaction, the execution layer invokes the state management interface to read and write world state.
+
+Our state-execution decoupled architecture supports multiple design options.
+In this work, we advocate for a design that consists of \emph{logically} separated replica nodes and storage nodes.
+A replica node implements protocols in the consensus layer and the execution layer.
+It also includes a client-side state management library.
+The storage nodes collectively implement the state management layer.
+The two node types are, however, only logical entities and do not represent physical deployment.
+In our basic configuration, each physical node maintains one replica node and one storage node.
+This setting offers canonical BFT correctness guarantees: A deployment of $3f+1$ physical nodes can tolerate any $f$ Byzantine failures.
+Our model is flexible and supports other configurations.
+For instance, each physical node can host more than one logical storage node.
+Such deployment allows a subset of participants to contribute more storage space to increase the overall system capacity.
+In this setting, the system can also tolerate any $f$ Byzantine physical nodes, but with an additional constraint that the number of storage nodes on the faulty nodes is within $\frac{1}{3}$ of the total storage nodes.
+For the remainder of the paper, we only consider the basic setup to simplify discussion.
 
 \subsection{State Management Layer}
 \label{sec:arch:layer}
