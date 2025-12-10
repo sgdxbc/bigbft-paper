@@ -70,19 +70,29 @@ Leveraging the direct transmission within the trust domain, the storage nodes do
 The storage nodes then load the shards of the previous checkpoint locally or \retrieves them from other storage nodes, apply the updates in the update tables, and construct the new shards themselves.
 After they store the new constructed shards according to the storage schema, the storage nodes broadcast \votec with the new shard commitments.
 
+\begin{figure}
+    \includegraphics[width=\linewidth]{figures/online-offline}
+    \caption{Separation of online and offline machines to isolate performance between retrieval and checkpointing.
+    The rounded rectangles represent physical machines, while the sharded area represents logical replica nodes and storage nodes.
+    }
+    \label{fig:online-offline}
+\end{figure}
+
+
 \paragraph{Performance isolation between fetching and checkpointing.}
 The separation of replica and storage nodes is logical, and the participants may choose to co-locate them on the same physical machines or even the same processes for resource efficiency.
 However, this co-location may cause performance interference between the fetching and checkpointing operations of the storage nodes.
 Notably, \retrieve RPCs are latency-sensitive with small data size, while \retrieves RPCs during checkpoints are bulk data transfers and only sensitive to throughput.
 This discrepancy in quality of service requirements causes that the deployment that optimizes one may degrade the performance of the other.
 
-To address this issue, we propose to rearrange the replica and storage node into an \emph{online} machine and an \emph{offline} machine for each participant.
+To address this issue, we propose to rearrange the replica and storage node into an \emph{online} machine and an \emph{offline} machine for each participant, as illustrated in \autoref{fig:online-offline}.
 The online machine contains the replica node and the primary copies stored by the storage node(s).
 It is equipped with low-latency network with relatively low bandwidth, sufficient memory and fast storage.
 The storage capacity of the online machine can be relatively small, since it only needs to store the primary copies of the shards, amount of which may even fit in memory.
 The offline machine contains the remaining part of the storage node(s).
 It is optimized for high-throughput bulk data transfer and equipped with high-bandwidth network and large storage.
+The online and offline machines of a participant can communicate via a direct trusted channel.
 
-During normal operations, the online machines exchange transactions with atomic broadcast and state values with \retrieve RPCs with their low latency network for maximum online performance.
-For checkpointing, the online machines directly apply the updates to their locally stored primary copies, and they stream state updates and forward checkpoint signals to their trusted offline machines.
-The offline machines exchange shards with \retrieves RPCs via the bulk transfer network and complete the checkpointing process without interfering with the online machines.
+With this deployment, the online machine only need to serve \retrieve requests and stream updates to the offline machine during normal operation besides the common consensus and client-bound traffic.
+As we later show in \autoref{sec:eval}, the traffic of \retrieve is relatively small compared to the consensus.
+The performance affection of SMS is thus minimized.

@@ -2,8 +2,9 @@
 \label{sec:intro}
 
 Blockchain state size is undergoing considerable augmentation.
-Prevailing permissionless distributed ledgers~\cite{buterin2014next, nakamoto2008bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:states-grow}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
-Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes potentially attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic,chang2008bigtable}, imposing impractical storage requirements at each node if the state is fully replicated.
+% Prevailing permissionless distributed ledgers~\cite{buterin2014next, bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:states-grow}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
+Prevailing permissionless distributed ledgers~\cite{buterin2014next, bitcoin} present state size spanning hundreds to thousands of gigabytes, exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
+Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes potentially attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic,bigtable}, imposing impractical storage requirements at each node if the state is fully replicated.
 \lijl{Is there any concrete evidence that these applications on blockchain actually require large state?}
 Can state size of a blockchain \emph{scales} with the system size, like traditional distributed databases?
 \lijl{Can first bring up traditional databases scale state size horizontally.}
@@ -17,7 +18,7 @@ Consequently, these approaches fail to uphold the conventional security assuranc
 %Ultimately, no prior sharding method achieves storage scalability without impacting safety and liveness properties.
 
 \begin{figure}
-    \includegraphics[width=0.9\linewidth]{figures/approach-compare}
+    \includegraphics[width=\linewidth]{figures/approach-compare}
     \caption{Comparison of BFT scalability approaches.
     Each rounded rectangle represents a replicated node.
     Each sharded area represents a fault-tolerant unit: a consensus committee can tolerate $f$ faulty nodes with $3f+1$ nodes, while a storage shard can tolerate $f$ faulty nodes with $f+1$ nodes.}
