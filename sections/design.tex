@@ -25,15 +25,6 @@ Once the checkpoint becomes durable, each replica node clears the update table u
 When serving a \fetch, the client-side library first searches the update table for the most recent update of the key.
 In case of a table miss, the library queries the latest state checkpoint from the storage nodes.
 
-\begin{figure}
-    \center
-    \includegraphics[width=\linewidth]{figures/checkpoint-message}
-    \caption{Checkpoint message flow of a shard.
-    Storage node 1 is responsible for the shard.
-    Replica node 4 is failed.}
-    \label{fig:checkpoint-message}
-\end{figure}
-
 The \sys storage nodes are responsible for creating, storing, and serving state checkpoints.
 To simplify management and to balance workload, \sys partitions state into equal-sized shards.
 \lijl{Mention that this ``sharding'' does not cause security issues.}
@@ -68,16 +59,6 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 
 \subsection{\sys Design Details}
 \label{sec:design:details}
-
-\begin{figure}
-    \center
-    \includegraphics[width=0.75\linewidth]{figures/reconfigure-message}
-    \caption{Reconfiguration message flow of a shard.
-    Storage node 1 is previously responsible for the shard and failed.
-    Storage node 2 is responsible for the shard after reconfiguration.}
-    \label{fig:reconfigure-message}
-\end{figure}
-
 
 % \begin{figure}
 %     \includegraphics[width=\linewidth]{figures/node-states}
@@ -114,6 +95,7 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 \end{table}
 
 We now provide design details of \sys.
+For the sake of space, the proof of correctness is deferred to supplementary material.
 \autoref{tab:messages} summarizes the protocol messages.
 The messages are categorized into two channels according to how they are delivered.
 The storage nodes RPC channel is unordered and unreliable point-to-point communication.
@@ -182,6 +164,23 @@ After checkpointing for round $c$, the storage nodes discard all stored data for
 
 \subsubsection{Replica Nodes}
 
+\begin{figure}
+    \center
+    \includegraphics[width=\linewidth]{figures/checkpoint-message}
+    \caption{Checkpoint message flow of a shard.
+    Storage node 1 is responsible for the shard.
+    Replica node 4 is failed.}
+    \label{fig:checkpoint-message}
+\end{figure}
+
+\begin{figure}
+    \center
+    \includegraphics[width=0.75\linewidth]{figures/reconfigure-message}
+    \caption{Reconfiguration message flow of a shard.
+    Storage node 1 (failed) and 2 are the responsible shards before and after reconfiguration.}
+    \label{fig:reconfigure-message}
+\end{figure}
+
 The execution layer sequentially processes the ordered messages delivered by the atomic broadcast protocol.
 If the message is a client transaction, it executes the transaction and accesses the state by calling \fetch and \bump according to the transaction logic.
 Otherwise, it forwards the message to the SMS for processing.
@@ -203,5 +202,7 @@ Then, it sends \retrieves requests to the responsible storage nodes, retrieves t
 After that, it applies the relevant updates in the update table snapshot to the retrieved shards and computes the new shard commitments.
 Next, SMS sends \pushss messages with the new shards to all the storage nodes and waits for $2f+1$ acknowledgments.
 After the SMS stores all the shards for round $c$, it discards the snapshot of the update table, and sends \votec messages for round $c+1$ with the new shard commitments.
+The message flow if checkpointing is illustrated in \autoref{fig:checkpoint-message}.
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
+The message flow of reconfiguration is illustrated in \autoref{fig:reconfigure-message}.
