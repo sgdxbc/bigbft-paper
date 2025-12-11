@@ -4,8 +4,6 @@
 \subsection{Blockchain Architecture}
 \label{sec:bg:blockchain}
 
-\lijl{Add a figure for the overall architecture}
-
 In a blockchain system, a set of mutually distrusted nodes collectively implements a replicated state machine~\cite{rsm}.
 The system maintains a \emph{world state}, typically an abstract mapping between keys or addresses to arbitrary values.
 Clients submit requests in the form of transactions.
@@ -23,24 +21,21 @@ This model can result in more scalable transaction execution, and permits non-de
 Our solution can be applied to both models;
 however, we only focus on the order-execute model in this paper given their wider adoption, and briefly discuss the execute-order model in \autoref{sec:rel}.
 
-\subsection{Blockchain Storage Layer}
-\label{sec:bg:storage}
-
-\lijl{Add a figure for the storage layer}
-
-Blockchain nodes may crash and lose all volatile state.
-When a node recovers, it needs to reconstruct its prior world state to continue normal operation.
-In theory, a node can replay the entire transaction history or transfer the entire state from other correct nodes.
-However, both approaches have impractical overhead for large-scale blockchains.
-All deployed blockchains~\cite{bitcoin,ethereum,sui,algorand}, therefore, include a storage layer in which each node stores the world state on non-volatile storage medium (\eg, SSD).
+\paragraph{Blockchain storage layer}
+%Blockchain nodes may crash and lose all volatile state.
+%When a node recovers, it needs to reconstruct its prior world state to continue normal operation.
+%In theory, a node can replay the entire transaction history or transfer the entire state from other correct nodes.
+%However, both approaches have impractical overhead for large-scale blockchains.
+All deployed blockchains~\cite{bitcoin,ethereum,sui,algorand} include a storage layer in which each node stores the world state on non-volatile storage medium (\eg, SSD).
+The layer facilitates faster failure recovery and increases state capacity of each node.
 Instead of reinventing storage solutions, existing blockchains typically reuse well-established persistent key-value stores such as LevelDB~\cite{leveldb} and RocksDB~\cite{rocksdb}.
 Accessing and updating the world state then use the \code{get(k)} and \code{put(k, v)} interfaces of the persistent key-value store.
 
-Concrete world state storage typically consists multiple search trees (trie).
-A transaction trie stores the committed (by the consensus layer) but yet to be executed transaction blocks.
-\lijl{Does it retain recently executed blocks?}
-A state trie maintains detailed information of each blockchain account (\eg, account balance).
-For blockchains that support smart contracts, a separate trie stores the contract data for each created smart contract.
+%Concrete world state storage typically consists multiple search trees (trie).
+%A transaction trie stores the committed (by the consensus layer) but yet to be executed transaction blocks.
+%\lijl{Does it retain recently executed blocks?}
+%A state trie maintains detailed information of each blockchain account (\eg, account balance).
+%For blockchains that support smart contracts, a separate trie stores the contract data for each created smart contract.
 
 Several techniques have been applied to optimize the blockchain storage layer performance.
 Blockchains such as Ethereum store the world state as a Patricia trie~\cite{taocpv3} to reduce storage overhead.
@@ -60,14 +55,13 @@ To overcome the slow storage I/O performance, prior systems commonly apply batch
     \label{fig:bc-state-size}
 \end{figure}
 
-To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system \lijl{find citations here}\gd{storage work on archival nodes should be relevant}~\cite{ruan2019fine,feng2024slimarchive}.
+To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system~\cite{ruan2019fine,feng2024slimarchive}.
 However, they still mandate each participating node to store the entire world state in its storage layer.
-As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
-\lijl{I wonder if persistence storage also improves security of the entire network against wider failures. This part requires a bit more consideration.}
+%As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
 
 World state size of deployed blockchains does not remain constant.
 New user, wallet, and contract accounts are continuously being created.
-It is also common for inactive accounts to remain on a blockchain for years or even decades \lijl{or maybe forever? Find sources to support the presence of many dormant accounts}\gd{Done}.
+It is also common for inactive accounts to remain on a blockchain for years or even decades.
 A recent study on Ethereum~\cite{notallstate2025} shows that 63.3\% of the world state has never been accessed since their creation.
 Moreover, the state associated with each account can have non-trivial size.
 For instance, besides the account balance, each account in Ethereum contains also stores a nonce and multiple hash values;
@@ -96,7 +90,7 @@ Handling larger state is not a unique problem for blockchains.
 Prior distributed storage~\cite{gfs, bigtable} and database~\cite{spanner} systems address this challenge by \emph{horizontally scaling} the system to provide higher aggregated storage capacity.
 It is, therefore, desirable to enable similar \emph{storage scalability} to blockchain system.
 Storage scalability here means that with any additional storage capacity (\eg, more nodes joining or a subset of the nodes expanding their storage), the blockchain can accommodate larger world state.
-Besides horizontal scaling, the property also enables nodes with larger capacity to fully utilized their storage resources, while nodes with smaller disks can still participate in the network.
+Besides horizontal scaling, the property also enables nodes with larger capacity to fully utilized their storage resources, while nodes with smaller disks can still participate.
 \lijl{Do we need to explain this last point?}
 
 \subsection{Prior Storage Scaling Solutions}
@@ -125,8 +119,6 @@ OmniLedger~\cite{kokoris2018omniledger} can only tolerate $\frac{1}{4}$ faulty n
 RapidChain~\cite{zamani2018rapidchain} assumes a synchronous network model.
 The sharded blockchain in \cite{dang2019towards} requires trusted execution environment on all participants.
 
-\lijl{Should we discuss monoxide here?}
-
 \paragraph{Stateless blockchains.}
 Stateless blockchain~\cite{xu2021slimchain,boneh2019batching,chepurnoy2018edrax,tomescu2020aggregatable,xu2022l2chain,lee2020replicated} is a recent approach that outsources blockchain state and transaction execution to external nodes.
 These external nodes submit transaction execution results and succinct proofs to the blockchain nodes, which are only responsible for result validation and reaching agreement on execution order.
@@ -139,7 +131,7 @@ Any state loss in the external nodes halts the entire blockchain.
 The blockchain nodes also loses control of transaction ordering to ensure properties such as fairness.
 Moreover, the approach does not fundamentally address storage scalability, just pushing the issue to a different layer.
 Each external node still needs to store the entire state.
-Partitioning the state among external nodes suffer identical security issues in sharded blockchains.
+Supporting state partitioning across external node in stateless blockchains is also fundamentally hard, and no prior research has addressed this challenge.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
