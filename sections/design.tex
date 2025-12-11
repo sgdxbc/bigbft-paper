@@ -26,6 +26,7 @@ In case of a table miss, the library queries the latest state checkpoint from th
 
 The \sys storage nodes are responsible for creating, storing, and serving state checkpoints.
 To simplify management and to balance workload, \sys partitions state into equal-sized shards.
+\lijl{Mention that this ``sharding'' does not cause security issues.}
 During state checkpointing, \sys applies an $RS(3f+1, f+1)$ erasure code to encode each shard into $3f+1$ chunks.
 These chunks are distributed across all the storage nodes.
 Our approach ensures both state availability and storage scalability.
