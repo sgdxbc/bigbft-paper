@@ -90,7 +90,7 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{@{}lp{0.5\linewidth}@{}}
 \toprule
-\textbf{Message} & \textbf{Data} \\
+\textbf{Message Type} & \textbf{Message Data} \\
 \midrule
 \multicolumn{2}{@{}l}{\textit{Storage nodes RPC}} \\
 \midrule
@@ -108,128 +108,99 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 \voter{}              & epoch, round, replica node ID, nonce \\
 \bottomrule
 \end{tabular}
-\caption{SMS messages grouped by channel.}
+\caption{\sys state management protocol messages grouped by channel}
 \label{tab:messages}
 \end{table}
 
-In this section, we detail the data structures and the algorithms of the replica and the storage nodes and the protocol between them.
-The messages used in the protocol are summarized in \autoref{tab:messages}.
+We now provide design details of \sys.
+\autoref{tab:messages} summarizes the protocol messages.
 The messages are categorized into two channels according to how they are delivered.
-The storage nodes RPC channel is unordered and unreliable point-to-point communication, and the storage nodes respond to the requests to serve and update their stored data.
-The \retrieve, \retrieves and \pushss requests are sent by the replica nodes, while the \getsc requests are sent by the peer storage nodes.
+The storage nodes RPC channel is unordered and unreliable point-to-point communication.
+% and the storage nodes respond to the requests to serve and update their stored data.
+\retrieve, \retrieves and \pushss requests are sent by the replica nodes, while \getsc requests are sent by the peer storage nodes.
 
 The atomic broadcast channel is a reliable total order broadcast provided by the underlying BFT atomic broadcast protocol.
-The broadcast messages are sent by the replica nodes submitting them as client transactions to the atomic broadcast protocol.
+Replica nodes initiate these two message types.
+%submitting them as client transactions to the atomic broadcast protocol.
 % Both types of messages are subscribed by both the replica and storage nodes.
 A checkpoint signal is formed after the atomic broadcast protocol delivers $2f+1$ matching \votec messages from distinct storage nodes, and a reconfiguration signal is formed after delivering $f+1$ \voter messages with matching epoch and round from distinct replica nodes.
-The \votec messages are ordered with the client requests to ensure the replica nodes checkpoint the same version of the state.
-The \voter messages are ordered so that all nodes reconfigure with the same set of nonces as the seed.
+The \votec messages are ordered together with the client requests.
+This ensures that all replica nodes checkpoint the same state version.
+The \voter messages are ordered so that all nodes reconfigure with the same set of nonce as the seed.
 These signals are subscribed by both replica and storage nodes.
-The storage nodes can subscribe to signals via relaying by their trusted replica nodes, i.e., the replica nodes hosted by their operators.
+%The storage nodes can subscribe to signals via relaying by their trusted replica nodes, i.e., the replica nodes hosted by their operators.
 
 Every RPC request and atomic broadcast message contains a \emph{round} number, which indicates the checkpoint round the message belongs to.
 The round number starts from 0 at system startup and increments by one after each checkpoint round.
-The \voter messages also contain an \emph{epoch} number to indicate the number of reconfigurations that have happened, because reconfiguring to the same round may happen multiple times.
+The \voter messages also contain an \emph{epoch} number to indicate the number of reconfigurations that have occurred.
+%because reconfiguring to the same round may happen multiple times.
 
 \subsubsection{Randomized Replication Scheme}
 
-The SMS first maps each key to a shard ID using a hash function.
-Next, for each shard, it needs to set up full copies on the responsible storage nodes for retrieval.
-We call the mapping from shards to their responsible nodes the \emph{placement}.
-Suppose there are $N$ storage nodes and $k$ shards, we want the placement to:
-\begin{itemize}
-    \item Replicate each shard to exact $r$ storage nodes;
-    \item Balance the load across all storage nodes, that is, each storage node should be responsible for at most $\lceil rk/N \rceil$ shards, and
-    \item The probability that each node is responsible for a given shard is uniform across all nodes.
-\end{itemize}
+The state management system (SMS) first maps each key to a shard ID using a hash function.
+Next, for each shard, it determines a \emph{placement}, mapping full shard copies to responsible nodes.
+%full copies on the responsible storage nodes for retrieval.
+%We call the mapping from shards to their responsible nodes the \emph{placement}.
+Suppose there are $N$ storage nodes and $k$ shards, we want the placement to 1) replicate each shard to exact $r$ storage nodes, 2) balance the load across all storage nodes, \ie, each storage node is responsible for at most $\lceil rk/N \rceil$ shards, and 3) the probability that each node is responsible for a given shard is uniform across all nodes.
+
 To achieve these goals, we choose a simple Markov-chain algorithm~\cite{kannan1999simple} to generate the placement.
 The algorithm starts with an initial placement that assigns each shard $i$ to $r$ (circular) consecutive storage nodes starting with node $i \mod N$.
-Then, it repeatedly selects two shards and two storage nodes at random so that each of the nodes is responsible for exactly one of the shards, and swaps the two shards between the two nodes.
+Next, it repeatedly selects two shards and two storage nodes at random so that each of the nodes is responsible for exactly one of the shards, and swaps the two shards between the two nodes.
 After sufficient number of swapping, the placement converges to a uniform distribution.
 It also satisfies the replication and load balancing requirements, because the initial placement satisfies them and each swap preserves them.
 
-The randomization procedure is performed with a seeded pseudo-random number generator whose seed is fed from the nonces of $f+1$ \voter messages.
+The randomization procedure is performed with a seeded pseudo-random number generator whose seed is fed from the nonce of the $f+1$ \voter messages.
 Each node can independently compute the placement for the shards with the seed during each reconfiguration.
 These \voter messages are agreed upon via atomic broadcast, so the placement is consistent across all nodes.
-Because at least one of the $f+1$ replica nodes sending the \voter messages is correct, the seed is unpredictable to the adversary.
+Because at least one of the $f+1$ replica nodes sending the \voter messages is correct, the seed is unpredictable to adversaries.
 
 \subsubsection{Storage Nodes}
 
-The storage nodes are designed as ``dumb'' storage servers with minimal logic.
+The storage nodes are designed as ``dumb'' storage servers.
 The stored unit is a shard, and the storage nodes store a shard of a round when it receives $f+1$ matching \pushss messages from distinct replica nodes, ensuring the integrity of the shard.
 Then, the stored shard can be retrieved in three different ways: via \retrieve, \retrieves, and \getsc requests.
-The responsible nodes respond to all three types of requests, while the non-responsible nodes only respond to \getsc requests.
+The responsible nodes respond to all three types of requests, while non-responsible nodes only respond to \getsc requests.
 
 \paragraph{Storage schema.}
-The responsible nodes need to store the shard in a way that allows efficient response to \retrieve and \retrieves requests.
-For responding \retrieve, the node needs to extract the sibling hashes of the key from the Merkle tree to form the inclusion proof.
-For responding \retrieves, the node needs to extract the key value pairs of a specific shard if it is responsible for multiple shards.
-To store a shard, the responsible node first sort the keys in the shard in lexicographical order.
-Then, it constructs a Merkle tree whose leaves are the hash of the sorted key-value pairs.
+We design storage schema to enable efficient responses to \retrieve and \retrieves.
+For \retrieve, a node needs to extract the sibling hashes of the key from the Merkle tree to form the inclusion proof.
+For \retrieves, the node needs to extract the key value pairs of a specific shard if it is responsible for multiple shards.
+To store a shard, the responsible node first sorts the keys in the shard in lexicographical order.
+Next, it constructs a Merkle tree whose leaves are the hash of the sorted key-value pairs.
 Then it stores each key prepended with the shard ID in big endian, and the value appended with its index in the sorted order.
-To respond to \retrieve requests, the node first determine the shard ID of the requested key, combines the shard ID with the key to get the value and its index from the storage, and then select the sibling hashes from the Merkle tree with the index.
-To respond to \retrieves requests, the node seeks to the shard ID and iterates through the keys prefixed with the shard ID.
-Addtionallly, every storage node serializes the (sorted) shard into a byte array and encode it with the RS$(3f+1, f+1)$ erasure code.
+To respond to a \retrieve, the node first determines the shard ID of the requested key, combines the shard ID with the key to get the value and its index from the storage, then selects the sibling hashes from the Merkle tree with the index.
+To respond to a \retrieves, the node seeks to the shard ID and iterates through the keys prefixed with the shard ID.
+Each storage node also serializes the (sorted) shard into a byte array and encodes it with the RS$(3f+1, f+1)$ erasure code.
 They select one encoded chunk to store according to the storage node ID.
-The chunk is stored in a dedicated column family of RocksDB with the shard ID as the key.
+The chunk is stored in a dedicated column family of RocksDB~\cite{rocksdb} with the shard ID as the key.
 
-On the reconfiguration signals, the storage nodes reseed the randomized placement scheme and determine their new responsibilities.
+During reconfiguration, the storage nodes reseed the randomized placement scheme and determine their new responsibilities.
 Then, they exchange necessary chunks with each other via \getsc RPCs.
-After the new $r$ responsible nodes have reconstructed the shard, they start to respond to \retrieve and \retrieves requests for the shard.
-On the checkpoint signals of round $c$, the storage nodes discard all stored data for rounds before $c-1$ and starts to accept \pushss messages for round $c$.
+After the new $r$ responsible nodes have reconstructed the shard, they start to respond to \retrieve and \retrieves for the shard.
+After checkpointing for round $c$, the storage nodes discard all stored data for rounds before $c-1$ and starts to accept \pushss for round $c$.
 
 \subsubsection{Replica Nodes}
 
 The execution layer sequentially processes the ordered messages delivered by the atomic broadcast protocol.
-If the message is a client transaction, it executes the transaction and accesses the state by calling \fetch and \bump according to the application logic.
-Otherwise, if the message is an SMS message, it forwards the message to the SMS for processing.
+If the message is a client transaction, it executes the transaction and accesses the state by calling \fetch and \bump according to the transaction logic.
+Otherwise, it forwards the message to the SMS for processing.
 The SMS maintains the current checkpoint round, an update table and a cache (\autoref{sec:impl}) on the replica nodes.
 On \bump operations, the SMS records the updated keys and their new values in the update table.
-On \fetch operations, the SMS first checks the update table for the requested key and return the value directly if found.
-If not found, it checks the cache and lastly resorts to sending \retrieve requests to the storage nodes on cache miss.
+On \fetch operations, the SMS first checks the update table for the requested key and returns the value directly if found.
+If not found, it checks the cache, and lastly resorts to sending \retrieve requests to the storage nodes on a cache miss.
 The \retrieve requests are batched to reduce communication overhead (\autoref{sec:impl}).
 After getting the responses, the SMS verifies the values and proofs against the shard commitment, updates the cache, and returns the values to the execution layer.
 
-The SMS suspects liveness failure if the \retrieve requests are not (correctly) responded within a timeout.
-In this case, it increments the epoch and sends \voter messages with its current checkpoint round and a random nonce to the atomic broadcast protocol.
+The SMS suspects a liveness failure if the \retrieve requests are not (correctly) responded within a timeout.
+In such cases, it increments the epoch and sends \voter messages with its current checkpoint round and a random nonce to the atomic broadcast protocol.
 
 The SMS also records the forwarded \votec and \voter messages and forms the checkpoint and reconfiguration signals.
 It sends \votec for the first round of checkpointing at system startup.
-On checkpoint signals of round $c$, the SMS performs the checkpointing procedure as follows, except if it's current round is less than $c-1$, in which case it absents from the checkpointing procedure and \forward to the version corresponds to round $c-1$.
+On checkpoint signals of round $c$, the SMS performs the checkpointing procedure as follows, except if its current round is less than $c-1$, in which case it skips the checkpointing procedure and \forward to the version corresponds to round $c-1$.
 For checkpointing, SMS first snapshots the current update table.
 Then, it sends \retrieves requests to the responsible storage nodes, retrieves the shards, and verifies them against the shard commitments in the \votec messages.
-After that, it applies the relevant updates in the update table snapshot to the retrieved shards and computes the new shard commitments
-SMS then sends \pushss messages with the new shards to all the storage nodes and waits for $2f+1$ acknowledgments.
+After that, it applies the relevant updates in the update table snapshot to the retrieved shards and computes the new shard commitments.
+Next, SMS sends \pushss messages with the new shards to all the storage nodes and waits for $2f+1$ acknowledgments.
 After the SMS stores all the shards for round $c$, it discards the snapshot of the update table, and sends \votec messages for round $c+1$ with the new shard commitments.
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
-
-\subsubsection{State Safety and Availability Proof}
-
-Now we prove that the SMS design described above provides state availability guarantees as stated in \autoref{sec:arch}.
-The state availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and state safety means it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
-The values of version $i$ are created with the $\bump_{i}(k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots)$ operation, where the values of $k_1, k_2, \ldots$ are $v_1, v_2, \ldots$ respectively, and the values of other keys remain the same as version $i-1$.
-
-Firstly, we examine the last checkpointed version $p$, which is the version that the second last checkpoint signal corresponds to.
-We only need to consider safety of $\fetch_{i}(k)$ operations when $i \geq p$.
-If $i < p$, the operation will return \forward according to the garbage collection rule, and we can simply show that this happens on at most $f$ correct replica nodes.
-If there are more than $f$ correct replica nodes calling $\fetch_{i}(k)$ with $i < p$, they must be absent from the checkpointing procedure of version $p$, which means they did not send \votec messages in the round that checkpoints the version $p$.
-However, the checkpoint signal for that round is formed with $2f+1$ matching \votec messages, which leads to a contradiction.
-In conclusion, the $\fetch_{i}(k)$ operations with $i < p$ ensure both availability and safety.
-
-Next, we consider the $\fetch_{i}(k)$ operations where $i \geq p$.
-According to the garbage collection rule, the replica nodes keep all the updates since version $p$ locally in the update table.
-Thus, any $\fetch_{i}(k)$ operation where $k$ was updated after version $p$, i.e., appeared in some $\bump_{j}(\ldots)$ operation where $j > p$, will return correctly from the update table.
-Otherwise, if $k$ was not updated after version $p$, $\fetch_{i}(k)$ should return the same value as $\fetch_{p}(k)$, so the value of $k$ in the checkpoint is the desired value, and the replica nodes send \retrieve requests to the storage nodes.
-The state safety follows directly from the Merkle proof verification.
-Now we prove the state availability of these \retrieve requests.
-
-We first show that every reconfiguration attempt will eventually complete.
-The last checkpoint has at least $f+1$ encoded chunks stored on distinct correct storage nodes.
-This is because that the \pushss messages for the last checkpoint must have been acknowledged by at least $2f+1$ storage nodes, among which at least $f+1$ are correct nodes.
-During a reconfiguration, the correct responsible storage nodes (after reconfiguration) send \getsc requests to all storage nodes.
-They can detect faulty responses with the stored chunk hashes, and they are guaranteed to retrieve $f+1$ correct chunks from correct storage nodes and reconstruct the shard.
-Thus, every reconfiguration attempt will eventually complete.
-Because the placement is uniformly random, the probability that all $r$ responsible storage nodes are faulty in $x$ consecutive reconfigurations is at most $(\frac{f}{N})^{rx}$, which decreases exponentially with both $r$ and $x$.
-After sufficiently many reconfigurations, with high probability at least one correct storage node will be assigned as responsible for the shard, and the \retrieve requests will eventually return with the correct value.
-Thus, the $\fetch_{i}(k)$ operations with $i \geq p$ ensure both availability and safety.

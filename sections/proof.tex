@@ -1,0 +1,29 @@
+\section{Correctness Proof}
+
+We now prove that the SMS design described above provides state availability guarantees as stated in \autoref{sec:arch}.
+The state availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and state safety means it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
+The values of version $i$ are created with the $\bump_{i}(k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots)$ operation, where the values of $k_1, k_2, \ldots$ are $v_1, v_2, \ldots$ respectively, and the values of other keys remain the same as version $i-1$.
+
+Firstly, we examine the last checkpointed version $p$, which is the version that the second last checkpoint signal corresponds to.
+We only need to consider safety of $\fetch_{i}(k)$ operations when $i \geq p$.
+If $i < p$, the operation will return \forward according to the garbage collection rule, and we can simply show that this happens on at most $f$ correct replica nodes.
+If there are more than $f$ correct replica nodes calling $\fetch_{i}(k)$ with $i < p$, they must be absent from the checkpointing procedure of version $p$, which means they did not send \votec messages in the round that checkpoints the version $p$.
+However, the checkpoint signal for that round is formed with $2f+1$ matching \votec messages, which leads to a contradiction.
+In conclusion, the $\fetch_{i}(k)$ operations with $i < p$ ensure both availability and safety.
+
+Next, we consider the $\fetch_{i}(k)$ operations where $i \geq p$.
+According to the garbage collection rule, the replica nodes keep all the updates since version $p$ locally in the update table.
+Thus, any $\fetch_{i}(k)$ operation where $k$ was updated after version $p$, i.e., appeared in some $\bump_{j}(\ldots)$ operation where $j > p$, will return correctly from the update table.
+Otherwise, if $k$ was not updated after version $p$, $\fetch_{i}(k)$ should return the same value as $\fetch_{p}(k)$, so the value of $k$ in the checkpoint is the desired value, and the replica nodes send \retrieve requests to the storage nodes.
+The state safety follows directly from the Merkle proof verification.
+Now we prove the state availability of these \retrieve requests.
+
+We first show that every reconfiguration attempt will eventually complete.
+The last checkpoint has at least $f+1$ encoded chunks stored on distinct correct storage nodes.
+This is because that the \pushss messages for the last checkpoint must have been acknowledged by at least $2f+1$ storage nodes, among which at least $f+1$ are correct nodes.
+During a reconfiguration, the correct responsible storage nodes (after reconfiguration) send \getsc requests to all storage nodes.
+They can detect faulty responses with the stored chunk hashes, and they are guaranteed to retrieve $f+1$ correct chunks from correct storage nodes and reconstruct the shard.
+Thus, every reconfiguration attempt will eventually complete.
+Because the placement is uniformly random, the probability that all $r$ responsible storage nodes are faulty in $x$ consecutive reconfigurations is at most $(\frac{f}{N})^{rx}$, which decreases exponentially with both $r$ and $x$.
+After sufficiently many reconfigurations, with high probability at least one correct storage node will be assigned as responsible for the shard, and the \retrieve requests will eventually return with the correct value.
+Thus, the $\fetch_{i}(k)$ operations with $i \geq p$ ensure both availability and safety.
