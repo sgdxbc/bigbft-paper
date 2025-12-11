@@ -1,98 +1,58 @@
 \section{Implementation}
 \label{sec:impl}
 
-We implemented a prototype of \sys to validate its design and evaluate its performance.
-The atomic broadcast protocol used by the replica nodes is a partial synchronous Bullshark~\cite{spiegelman2022bullshark} implemented from scratch.
-It offers scalable performance and works well with large number of replica nodes.
-We choose RocksDB as the underlying storage engine.
+We built a \sys prototype to validate its design and performance.
+Replica nodes run a partial-synchronous Bullshark~\cite{spiegelman2022bullshark} implementation from scratch and use RocksDB for storage.
 
-The choice of the number of shards $k$ has several constraints.
-Firstly, the shard size is determined by the state size divided by $k$, which must be fit in the memory of the replica and storage nodes.
-Secondly, to ensure load balancing among the storage nodes, $k$ should be significantly larger than the number of storage nodes $N$.
-On the other hand, having too many shards increases the overhead of managing them (e.g., the number of shard hashes in \votec messages) and increase the latency of checkpointing.
-Therefore, $k$ should be chosen to balance these trade-offs based on the system parameters and resource constraints.
-We implemented \sys with $k=1000$ shards, which works well in our evaluation settings.
-Reconfiguration can be simply extended to support changing the number of storage nodes and/or shards.
+\paragraph{Shard sizing and counts.}
+The number of shards $k$ must balance memory fit (state size/$k$), load balancing ($k \gg N$ storage nodes), and management/checkpoint overhead (more shard hashes in \votec and longer checkpointing).
+We therefore use $k=1000$, which fits our evaluation, and reconfiguration can adjust $k$ and $N$ as needed.
+We set $r=7$, yielding 99.9\% data availability.
 
-We set $r=7$ in our implementation, corresponding to 99.9\% data availability of the replication.
-
-In the following, we discuss several important considerations in practice.
-
-\paragraph{Replica node local caching.}
-RocksDB employs an in-memory LRU cache to cache frequently accessed key-value pairs.
-While this cache may enable storage nodes to serve \retrieve without disk access, we still pay for the network traffic and latency and the verification overhead.
-So we move the cache from the storage nodes to the replica nodes by disabling RocksDB's cache in the storage nodes and manually employ an in-memory LRU cache in the replica nodes.
-This does not change the memory usage of the replica nodes compared to the full replication approach, which has the RocksDB with its cache on the replica nodes.
-In our evaluation, we set the same cache size to this cache of \sys and the RocksDB cache of the compared systems.
+\paragraph{Replica-local caching.}
+We disable RocksDB’s cache on storage nodes and instead use an in-memory LRU cache at replicas.
+This keeps the replica memory footprint comparable to full replication while avoiding the combined network and verification cost when storage nodes would otherwise serve cached data.
+We size this cache to match the RocksDB cache size in the baseline systems.
 
 \paragraph{Batched fetching and retrieval.}
-While the retrieval supported by replication is lightweight in computation and network, the latency of retrieval can cause significant performance degradation.
-Especially when under the geo-distributed settings where the latencies between nodes can be hundreds of milliseconds, a sequential ``fetch-execute-post'' cycle for each transaction can result in single digit TPS while wasting a lot of processor and network resources.
-\sys employs batching to mitigate this issue.
-The execution layer executes a block of transactions or even multiple blocks of transactions at a time.
-By executing the transaction blocks, the execution layer concurrently \fetch all keys required by the transactions in the blocks.
-SMS also serves the \fetch requests in batch, concurrently \retrieve multiple keys from the storage nodes.
-After the execution, the execution layer issues a single \bump with the updates of all transactions in the blocks.
-This batching technique enables thousands or even tens of thousands of transactions to be ready for execution after a single round-trip communication with the storage nodes, significantly improving the throughput.
-
-To realize batched fetching, the execution layer needs to be able to predict the keys required by the transactions in advance, before their prior transactions are executed.
-This can be achieved by application-level static analysis of the transactions, or with programmer annotations.
-For example, Ethereum supports transaction account lists, which specify the accounts that a transaction may read or write~\cite{heimbach2024dissecting}.
-For the YCSB and UTXO applications we evaluated in \autoref{sec:eval}, the keys required by each transaction are known in advance.
-Additionally, the execution layer also need to fulfill the read-after-write data dependencies among transactions in the batch.
-After each transaction is executed, its updates are applied to the state of the following transactions immediately.
-
-In advance, it may be possible to further optimize the resource utilization with pipelined fetching and execution.
-While the execution layer is executing a batch of transactions, the SMS can start fetching the keys required by the next batch of transactions.
-Currently, we evaluate \sys with simple applications with minimal execution cost, so we have not implemented this optimization since the fetching already takes place almost all the time.
-For more heavy-weight applications such EVM, this optimization can further improve the network utilization by not waiting for execution to finish.
+Sequential fetch, execute, and post collapses throughput under high latency. Each transaction waits one retrieval RTT, which could be hundreds of milliseconds in WAN settings, leading to single-digit TPS and idle CPU and network resources.
+So \sys batches: the execution layer processes blocks of transactions, concurrently \fetch all needed keys, SMS batches \retrieve RPC requests, and the execution layer issues one \bump for all block updates.
+Thousands of transactions thus become ready after a single round trip, greatly improving throughput.
+Also, when the same key is accessed multiple times in a batch, SMS deduplicates retrievals to avoid redundant network and disk work.
+Batched fetching requires knowing keys ahead of execution (via static analysis or annotations, e.g., Ethereum access lists~\cite{heimbach2024dissecting}).
+The YCSB and UTXO applications used in our evaluation (\autoref{sec:eval}) have keys known a priori.
+Read-after-write within a batch is preserved by maintaining an intermediate intra-batch partial state.
+Pipelining fetch and execution could further improve utilization for heavier workloads (e.g., EVM), but we omit it because fetching already dominates in our lightweight evaluations.
 
 \paragraph{Primary copies.}
-To retrieve a value of a key, the replica nodes retrieve it from $r$ responsible storage nodes.
-This results in $r$ times amplification of network traffic and disk reads.
-To prevent this wasting, one of the $r$ responsible nodes is designated as the \emph{primary node}.
-When the trusted replica node of the primary node \retrieve a key, the primary node also pushes the retrieved value to all the other replica nodes.
-At the same time, if a replica node is about to \retrieve a key from $r$ untrusted storage nodes, it first waits for a short timeout for the primary node to push the value.
-In this way, only the primary node needs to read the value from disk and send it over the network, saving resources on the other responsible nodes.
-If the timeout expires, the replica node falls back to retrieving the value from all responsible nodes as usual.
-
-Naively applying this optimization has the vulnerability that faulty primary nodes can cause significant performance degradation.
-We avoid this vulnerability by requiring the primary nodes to also push the values to the other responsible nodes, who will monitor the behavior of the primary nodes.
-If a primary node fails to correctly push the values, the other responsible nodes can detect this misbehavior and assign new primary nodes in a deterministic order.
-Every correct responsible node will continuously push for a certain period of time even if the previous primary node is back to normal, so the performance impact of faulty primary nodes is minimized.
+Each key resides on $r$ nodes, and naïvely retrieving from all $r$ multiplies network and disk cost.
+We therefore designate one responsible node as primary: when its trusted replica issues a \retrieve RPC request for a key, the primary pushes the value to other replicas.
+Replica nodes first hold the \retrieve request briefly to await this push and only then fall back to fetching from all $r$ if the push does not arrive within the timeout.
+To avoid faulty primaries degrading performance, primaries also push to other responsible nodes, which monitor and deterministically replace misbehaving primaries.
+Replacements keep pushing for a short grace period even after the faulty primary recovers, ensuring continuity and bounding performance impact.
 
 \paragraph{Offload shard construction to storage nodes.}
-In the design of \sys, the replica nodes construct the new shards during checkpointing, while the storage nodes expose simplistic RPCs with basic store and retrieve operations.
-We can further reduce the workload of the replica nodes by offloading the shard construction to the storage nodes.
-Instead of storing constructed shards, the replica nodes can send the original update tables to their trusted storage nodes.
-(The replica nodes without trusted storage nodes do not need to participate in checkpointing.)
-Leveraging the direct transmission within the trust domain, the storage nodes do not need to collect matching update tables from multiple replica nodes.
-The storage nodes then load the shards of the previous checkpoint locally or \retrieves them from other storage nodes, apply the updates in the update tables, and construct the new shards themselves.
-After they store the new constructed shards according to the storage schema, the storage nodes broadcast \votec with the new shard commitments.
+The baseline design has replicas construct new shards during checkpointing while storage nodes expose simple store and retrieve operations.
+We can offload construction by having replicas send update tables to their trusted storage nodes (replicas without trusted storage nodes skip checkpointing).
+Leveraging trusted direct transmission, storage nodes do not need to collect matching update tables from multiple replicas.
+Storage nodes then drive checkpointing independently of replicas: they load or send \retrieves for prior shards, apply updates, construct new shards, compute hashes, and broadcast \votec messages to finalize the checkpoint.
 
 \begin{figure}
     \includegraphics[width=\linewidth]{figures/online-offline}
     \caption{Separation of online and offline machines to isolate performance between retrieval and checkpointing.
-    The rounded rectangles represent physical machines, while the sharded area represents logical replica nodes and storage nodes.
+    The rounded rectangles represent physical machines, while the shaded area represents logical replica nodes and storage nodes.
     }
     \label{fig:online-offline}
 \end{figure}
 
+\paragraph{Performance isolation between retrieval and checkpointing.}
+Replica and storage nodes are logically separate but may be co-located on the same physical machines for resource efficiency.
+However, co-location can cause performance interference: \retrieve RPCs are latency-sensitive with small payloads, whereas checkpoint \retrieves are bulk transfers that require high throughput but are insensitive to latency.
+Deployments optimized for one may degrade the other.
 
-\paragraph{Performance isolation between fetching and checkpointing.}
-The separation of replica and storage nodes is logical, and the participants may choose to co-locate them on the same physical machines or even the same processes for resource efficiency.
-However, this co-location may cause performance interference between the fetching and checkpointing operations of the storage nodes.
-Notably, \retrieve RPCs are latency-sensitive with small data size, while \retrieves RPCs during checkpoints are bulk data transfers and only sensitive to throughput.
-This discrepancy in quality of service requirements causes that the deployment that optimizes one may degrade the performance of the other.
-
-To address this issue, we propose to rearrange the replica and storage node into an \emph{online} machine and an \emph{offline} machine for each participant, as illustrated in \autoref{fig:online-offline}.
-The online machine contains the replica node and the primary copies stored by the storage node(s).
-It is equipped with low-latency network with relatively low bandwidth, sufficient memory and fast storage.
-The storage capacity of the online machine can be relatively small, since it only needs to store the primary copies of the shards, amount of which may even fit in memory.
-The offline machine contains the remaining part of the storage node(s).
-It is optimized for high-throughput bulk data transfer and equipped with high-bandwidth network and large storage.
-The online and offline machines of a participant can communicate via a direct trusted channel.
-
-With this deployment, the online machine only need to serve \retrieve requests and stream updates to the offline machine during normal operation besides the common consensus and client-bound traffic.
-As we later show in \autoref{sec:eval}, the traffic of \retrieve is relatively small compared to the consensus.
-The performance affection of SMS is thus minimized.
+We therefore propose splitting each participant into \emph{online} and \emph{offline} machines connected by a trusted channel (\autoref{fig:online-offline}).
+The online machine hosts the replica node and primary copies, handling latency-sensitive \retrieve requests and consensus communication.
+As shown in \autoref{sec:eval}, \retrieve traffic remains small relative to consensus, so the online machine's network demands resemble those of a fully-replicated BFT node.
+It requires moderate storage (only primary copies, potentially fitting in memory with aggressive caching) and low-latency network.
+The offline machine hosts remaining storage and handles bulk checkpoint transfers, prioritizing high-bandwidth network and large storage capacity.
+A typical deployment pairs a high-performance server (online) with a cost-effective storage server (offline).
