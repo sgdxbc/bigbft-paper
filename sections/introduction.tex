@@ -42,7 +42,13 @@ All state fetches are served solely by the shard replicas.
 When all replicas of a shard fail, \sys re-replicates the shard using reconstructed state from encoded chunks.
 
 We show that \sys is a practical design using large-scale experiments.
-\lijl{Summarize evaluation results here.}
+We evaluate \sys on up to 100 nodes in both local and wide-area networks.
+Our results show that \sys achieves storage scalability similar to sharded blockchains while always matching or exceeding the performance of fully-replicated blockchains.
+\sys reduces per-node storage by 10$\times$ at 100 nodes compared to full replication.
+Performance wise, \sys achieves up to 2.6$\times$ higher throughput than fully-replicated blockchains due to reduced state maintenance overhead, while incurring negligible latency overhead.
+\sys also scales well with increasing node counts, with no significant performance difference from 4 to 100 nodes.
+Regarding checkpointing, \sys completes checkpoint creation within 30 minutes for 100 GiB state at 100 nodes.
+Last but not least, \sys adds only moderate 2.3\%-30.2\% network traffic for state retrieval, and the overhead is scalable with increasing node counts.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
