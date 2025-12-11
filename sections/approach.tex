@@ -82,6 +82,14 @@ State availability is inherently a simpler problem that permits scalable designs
 
 We highlight two insights that enables storage scalability while maintaining state availability.
 \lijl{Update this part.}
+\gd{Draft:
+First, correctness of a state can be independently validated such as by comparing its hash or verifying its Merkle proof.
+This allows retrieving state from a single node without safety violations.
+Second, erasure coding can flexibly reduce the storage redundancy without compromising state availability.
+By adjusting the erasure coding parameters, the overall storage capacity can scale with additional storage devices in the system.
+In conclusion, both the safety and availability of the state can be achieved in a scalable manner.
+We will show in the next section that these are exactly what we need from the state management to achieve conventional BFT security guarantees.
+}
 First, correctness of a state can be independently validated through techniques such as threshold signatures and Merkle trees.
 This allows retrieving state from a single node without safety violations.
 Second, erasure coding can flexibly reduce the storage redundancy without compromising state availability.
