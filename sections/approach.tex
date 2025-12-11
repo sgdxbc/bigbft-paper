@@ -83,8 +83,9 @@ State availability is inherently a simpler problem that permits scalable designs
 We highlight two insights that enables storage scalability while maintaining state availability.
 First, correctness of a state can be independently validated using techniques such as hash comparisons or verifying Merkle tree proofs.
 This allows retrieving state from a single node without safety violations.
+This differs from transaction execution, which requires at least $f+1$ nodes for safety.
 Second, erasure coding can flexibly reduce the storage redundancy without compromising state availability.
-By adjusting the erasure coding parameters, the overall storage capacity can scale with additional storage devices in the system.
+By adjusting the erasure coding parameters, the overall storage capacity can scale with additional storage devices in the system, while ensuring that any state can be reconstructed in the presence of arbitrary $f$ failures.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
