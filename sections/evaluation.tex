@@ -31,7 +31,8 @@ We also evaluate performance across skewness factors $\alpha \in [0.0, 1.24]$.
 
 \subsection{Storage Overhead}
 \begin{figure}
-    \includegraphics[width=\linewidth]{graphs/nodes-storage}
+    \center
+    \includegraphics{graphs/nodes-storage}
     \caption{Storage overhead per node across cluster sizes.}
     \label{fig:nodes-storage}
 \end{figure}
@@ -43,7 +44,8 @@ At 100 nodes, \sys uses 9.82 GiB per node: 7 GiB from $r=7$ full shard copies an
 \subsection{Performance Under Different Network Conditions}
 
 \begin{figure}
-    \includegraphics[width=\linewidth]{graphs/tput-latency}
+    \center
+    \includegraphics{graphs/tput-latency}
     \caption{Throughput and latency for YCSB and UTXO under LAN and WAN.}
     \label{fig:tput-latency}
 \end{figure}
@@ -60,7 +62,8 @@ Sharded BFT achieves highest throughput: $2.24\times$ for YCSB (limited by workl
 \subsection{Performance Under Different Skewness Factors}
 
 \begin{figure}
-    \includegraphics[width=\linewidth]{graphs/skew-tput}
+    \center
+    \includegraphics{graphs/skew-tput}
     \caption{YCSB throughput across Zipfian skewness factors and cache sizes.}
     \label{fig:skew-tput}
 \end{figure}
@@ -70,7 +73,8 @@ Results in \autoref{fig:skew-tput} show that \sys experiences significant perfor
 Disabling cache reduces throughput by 29.3\% (\sys) and 34.9\% (fully-replicated) at $\alpha=1.24$; batch deduplication in \fetch (\autoref{sec:impl}) minimizes cache-free performance loss.
 
 \begin{figure}
-    \includegraphics[width=\linewidth]{graphs/nodes-tput}
+    \center
+    \includegraphics{graphs/nodes-tput}
     \caption{Saturated throughput across node counts.}
     \label{fig:nodes-tput}
 \end{figure}
@@ -82,7 +86,8 @@ Sharded BFT shows sublinear scaling, saturating at 60 nodes (6 shards) because c
 \subsection{Checkpoint Latency}
 
 \begin{figure}
-    \includegraphics[width=\linewidth]{graphs/checkpoint}
+    \center
+    \includegraphics{graphs/checkpoint}
     \caption{Checkpoint creation time: (left) varying state size at 100 nodes; (right) varying node count at 100 GiB.}
     \label{fig:checkpoint}
 \end{figure}
@@ -99,7 +104,8 @@ This suggests that a minimum of 40 nodes provides a good balance for checkpoint 
 \subsection{Network Scalability}
 
 \begin{figure}
-    \includegraphics[width=\linewidth]{graphs/nodes-network}
+    \center
+    \includegraphics{graphs/nodes-network}
     \caption{Per-node network traffic for consensus, retrieval, and checkpoint across cluster sizes.}
     \label{fig:nodes-network}
 \end{figure}
