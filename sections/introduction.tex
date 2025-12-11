@@ -1,6 +1,54 @@
 \section{Introduction}
 \label{sec:intro}
 
+It is common for deployed blockchains to experience growing state sizes over their lifetimes.
+The total state sizes of Bitcoin and Ethereum, the two largest permissionless blockchains, have grown by 3.7$\times$ and 7.8$\times$ respectively over the last five years.
+These systems require replicating the entire blockchain state on each participant.
+This has led to unsustainable storage requirements --- an Ethereum full node now consumes close to 2~TBs of disk space~\cite{eth-requirement} --- and gradual centralization of the network.
+
+Traditional distributed storage and database systems apply \emph{horizontal scaling} to handle the growing state sizes.
+A long line of prior research~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard,kokoris2018omniledger,dang2019towards,zamani2018rapidchain} has adopted a similar sharding approach to scaling blockchains.
+While effective in storage scalability, sharding a blockchain results in fundamentally weaker safety and liveness properties~\cite{shard-model,shard-sybil}.
+Sharded blockchains no longer guarantee \emph{deterministic} optimal Byzantine fault tolerance, and their security is particularly vulnerable when committee sizes are small.
+
+Is there a fundamental trade-off between storage scalability and strong blockchain security?
+In this work, we argue that this trade-off is due to the tight coupling of transaction execution and state storage in existing architectures.
+To execute a transaction (or a sub-transaction), a blockchain node is required to store all the states accessed in the (sub-)transaction.
+To provide strong security against any $f$ Byzantine nodes, at least $f+1$ nodes need to execute every transaction, and thus store the necessary state.
+When horizontally scaling the system, $f$ also scales, leading to proportionally more nodes to store the state for each transaction.
+The total state capacity of the system, therefore, remains constant, despite the larger system sizes.
+
+Inspired by this insight, we propose a new blockchain architecture that decouples transaction execution and state management.
+The execution layer takes a totally ordered sequence of transactions from the consensus layer and executes the transactions in order.
+The layer, however, is stateless.
+A separate state management layer maintains all blockchain state.
+It exposes a key-value interface to the execution layer.
+When accessing state in a transaction, the execution layer invokes the interface to fetch and update state.
+Our decoupled architecture clearly separates the responsibility between the two layers.
+Such separation allows us to achieve both storage scalability and strong security.
+The execution layer ensures optimal failure resilience by executing each transaction on at least $f+1$ nodes, without compromising scalability due to its stateless nature.
+The state management layer only needs to guarantee \emph{state availability}.
+We show that state availability can be enforced in a storage scalable manner, using a combination of erasure coding and cryptographic commitments.
+
+We then build \sys, a concrete instance of the state-execution decoupled blockchain architecture.
+The \sys design addresses key challenges in the decoupled architecture, including maintaining state safety and availability without compromising storage scalability, and the performance overhead coming from remote state retrieval.
+Inspired by log structured merge trees, \sys divides the state management layer into an update table and state checkpoints.
+The update table records recent state updates and is fully replicated.
+Periodically, \sys runs a checkpointing protocol to take a state snapshot, freeing the update table entries.
+To ensure both storage scalability and optimal failure resilience, \sys applies an $RS(3f+1, f+1)$ erasure code on a state checkpoint, and stores encoded chunks on all the nodes.
+However, fetching state from a checkpoint requires expensive state reconstruction.
+To minimize coding-induced network and computation overhead, \sys also replicates each state shard on a \emph{constant} number of nodes to maintain storage scalability.
+All state fetches are served solely by the shard replicas.
+When all replicas of a shard fail, \sys re-replicates the shard using reconstructed state from encoded chunks.
+
+We show that \sys is a practical design using large-scale experiments.
+\lijl{Summarize evaluation results here.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\if{0}
 Blockchain state size is undergoing considerable augmentation.
 Prevailing permissionless distributed ledgers~\cite{buterin2014next, bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:bc-state-size}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
 Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes potentially attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic,bigtable}, imposing impractical storage requirements at each node if the state is fully replicated.
@@ -15,14 +63,6 @@ Consequently, these approaches fail to uphold the conventional security assuranc
 %They may rely on probabilistic safety guarantees, proposing to tolerate only $\frac{1}{4}$ faulty nodes~\cite{luu2016secure,kokoris2018omniledger} or impose supplementary prerequisites such as trusted hardware~\cite{dang2019towards} or synchronous networks~\cite{zamani2018rapidchain}.
 %Other solutions necessitate pre-defined fault-tolerant clusters and can only manage $\frac{1}{3}$ Byzantine faults locally within each committee~\cite{ruan2021blockchains,amiri2021sharper,gupta2020resilientdb}.
 %Ultimately, no prior sharding method achieves storage scalability without impacting safety and liveness properties.
-
-\begin{figure}
-    \includegraphics[width=\linewidth]{figures/approach-compare}
-    \caption{Comparison of BFT scalability approaches.
-    Each rounded rectangle represents a replicated node.
-    Each sharded area represents a fault-tolerant unit: a consensus committee can tolerate $f$ faulty nodes with $3f+1$ nodes, while a storage shard can tolerate $f$ faulty nodes with $f+1$ nodes.}
-    \label{fig:approach-compare}
-\end{figure}
 
 The trade-off between security and scalability arises from the prevalent \emph{processing sharding} methodology employed by prior research, as depicted in \autoref{fig:approach-compare}.
 The entirety of processing, encompassing consensus and execution, is partitioned, with only a limited set of nodes (i.e., the committee) involved in transaction processing.
@@ -63,6 +103,8 @@ Based on this framework, we present \sys, a storage-scalable BFT protocol ensuri
 The consensus and execution layers of \sys can integrate existing Byzantine atomic broadcast protocols, and SMS is responsible to support the retrieval and update of state shards, behaving as the full state is maintained on every node.
 We present a novel SMS with two-tier architecture that can guarantee successful retrieval with scalable storage consumption.
 We reason about the availability of SMS in detail, and preliminary results show \sys not only consumes less storage than a fully replicated baseline, it also improves the redundancy factor by $9.88\times$ compared to the state-of-the-art~\cite{zamani2018rapidchain}.
+\fi
+
 \fi
 
 \iffalse
