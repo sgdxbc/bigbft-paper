@@ -7,9 +7,11 @@ The values of version $i$ are created with the $\bump_{i}(k_1 \mapsto v_1, k_2 \
 
 Firstly, we examine the last checkpointed version $p$, which is the version that the second last checkpoint signal corresponds to.
 We only need to consider safety of $\fetch_{i}(k)$ operations when $i \geq p$.
-If $i < p$, the operation will return \forward according to the garbage collection rule, and we can simply show that this happens on at most $f$ correct replica nodes.
+If $i < p$, the operation will return \forward according to the garbage collection rule, which is always safe. 
+We show that this happens on at most $f$ correct replica nodes.
 If there are more than $f$ correct replica nodes calling $\fetch_{i}(k)$ with $i < p$, they must be absent from the checkpointing procedure of version $p$, which means they did not send \votec messages in the round that checkpoints the version $p$.
 However, the checkpoint signal for that round is formed with $2f+1$ matching \votec messages, which leads to a contradiction.
+By ensuring that at most $f$ correct replica nodes call $\fetch_{i}(k)$ with $i < p$, the liveness of BFT system is not violated by returning \forward on these nodes, because there will be at least $f+1$ correct replica nodes \emph{not} returning \forward and thus able to proceed with execution, and the client can collect sufficient matching replies from them to commit.
 In conclusion, the $\fetch_{i}(k)$ operations with $i < p$ ensure both availability and safety.
 
 Next, we consider the $\fetch_{i}(k)$ operations where $i \geq p$.
