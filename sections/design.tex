@@ -4,6 +4,13 @@
 \subsection{Overview}
 \label{sec:design:overview}
 
+\begin{figure}
+    \center
+    \includegraphics[width=0.8\linewidth]{figures/flow}
+    \caption{Data flow of \fetch and \bump operations in \sys.}
+    \label{fig:flow}
+\end{figure}
+
 \sys is a concrete instance of the state-execution decoupled architecture.
 \sys uses the Bullshark~\cite{bullshark} BFT protocol in its consensus layer.
 We pick Bullshark mainly due to its high performance and scalability, but any BFT protocol~\cite{pbft,hotstuff,narwhal,mysticeti} that provides optimal Byzantine resilience and guarantees linearizability can be applied.
@@ -35,6 +42,7 @@ The design implies that the replication factor $r$ of each shard can be lower th
 \sys first applies randomized replication to provide better probabilistic availability guarantees of shard replicas.
 When the storage nodes suspect that all $r$ replicas of a shard have lost, they re-elect $r$ responsible nodes for the shard.
 These nodes reconstruct a shard copy from the erasure coded chunks, which are guaranteed to be available.
+The data flow of \fetch and \bump operations is illustrated in \autoref{fig:flow}.
 
 To ensure state safety, \sys organizes each shard into a binary Merkle tree.
 The tree is constructed during state checkpointing.
@@ -107,11 +115,11 @@ In this section, we detail the data structures and the algorithms of the replica
 The messages used in the protocol are summarized in \autoref{tab:messages}.
 The messages are categorized into two channels according to how they are delivered.
 The storage nodes RPC channel is unordered and unreliable point-to-point communication, and the storage nodes respond to the requests to serve and update their stored data.
-The \retrieve and \retrieves requests and \pushss are sent by the replica nodes, while the \getsc requests are sent by the peer storage nodes.
+The \retrieve, \retrieves and \pushss requests are sent by the replica nodes, while the \getsc requests are sent by the peer storage nodes.
 
 The atomic broadcast channel is a reliable total order broadcast provided by the underlying BFT atomic broadcast protocol.
 The broadcast messages are sent by the replica nodes submitting them as client transactions to the atomic broadcast protocol.
-Both types of messages are subscribed by both the replica and storage nodes.
+% Both types of messages are subscribed by both the replica and storage nodes.
 A checkpoint signal is formed after the atomic broadcast protocol delivers $2f+1$ matching \votec messages from distinct storage nodes, and a reconfiguration signal is formed after delivering $f+1$ \voter messages with matching epoch and round from distinct replica nodes.
 The \votec messages are ordered with the client requests to ensure the replica nodes checkpoint the same version of the state.
 The \voter messages are ordered so that all nodes reconfigure with the same set of nonces as the seed.
@@ -195,24 +203,26 @@ After the SMS stores all the shards for round $c$, it discards the snapshot of t
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
 
-\subsubsection{Data Availability Proof}
+\subsubsection{State Safety and Availability Proof}
 
-Now we prove that the SMS design described above provides data availability guarantees as stated in \autoref{sec:arch}.
-The data availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
+Now we prove that the SMS design described above provides state availability guarantees as stated in \autoref{sec:arch}.
+The state availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and state safety means it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
 The values of version $i$ are created with the $\bump_{i}(k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots)$ operation, where the values of $k_1, k_2, \ldots$ are $v_1, v_2, \ldots$ respectively, and the values of other keys remain the same as version $i-1$.
 
-Firstly, we examine the last checkpointed version $v_c$, which is the version that the second last checkpoint signal corresponds to.
-We consider the $\fetch_{i}(k)$ operations where $i \geq v_c$, as we have discussed in \autoref{sec:overview} that there are at most $f$ correct replica nodes may issue \fetch calls with versions less than $v_c$, and those calls will return \forward.
-According to the garbage collection rule, the replica nodes keep all the updates since version $v_c$ locally in the update table.
-Thus, any $\fetch_{i}(k)$ operation where $k$ was updated after version $v_c$, i.e., appeared in some $\bump_{j}(\ldots)$ operation where $j > c$, will return correctly from the update table.
-Now we consider the keys that were not updated since version $v_c$.
-In this case, $\fetch_{i}(k)$ should return the same value as $\fetch_{c}(k)$, so the value of $k$ in the checkpoint is the desired value, and the replica nodes send \retrieve requests to the storage nodes.
+Firstly, we examine the last checkpointed version $p$, which is the version that the second last checkpoint signal corresponds to.
+We only need to consider safety of $\fetch_{i}(k)$ operations when $i \geq p$.
+If $i < p$, the operation will return \forward according to the garbage collection rule, and we can simply show that this happens on at most $f$ correct replica nodes.
+If there are more than $f$ correct replica nodes calling $\fetch_{i}(k)$ with $i < p$, they must be absent from the checkpointing procedure of version $p$, which means they did not send \votec messages in the round that checkpoints the version $p$.
+However, the checkpoint signal for that round is formed with $2f+1$ matching \votec messages, which leads to a contradiction.
+In conclusion, the $\fetch_{i}(k)$ operations with $i < p$ ensure both availability and safety.
 
-If there is at least one correct responsible storage node for the shard that contains key $k$, the \retrieve request will be responded correctly, and the replica nodes can verify the returned value with the inclusion proof and the shard commitment.
-On the other hand, the replica nodes are also able to detect malformed responses from faulty storage nodes with the stored shard commitments.
-Thus, if there is at least one correct responsible storage node for the shard, the \retrieve request will eventually return with the correct value.
+Next, we consider the $\fetch_{i}(k)$ operations where $i \geq p$.
+According to the garbage collection rule, the replica nodes keep all the updates since version $p$ locally in the update table.
+Thus, any $\fetch_{i}(k)$ operation where $k$ was updated after version $p$, i.e., appeared in some $\bump_{j}(\ldots)$ operation where $j > p$, will return correctly from the update table.
+Otherwise, if $k$ was not updated after version $p$, $\fetch_{i}(k)$ should return the same value as $\fetch_{p}(k)$, so the value of $k$ in the checkpoint is the desired value, and the replica nodes send \retrieve requests to the storage nodes.
+The state safety follows directly from the Merkle proof verification.
+Now we prove the state availability of these \retrieve requests.
 
-The system may need to reconfigure multiple times until at least one correct responsible storage node is assigned for the shard.
 We first show that every reconfiguration attempt will eventually complete.
 The last checkpoint has at least $f+1$ encoded chunks stored on distinct correct storage nodes.
 This is because that the \pushss messages for the last checkpoint must have been acknowledged by at least $2f+1$ storage nodes, among which at least $f+1$ are correct nodes.
@@ -221,3 +231,4 @@ They can detect faulty responses with the stored chunk hashes, and they are guar
 Thus, every reconfiguration attempt will eventually complete.
 Because the placement is uniformly random, the probability that all $r$ responsible storage nodes are faulty in $x$ consecutive reconfigurations is at most $(\frac{f}{N})^{rx}$, which decreases exponentially with both $r$ and $x$.
 After sufficiently many reconfigurations, with high probability at least one correct storage node will be assigned as responsible for the shard, and the \retrieve requests will eventually return with the correct value.
+Thus, the $\fetch_{i}(k)$ operations with $i \geq p$ ensure both availability and safety.
