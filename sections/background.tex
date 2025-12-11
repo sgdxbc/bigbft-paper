@@ -60,14 +60,15 @@ To overcome the slow storage I/O performance, prior systems commonly apply batch
     \label{fig:bc-state-size}
 \end{figure}
 
-To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system \lijl{find citations here}.
+To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system \lijl{find citations here}\gd{storage work on archival nodes should be relevant}~\cite{ruan2019fine,feng2024slimarchive}.
 However, they still mandate each participating node to store the entire world state in its storage layer.
 As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
 \lijl{I wonder if persistence storage also improves security of the entire network against wider failures. This part requires a bit more consideration.}
 
 World state size of deployed blockchains does not remain constant.
 New user, wallet, and contract accounts are continuously being created.
-It is also common for inactive accounts to remain on a blockchain for years or even decades \lijl{or maybe forever? Find sources to support the presence of many dormant accounts}.
+It is also common for inactive accounts to remain on a blockchain for years or even decades \lijl{or maybe forever? Find sources to support the presence of many dormant accounts}\gd{Done}.
+A recent study on Ethereum~\cite{notallstate2025} shows that 63.3\% of the world state has never been accessed since their creation.
 Moreover, the state associated with each account can have non-trivial size.
 For instance, besides the account balance, each account in Ethereum contains also stores a nonce and multiple hash values;
 each contract account can contain 20~KB of code data, tens of KBs of contract storage, and up to a few MBs of calldata.
