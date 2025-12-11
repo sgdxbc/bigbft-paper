@@ -130,8 +130,10 @@ Liveness issues of the external nodes can impede blockchain progress.
 Any state loss in the external nodes halts the entire blockchain.
 The blockchain nodes also loses control of transaction ordering to ensure properties such as fairness.
 Moreover, the approach does not fundamentally address storage scalability, just pushing the issue to a different layer.
-Each external node still needs to store the entire state.
-Supporting state partitioning across external node in stateless blockchains is also fundamentally hard, and no prior research has addressed this challenge.
+% Each external node still needs to store the entire state.
+% Partitioning the state among external nodes suffer identical security issues in sharded blockchains.
+% GD: draft fix
+Even for the systems that support state partitioning among external nodes~\cite{xu2021slimchain}, there must be some nodes that store the entire state, or the system will be unable to execute arbitrary transactions.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Old Text %%%%%%%%%%%%%%%%%%%%%%%%%%%
