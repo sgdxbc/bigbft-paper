@@ -84,7 +84,14 @@ A \forward indicates that the replica node can safely skip all transaction execu
 %A \forward indicates that the replica node can safely skip all transaction execution until version $p$;
 %this is safe as the state version $p$ guarantees to be available in the system.
 
-\gd{If we have space, we should add back the overall proof sketch at here.}
+\paragraph{Overall system guarantees.}
+Given the above properties, we now show that the overall blockchain can guarantee conventional BFT correctness.
+The consensus layer ensures that the correct nodes receive the same transaction sequence.
+All correct nodes will then generate the same sequence of \fetch and \bump calls.
+With that, state management ensures state availability.
+As such, for all transactions, at least $f+1$ correct nodes execute them (no \forward returned for \fetch and \bump calls).
+Finally, state safety ensures that all correct nodes transition to consistent state from the same initial state and generate consistent transaction results.
+For each transaction, a client can thus collect $f+1$ identical responses from correct nodes.
 
 \subsection{Design Challenges}
 \label{sec:arch:challenges}
