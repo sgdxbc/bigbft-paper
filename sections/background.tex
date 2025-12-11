@@ -21,7 +21,7 @@ Given deterministic execution and the guarantees of atomic broadcast, world stat
 Some blockchains~\cite{hyperledger} apply the \emph{execute-order} model, in which nodes execute the transactions first, and then run atomic broadcast to totally order the transaction outcomes.
 This model can result in more scalable transaction execution, and permits non-deterministic transaction logic.
 Our solution can be applied to both models;
-however, we only focus on the order-execute model in this paper given their wider adoption.
+however, we only focus on the order-execute model in this paper given their wider adoption, and briefly discuss the execute-order model in \autoref{sec:rel}.
 
 \subsection{Blockchain Storage Layer}
 \label{sec:bg:storage}

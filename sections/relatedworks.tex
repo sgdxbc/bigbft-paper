@@ -23,7 +23,7 @@ All these works are specific to cryptocurrencies.
 Hyperledger Fabric~\cite{hyperledger} introduces the execute-order-validate paradigm for permissioned blockchains.
 The execution is performed on few designated execution peers before ordering, and the updates are then ordered by the consensus layer and applied to the storage nodes.
 While the consensus is secure, the execution must be performed by sufficient peers to ensure correctness, and the state must be stored by sufficient storage nodes to ensure availability.
-Thus, Fabric also suffers from trading off storage scalability and security.
+Thus, Fabric also suffers from trading off storage scalability and security and can also benefit from \sys's state management approach.
 
 \paragraph{Optimize state storage on nodes.}
 Several methodologies aim to optimize state storage on nodes without altering the fundamental architecture of blockchains.
