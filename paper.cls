@@ -67,12 +67,18 @@
 \RequirePackage{pifont}
 \RequirePackage{tabularx}
 \RequirePackage{multirow}
+\RequirePackage{titlesec}
 \ifacm
 \else
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
 \RequirePackage{booktabs}
 \fi
+
+\titlespacing*{\paragraph}
+  {0pt}   % <left> (horizontal space, usually 0pt)
+  {0pt}   % <before-sep> (vertical space *before* the title)
+  {1em}   % <after-sep> (space between title and following text)
 
 \xspaceaddexceptions{(}
 
