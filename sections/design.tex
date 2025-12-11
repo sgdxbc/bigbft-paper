@@ -1,6 +1,10 @@
 \section{\sys Design}
 \label{sec:design}
 
+\sys is a concrete instance of the state-execution decoupled architecture.
+In this section, we give an overview of \sys in \autoref{sec:design:overview}, follow by design details in \autoref{sec:design:details}.
+A full correctness proof can be found in the supplementary material.
+
 \subsection{Overview}
 \label{sec:design:overview}
 
@@ -11,8 +15,6 @@
     \label{fig:flow}
 \end{figure}
 
-
-\sys is a concrete instance of the state-execution decoupled architecture.
 \sys uses the Bullshark~\cite{bullshark} BFT protocol in its consensus layer.
 We pick Bullshark mainly due to its high performance and scalability, but any BFT protocol~\cite{pbft,hotstuff,narwhal,mysticeti} that provides optimal Byzantine resilience and guarantees linearizability can be applied.
 
@@ -95,7 +97,6 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 \end{table}
 
 We now provide design details of \sys.
-For the sake of space, the proof of correctness is deferred to supplementary material.
 \autoref{tab:messages} summarizes the protocol messages.
 The messages are categorized into two channels according to how they are delivered.
 The storage nodes RPC channel is unordered and unreliable point-to-point communication.
@@ -202,7 +203,7 @@ Then, it sends \retrieves requests to the responsible storage nodes, retrieves t
 After that, it applies the relevant updates in the update table snapshot to the retrieved shards and computes the new shard commitments.
 Next, SMS sends \pushss messages with the new shards to all the storage nodes and waits for $2f+1$ acknowledgments.
 After the SMS stores all the shards for round $c$, it discards the snapshot of the update table, and sends \votec messages for round $c+1$ with the new shard commitments.
-The message flow if checkpointing is illustrated in \autoref{fig:checkpoint-message}.
+\autoref{fig:checkpoint-message} shows the protocol diagram of state checkpointing.
 
-On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
-The message flow of reconfiguration is illustrated in \autoref{fig:reconfigure-message}.
+On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and sends the following \retrieve and \retrieves requests accordingly.
+The protocol diagram of reconfiguration is illustrated in \autoref{fig:reconfigure-message}.
