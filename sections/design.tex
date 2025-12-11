@@ -13,6 +13,7 @@ The update table records all recent transaction writes to the state.
 This update table is replicated in the state management client-side library on all replica nodes.
 Periodically, the storage nodes run a checkpoint protocol to create a snapshot of the current state version.
 Once the checkpoint becomes durable, each replica node clears the update table up to the checkpointed version.
+\lijl{Explain why replicating the update table does not hurt storage scalability.}
 When serving a \fetch, the client-side library first searches the update table for the most recent update of the key.
 In case of a table miss, the library queries the latest state checkpoint from the storage nodes.
 
