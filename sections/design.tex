@@ -1,5 +1,53 @@
-\section{Design Details}
+\section{\sys Design}
 \label{sec:design}
+
+\subsection{Overview}
+\label{sec:design:overview}
+
+\sys is a concrete instance of the state-execution decoupled architecture.
+\sys uses the Bullshark~\cite{bullshark} BFT protocol in its consensus layer.
+We pick Bullshark mainly due to its high performance and scalability, but any BFT protocol~\cite{pbft,hotstuff,narwhal,mysticeti} that provides optimal Byzantine resilience and guarantees linearizability can be applied.
+
+\sys divides state management into two layers: an update table and a state checkpoint.
+The update table records all recent transaction writes to the state.
+This update table is replicated in the state management client-side library on all replica nodes.
+Periodically, the storage nodes run a checkpoint protocol to create a snapshot of the current state version.
+Once the checkpoint becomes durable, each replica node clears the update table up to the checkpointed version.
+When serving a \fetch, the client-side library first searches the update table for the most recent update of the key.
+In case of a table miss, the library queries the latest state checkpoint from the storage nodes.
+
+The \sys storage nodes are responsible for creating, storing, and serving state checkpoints.
+To simplify management and to balance workload, \sys partitions state into equal-sized shards.
+During state checkpointing, \sys applies an $RS(3f+1, f+1)$ erasure code to encode each shard into $3f+1$ chunks.
+These chunks are distributed across all the storage nodes.
+Our approach ensures both state availability and storage scalability.
+At least $2f+1$ nodes participate in the checkpointing protocol, each storing a distinct encoded chunk for each shard.
+Among them, at least $f+1$ shards are stored on correct nodes.
+The Reed-Solomon code guarantees that these $f+1$ chunks can recover the state of each shard to guarantee availability.
+It is also storage scalable: the storage redundancy level is a constant $\frac{3f+1}{f+1} < 3$, regardless of the system size.
+
+Retrieving state from erasure coded chunks incurs high computation and communication overhead due to the decoding process.
+To address this shortcoming, \sys also replicates each shard for fast state retrieval.
+To maintain storage scalability, each shard is only replicated on a constant number $r$ of storage nodes, independent of the system size.
+These nodes are called the \emph{responsible nodes} of the shard.
+The design implies that the replication factor $r$ of each shard can be lower than the maximum tolerable failure $f$.
+\sys first applies randomized replication to provide better probabilistic availability guarantees of shard replicas.
+When the storage nodes suspect that all $r$ replicas of a shard have lost, they re-elect $r$ responsible nodes for the shard.
+These nodes reconstruct a shard copy from the erasure coded chunks, which are guaranteed to be available.
+
+To ensure state safety, \sys organizes each shard into a binary Merkle tree.
+The tree is constructed during state checkpointing.
+The leaf nodes are the hashes of all key-value pairs in the shard.
+The root hash represents a \emph{shard commitment}, and is stored on all replica nodes.
+When a replica node retrieves a key, the responsible storage node returns the value and an inclusion proof in the Merkle tree.
+The replica node can independently verify the proof using its local shard commitment copy.
+
+After a new state version is checkpointed, the storage nodes can safety garbage collect all previous state checkpoints.
+The state management client library also stores the latest checkpoint version $p$.
+It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$.
+
+\subsection{\sys Design Details}
+\label{sec:design:details}
 
 \begin{figure}
     \center
@@ -66,14 +114,14 @@ Both types of messages are subscribed by both the replica and storage nodes.
 A checkpoint signal is formed after the atomic broadcast protocol delivers $2f+1$ matching \votec messages from distinct storage nodes, and a reconfiguration signal is formed after delivering $f+1$ \voter messages with matching epoch and round from distinct replica nodes.
 The \votec messages are ordered with the client requests to ensure the replica nodes checkpoint the same version of the state.
 The \voter messages are ordered so that all nodes reconfigure with the same set of nonces as the seed.
-These signals are subscribed by both replica and storage nodes. 
+These signals are subscribed by both replica and storage nodes.
 The storage nodes can subscribe to signals via relaying by their trusted replica nodes, i.e., the replica nodes hosted by their operators.
 
 Every RPC request and atomic broadcast message contains a \emph{round} number, which indicates the checkpoint round the message belongs to.
 The round number starts from 0 at system startup and increments by one after each checkpoint round.
 The \voter messages also contain an \emph{epoch} number to indicate the number of reconfigurations that have happened, because reconfiguring to the same round may happen multiple times.
 
-\subsection{Randomized Replication Scheme}
+\subsubsection{Randomized Replication Scheme}
 
 The SMS first maps each key to a shard ID using a hash function.
 Next, for each shard, it needs to set up full copies on the responsible storage nodes for retrieval.
@@ -95,7 +143,7 @@ Each node can independently compute the placement for the shards with the seed d
 These \voter messages are agreed upon via atomic broadcast, so the placement is consistent across all nodes.
 Because at least one of the $f+1$ replica nodes sending the \voter messages is correct, the seed is unpredictable to the adversary.
 
-\subsection{Storage Nodes}
+\subsubsection{Storage Nodes}
 
 The storage nodes are designed as ``dumb'' storage servers with minimal logic.
 The stored unit is a shard, and the storage nodes store a shard of a round when it receives $f+1$ matching \pushss messages from distinct replica nodes, ensuring the integrity of the shard.
@@ -120,7 +168,7 @@ Then, they exchange necessary chunks with each other via \getsc RPCs.
 After the new $r$ responsible nodes have reconstructed the shard, they start to respond to \retrieve and \retrieves requests for the shard.
 On the checkpoint signals of round $c$, the storage nodes discard all stored data for rounds before $c-1$ and starts to accept \pushss messages for round $c$.
 
-\subsection{Replica Nodes}
+\subsubsection{Replica Nodes}
 
 The execution layer sequentially processes the ordered messages delivered by the atomic broadcast protocol.
 If the message is a client transaction, it executes the transaction and accesses the state by calling \fetch and \bump according to the application logic.
@@ -146,7 +194,7 @@ After the SMS stores all the shards for round $c$, it discards the snapshot of t
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and send the following \retrieve and \retrieves requests accordingly.
 
-\subsection{Data Availability Proof}
+\subsubsection{Data Availability Proof}
 
 Now we prove that the SMS design described above provides data availability guarantees as stated in \autoref{sec:arch}.
 The data availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
