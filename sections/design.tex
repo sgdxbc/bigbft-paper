@@ -11,6 +11,7 @@
     \label{fig:flow}
 \end{figure}
 
+
 \sys is a concrete instance of the state-execution decoupled architecture.
 \sys uses the Bullshark~\cite{bullshark} BFT protocol in its consensus layer.
 We pick Bullshark mainly due to its high performance and scalability, but any BFT protocol~\cite{pbft,hotstuff,narwhal,mysticeti} that provides optimal Byzantine resilience and guarantees linearizability can be applied.
@@ -23,6 +24,15 @@ Once the checkpoint becomes durable, each replica node clears the update table u
 \lijl{Explain why replicating the update table does not hurt storage scalability.}
 When serving a \fetch, the client-side library first searches the update table for the most recent update of the key.
 In case of a table miss, the library queries the latest state checkpoint from the storage nodes.
+
+\begin{figure}
+    \center
+    \includegraphics[width=\linewidth]{figures/checkpoint-message}
+    \caption{Checkpoint message flow of a shard.
+    Storage node 1 is responsible for the shard.
+    Replica node 4 is failed.}
+    \label{fig:checkpoint-message}
+\end{figure}
 
 The \sys storage nodes are responsible for creating, storing, and serving state checkpoints.
 To simplify management and to balance workload, \sys partitions state into equal-sized shards.
@@ -58,15 +68,6 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 
 \subsection{\sys Design Details}
 \label{sec:design:details}
-
-\begin{figure}
-    \center
-    \includegraphics[width=\linewidth]{figures/checkpoint-message}
-    \caption{Checkpoint message flow of a shard.
-    Storage node 1 is responsible for the shard.
-    Replica node 4 is failed.}
-    \label{fig:checkpoint-message}
-\end{figure}
 
 \begin{figure}
     \center
