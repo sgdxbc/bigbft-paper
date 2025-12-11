@@ -18,7 +18,7 @@ The consensus layer and the execution layer follow the traditional design;
 the consensus layer establishes a total order of transactions, while the execution layer executes transactions in the agreed order.
 However, the execution layer is stateless.
 Instead, The state management layer maintains all world state, and exposes an interface to retrieve and update state.
-While executing a transaction, the execution layer invokes the state management interface to read and write world state.
+While executing a transaction, the execution layer invokes the interface to read and write world state.
 
 Our state-execution decoupled architecture supports multiple design options.
 In this work, we advocate for a design that consists of \emph{logically} separated replica nodes and storage nodes.
@@ -71,12 +71,11 @@ To address this issue, the state management layer defines a \emph{state persiste
 A state version is \emph{persistent} if the entire state can be retrieved or reconstructed from correct nodes.
 We now refine the \fetch and \bump interface.
 Suppose the highest persistent state version is $p$, a $\fetch_{i}$ or $\bump_{i}$ call on a correct node with $i < p$ returns $\forward(p)$.
-\gd{Suggested rewording:
-A \forward indicates that the replica node can safely skip all transaction execution until version $p$ without affecting the liveness of the overall BFT system.
-This is only guaranteed if the state management layer ensures that \forward will only be returned on at most $f$ correct nodes for each version less than $p$.
-}
-A \forward indicates that the replica node can safely skip all transaction execution until version $p$;
-this is safe as the state version $p$ guarantees to be available in the system.
+A \forward indicates that the replica node can safely skip all transaction execution until version $p$ without affecting system liveness.
+%This is only guaranteed if the state management layer ensures that \forward will only be returned on at most $f$ correct nodes for each version less than $p$.
+
+%A \forward indicates that the replica node can safely skip all transaction execution until version $p$;
+%this is safe as the state version $p$ guarantees to be available in the system.
 
 \gd{If we have space, we should add back the overall proof sketch at here.}
 
@@ -91,14 +90,9 @@ Second, in traditional blockchain architectures, a correct node maintains all wo
 The node can therefore trust any locally stored state.
 In our decoupled architecture, a replica node may fetch state from remote nodes.
 To guarantee state safety, a correct node needs to validate the correctness of remotely retrieved state to tolerate Byzantine behavior.
-\gd{Draft that replace the remaining subsection.
-The node must store some metadata, e.g., the hashes of the state, to validate the retrieved state independently, or it must collect $f+1$ matching states from different nodes which cannot happen due to the first challenge.
-If the node stores only one hash or the hashes for fixed number of partitions or encoded chunks of the state, the retrieved state size would be proportional to the entire state size, and transferring such large data will be highly inefficient.
-So, the storage scheme must not only be scalable, but also enable the nodes to validate the retrieved state with minimal metadata and communication.
-}
-The straw man solution of collecting $f+1$ matching states works, but requires all state to be stored on at least $f+1$ nodes.
-This again violates our storage scalability requirement.
-
+The node must store some metadata, e.g., the hashes of the state, to validate the retrieved state independently, or it must collect $f+1$ matching states from different nodes, which we already argued violates scalability.
+If the node stores only one hash or hashes for fixed number of partitions or encoded chunks of the state, the retrieved state size would be proportional to the entire state size, and transferring such large data will be inefficient.
+As such, the storage scheme must not only be scalable, but also enable the nodes to validate the retrieved state with minimal metadata and communication.
 
 Lastly, the decoupled architecture places potential remote state fetches on the critical path of transaction execution.
 This introduces additional network traffic and latency penalty compared to a traditional design.
