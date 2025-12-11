@@ -2,9 +2,7 @@
 Storage scalability is paramount in the era of big data blockchain.
 A storage-scalable blockchain can effectively scale out state storage to an arbitrary number of nodes and reduce the storage pressure on each, similar to distributed databases.
 Prior research has extensively utilized sharding techniques to attain storage scalability; however, these approaches invariably compromise safety and liveness guarantees.
-In this work, we present \sys, a novel storage-scalable Byzantine fault tolerance (BFT) protocol that can sustain the deterministic security properties of conventional BFT protocols.
-The core design of \sys involves a state management system decoupled from the execution layer.
-This state management system employs sharding to ensure state availability with scalable storage consumption, while the global consensus and execution layers maintain robust security characteristics.
-We analyze the redundancy and network traffic overhead associated with \sys.
-Preliminary findings indicate that \sys achieves better storage scalability compared to prior approaches while incurring low network overhead.
+In this work, we propose a novel state-execution decoupled architecture, and \sys, a novel storage-scalable Byzantine fault tolerance (BFT) protocol that can sustain the deterministic security properties of conventional BFT protocols.
+The state management system employs erasure coding to ensure state availability with scalable storage consumption, while the global consensus and execution layers maintain robust security characteristics.
+Our evaluation indicates that \sys achieves better storage scalability compared to prior approaches while incurring low network overhead.
 \end{abstract}
