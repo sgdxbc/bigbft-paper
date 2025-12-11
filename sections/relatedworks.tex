@@ -11,7 +11,7 @@ Only the leader node stores full logs, while the followers maintain coded fragme
 Racos~\cite{zarnstorff2024racos} further introduces leaderless replication to resolve the bottleneck on the leader, which achieve storage scalability.
 The demand for Byzantine fault tolerance substantially complicates the challenge of reducing storage overhead.
 In these systems, usually only the proposing node executes the transactions, while other nodes store the coded fragments of the logs to ensure the state is recoverable after the proposer fails.
-Under Byzantine faults, the single execution result cannot be trusted, which brings the dilemma between security and storage scalability as discussed in \autoref{sec:bg}.
+Under Byzantine faults, the single execution result cannot be trusted, which brings the dilemma between security and storage scalability in \autoref{sec:bg}.
 
 \paragraph{Storage scalable solutions for cryptocurrencies.}
 Vault~\cite{leung2018vault} proposes a sharded storage solution for account-based blockchains.
