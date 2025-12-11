@@ -1,6 +1,12 @@
 \section{A State-Execution Decoupled Architecture}
 \label{sec:arch}
 
+Following our design principle in \autoref{sec:approach:case}, we propose a new state-execution decoupled blockchain architecture.
+The architecture enables both strong security guarantees and storage scalability.
+In this work, we define storage scalability as follows:
+Given a certain world state size, the combined storage consumption across all nodes is \emph{independent of} the number of nodes.
+The property implies that by adding more nodes to the system, the storage consumption on each node decreases.
+
 \subsection{Architecture Overview}
 \label{sec:arch:overview}
 
@@ -14,8 +20,7 @@
     \label{fig:approach-compare}
 \end{figure}
 
-Following our design principle in \autoref{sec:approach:case}, we propose a new state-execution decoupled blockchain architecture.
-As shown in \autoref{fig:approach-compare}, a blockchain is logically partitioned into three layers: a consensus layer, an execution layer, and a state management layer.
+As shown in \autoref{fig:approach-compare}, a state-execution decoupled blockchain is logically partitioned into three layers: a consensus layer, an execution layer, and a state management layer.
 The consensus layer and the execution layer follow the traditional design;
 the consensus layer establishes a total order of transactions, while the execution layer executes transactions in the agreed order.
 However, the execution layer is stateless.
