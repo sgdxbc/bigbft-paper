@@ -87,7 +87,7 @@ Luckily, through the careful employment of erasure coding\cite{ec}, we demonstra
 \lijl{We do need to summarize the techniques in the introduction.}
 
 \ifspace
-\gd{Updated.}
+\sgd{Updated.}
 Based on this framework, we present \sys, a storage-scalable BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes.
 The consensus and execution layers of \sys can integrate existing Byzantine atomic broadcast protocols.
 % We carefully design an SMS that places a fixed redundancy level (storage consumption) for each state shard on a subset of nodes \lijl{This sentence is not very clear}.
@@ -102,7 +102,7 @@ Both layers achieve storage scalability independently, so as the whole protocol.
 We present our preliminary results on \sys.
 We analyze the network overhead added by the shard loading, showing it amplifies network traffic only by a constant factor.
 We also analyze the redundancy of \sys comparing to the other scaling approaches.
-The result shows that, thanks to storage scalability, \sys not only consumes less storage than a fully replicated baseline with any number of nodes exceeding 16, it also improves the redundancy factor by $9.88\times$ compared to the state-of-the-art~\cite{zamani2018rapidchain}. \lijl{need to cite SOTA} \gd{Done}
+The result shows that, thanks to storage scalability, \sys not only consumes less storage than a fully replicated baseline with any number of nodes exceeding 16, it also improves the redundancy factor by $9.88\times$ compared to the state-of-the-art~\cite{zamani2018rapidchain}. \lijl{need to cite SOTA} \sgd{Done}
 In conclusion, \sys achieves substantial enhancements in storage efficiency compared to all prior work with uncompromised security.
 \else
 Based on this framework, we present \sys, a storage-scalable BFT protocol ensuring deterministic safety and liveness properties with up to $\frac{1}{3}$ faulty nodes.
@@ -166,12 +166,12 @@ Both layers store constant redundancy of the state, so the design achieves the g
 
 % To cope the Byzantine storing nodes, we deploy erasure code to disseminate the state shards to more than $\frac{2}{3}$ of all the nodes with a constant overall redundancy (\ie about 3x).
 % \lijl{Emphasize that redundancy is independent of system size, so the overall storage capacity scales with more nodes.}
-% \gd{Done at the end of the paragraph.}
+% \sgd{Done at the end of the paragraph.}
 % While erasure code space-efficiently spread shards to a wide range of the nodes, performing encode and decode operations online significantly affect performance.
 % So we propose an alternative online processing path with constant number of verbatim copies of state shards residing on uniformly random nodes.
 % This processing path is free to encode and decode and achieve probabilistic (but tunable) availability.
 % \lijl{This sentence is too long and hard to understand. Decompose it into simpler sentences.}
-% \gd{Done.}
+% \sgd{Done.}
 % Both of the methods incurs constant overall storage overhead.
 % With more nodes joining the system, the storage consumption for storing the state remains unchanged, and the nodes can collaboratively store larger state with increasing storage capacity.
 

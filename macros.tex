@@ -1,14 +1,59 @@
+\ifacm
+\bibliographystyle{ACM-Reference-Format}
+\else
+\usepackage{usenix-2020-09}
+\bibliographystyle{abbrv}
+\fi
+
+\frenchspacing
+
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{xspace}
+\usepackage[table]{xcolor}
+\usepackage{tabularx}
+\usepackage{cleveref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{comment}
+\usepackage{xurl}
+
+\def\Snospace~{\S{}}
+
+% Cleveref Configuration
+% Format: \crefname{type}{singular}{plural}
+\crefname{chapter}{Chapter}{Chapters}
+\Crefname{chapter}{Chapter}{Chapters}
+\crefname{section}{\Snospace}{\Snospace}
+\Crefname{section}{\Snospace}{\Snospace}
+\crefname{subsection}{\Snospace}{\Snospace}
+\Crefname{subsection}{\Snospace}{\Snospace}
+\crefname{subsubsection}{\Snospace}{\Snospace}
+\Crefname{subsubsection}{\Snospace}{\Snospace}
+\crefname{appendix}{Appendix}{Appendices}
+\Crefname{appendix}{Appendix}{Appendices}
+\crefname{theorem}{Theorem}{Theorems}
+\Crefname{theorem}{Theorem}{Theorems}
+\crefname{lemma}{Lemma}{Lemmas}
+\Crefname{lemma}{Lemma}{Lemmas}
+\crefname{algorithm}{Algorithm}{Algorithms}
+\Crefname{algorithm}{Algorithm}{Algorithms}
+
 \ifdraft
-\newcommand{\editorial}[2]{{\textcolor{#1}{#2}}\xspace}
-\newenvironment{outline}{\color{blue} \textbf{Outline:}}{}
+\newcommand{\editorial}[2]{{\textcolor{#1}{#2}}}
 \else
 \newcommand{\editorial}[2]{\ignorespaces}
-\excludecomment{outline}
 \fi
 \newcommand{\XXX}{\editorial{red}{XXX}}
 \newcommand{\xxx}[1]{\editorial{red}{XXX #1}}
-\newcommand{\lijl}[1]{\editorial{cyan}{JL: #1}}
-\newcommand{\gd}[1]{\editorial{olive}{GD: #1}}
+\newcommand{\lijl}[1]{\editorial{orange}{lijl: #1}}
+\newcommand{\sgd}[1]{\editorial{cyan}{sgd: #1}}
+
+\ifdraft
+\newenvironment{outline}{\color{blue} \textbf{Outline:}}{}
+\else
+\excludecomment{outline}
+\fi
 
 \newcommand{\eg}{e.g.\@\xspace}
 \newcommand{\ie}{i.e.\@\xspace}

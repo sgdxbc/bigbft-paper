@@ -17,7 +17,7 @@ At the same time, the SMS maintains an update table locally replicated to every 
 So the storage nodes only need to serve the keys that have not been updated since the last checkpoint.
 
 The immutability of checkpoints simplifies the design of the storage nodes significantly.
-They are decoupled from the highly dynamic current state, which requires complex algorithms and protocols to be authenticated. \gd{Cite}
+They are decoupled from the highly dynamic current state, which requires complex algorithms and protocols to be authenticated. \sgd{Cite}
 Instead, they only need to manage static checkpointed states, authenticate which can be done efficiently with Merkle trees as described later.
 
 \subsection{A Hybrid Design of SMS}

@@ -1,24 +1,20 @@
-\pdfminorversion=7
-\pdfsuppresswarningpagegroup=1
-\documentclass[apx,final]{paper}
+\input{_switches}
+\draftfalse
+\spacetrue
+\apxtrue
+
+\acmfalse
+\documentclass[letterpaper,twocolumn,10pt]{article}
+
+\input{macros}
 
 \begin{document}
 
 \title{\sys: Scaling Byzantine Fault Tolerance Without Compromised Security}
 \author{Paper \#1976}
 
-\ifacm
-\input{sections/abstract}
-\fi
-
 \maketitle
-\pagestyle{plain}
-
-\ifacm
-\else
 \input{abstract}
-\fi
-
 \input{sections}
 
 \end{document}
