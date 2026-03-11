@@ -6,9 +6,10 @@
 \title{\sys: Scaling Byzantine Fault Tolerance Without Compromised Security}
 \fi
 
-\ifanonymous
+\ifreview
 \author{Paper \#1976}
 \else
+\ifacm
 \author{Guangda Sun}
 \affiliation{
     \institution{National University of Singapore}
@@ -21,6 +22,12 @@
     \country{}
     \city{}
 }
+\else
+\author{Guangda Sun}
+\author{Jialin Li}
+\affil{National University of Singapore\\
+\small{\{sung,lijl\}@comp.nus.edu.sg}}
+\fi
 \fi
 
 \ifacm
@@ -30,7 +37,10 @@
 \acmISBN{}
 \fi
 
+\ifacm
+\else
 \titlespacing*{\paragraph}{0pt}{0pt}{1em}
+\fi
 
 \newcommand{\eg}{e.g.\@\xspace}
 \newcommand{\ie}{i.e.\@\xspace}
