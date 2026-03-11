@@ -23,6 +23,11 @@
 \usepackage{booktabs}
 \usepackage{comment}
 \usepackage{xurl}
+\ifacm
+\else
+\usepackage{titlesec}
+\fi
+% \usepackage{authblk}
 
 \xspaceaddexceptions{]\}}
 
@@ -46,9 +51,6 @@
 \Crefname{lemma}{Lemma}{Lemmas}
 \crefname{algorithm}{Algorithm}{Algorithms}
 \Crefname{algorithm}{Algorithm}{Algorithms}
-
-\usepackage{titlesec}
-% \titlespacing*{\paragraph}{0pt}{0pt}{1em}
 
 \ifdraft
 \newcommand{\editorial}[2]{{\textcolor{#1}{#2}}}

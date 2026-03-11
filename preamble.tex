@@ -1,10 +1,39 @@
+\ifarxiv
+\newcommand{\sys}{Supermassive Blockchain\xspace}
+\title{\sys}
+\else
+\newcommand{\sys}{\textsc{BigBFT}\xspace}
 \title{\sys: Scaling Byzantine Fault Tolerance Without Compromised Security}
+\fi
+
+\ifanonymous
 \author{Paper \#1976}
+\else
+\author{Guangda Sun}
+\affiliation{
+    \institution{National University of Singapore}
+    \country{}
+    \city{}
+}
+\author{Jialin Li}
+\affiliation{
+    \institution{National University of Singapore}
+    \country{}
+    \city{}
+}
+\fi
+
+\ifacm
+% DOI
+\acmDOI{}
+% ISBN
+\acmISBN{}
+\fi
+
+\titlespacing*{\paragraph}{0pt}{0pt}{1em}
 
 \newcommand{\eg}{e.g.\@\xspace}
 \newcommand{\ie}{i.e.\@\xspace}
-
-\newcommand{\sys}{\textsc{BigBFT}\xspace}
 
 \newcommand{\yes}{\textcolor{green}{\ding{51}}}
 \newcommand{\no}{\textcolor{red}{\ding{55}}}
