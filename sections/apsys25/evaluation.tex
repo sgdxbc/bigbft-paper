@@ -7,20 +7,20 @@
     \label{fig:redundancy}
 \end{figure}
 
-We conduct a numerical analysis of the total storage consumption across various blockchain designs, and the results are presented in \autoref{fig:redundancy}.
+We conduct a numerical analysis of the total storage consumption across various blockchain designs, and the results are presented in \cref{fig:redundancy}.
 The security parameters for \textsc{Elastico}, RapidChain, and the active layer of \sys are consistently set at $10^{-6}$.
 \ifspace
 Notice that \sys provides deterministic security guarantees.
 Under this setting, the probability of the other works ensuring security is equivalent to the probability of \sys utilizing its fast path.
 So this is a fair comparison since the performance of \sys's fast path is on par with the other works.
 Also notice that \textsc{Elastico} is plotted with $\frac{1}{4}$ faulty nodes, which is the targeted scenario of its design.
-As we discussed in \autoref{sec:bg}, its storage consumption would be equivalent to full replication with $\frac{1}{3}$ faulty nodes.
+As we discussed in \cref{sec:bg}, its storage consumption would be equivalent to full replication with $\frac{1}{3}$ faulty nodes.
 \fi
 The results demonstrate that \sys achieves superior storage scalability.
 \sys incurs a storage overhead of at most $16\times$ the state size, irrespective of the number of nodes in the system.
 RapidChain and \textsc{Elastico} can also achieve storage scalability but with significantly larger upper bounds on storage overhead ($158\times$ and $378\times$ the state size, respectively).
 Thanks to the decomposed design, \sys can start sharding and enjoy scalable storage consumption from almost zero scale.
-In the contrary, the processing sharding design disables sharding with committee sizes smaller than hundreds, not even mention that it also compromises the security properties (\autoref{sec:bg}).
+In the contrary, the processing sharding design disables sharding with committee sizes smaller than hundreds, not even mention that it also compromises the security properties (\cref{sec:bg}).
 \lijl{Can remind that these designs also compromise security and liveness.}\sgd{Done.}
 Finally, full replication exhibits unbounded storage consumption, growing linearly with the number of nodes.
 

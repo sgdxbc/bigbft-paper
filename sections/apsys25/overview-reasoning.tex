@@ -4,7 +4,7 @@
 Since any $k$ correct nodes holding any $k$ pieces of the stripe (state or parity shards) can reconstruct the original $k$ data shards, the queried stripes can always be reconstructed.
 
 The garbage collection process requires a bump quorum of only $2f+1$ participating nodes.
-As mentioned in \autoref{sec:approach}, for each stripe, the $k+2f$ nodes responsible for serving it must overlap with this $2f+1$ quorum by at least $k$ correct nodes.
+As mentioned in \cref{sec:approach}, for each stripe, the $k+2f$ nodes responsible for serving it must overlap with this $2f+1$ quorum by at least $k$ correct nodes.
 These $k$ correct nodes will possess enough state and parity shards to reconstruct the entire stripe.
 
 As the result, \texttt{get} every shard of the \emph{highest} version certified by a bump quorum will succeed.

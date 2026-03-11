@@ -19,7 +19,7 @@ Given deterministic execution and the guarantees of atomic broadcast, world stat
 Some blockchains~\cite{hyperledger} apply the \emph{execute-order} model, in which nodes execute the transactions first, and then run atomic broadcast to totally order the transaction outcomes.
 This model can result in more scalable transaction execution, and permits non-deterministic transaction logic.
 Our solution can be applied to both models;
-however, we only focus on the order-execute model in this paper given their wider adoption, and briefly discuss the execute-order model in \autoref{sec:rel}.
+however, we only focus on the order-execute model in this paper given their wider adoption, and briefly discuss the execute-order model in \cref{sec:rel}.
 
 \paragraph{Blockchain storage layer}
 %Blockchain nodes may crash and lose all volatile state.
@@ -57,7 +57,7 @@ To overcome the slow storage I/O performance, prior systems commonly apply batch
 
 To maintain feasible storage consumption, existing blockchains offload the ever-growing transaction history to a dedicated archival storage system~\cite{ruan2019fine,feng2024slimarchive}.
 However, they still mandate each participating node to store the entire world state in its storage layer.
-%As discussed in \autoref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
+%As discussed in \cref{sec:bg:storage}, without persistent storage of the world state, node recovery would require lengthy and bandwidth consuming state transfer or transaction replay.
 
 World state size of deployed blockchains does not remain constant.
 New user, wallet, and contract accounts are continuously being created.
@@ -67,7 +67,7 @@ Moreover, the state associated with each account can have non-trivial size.
 For instance, besides the account balance, each account in Ethereum contains also stores a nonce and multiple hash values;
 each contract account can contain 20~KB of code data, tens of KBs of contract storage, and up to a few MBs of calldata.
 To understand the storage consumption trend of deployed blockchains, we collected open measurement data of the Bitcoin and Ethereum public networks.
-As shown in \autoref{fig:bc-state-size}, the world state size (this excludes transaction history) of Bitcoin and Ethereum have grown from 180~GB in 2019 to 660~GB~\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410~GB~\footnote{\url{https://etherscan.io/chartsync/chaindefault}} respectively in 2025, a 3.7$\times$ and 7.8$\times$ increase over five years.
+As shown in \cref{fig:bc-state-size}, the world state size (this excludes transaction history) of Bitcoin and Ethereum have grown from 180~GB in 2019 to 660~GB~\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410~GB~\footnote{\url{https://etherscan.io/chartsync/chaindefault}} respectively in 2025, a 3.7$\times$ and 7.8$\times$ increase over five years.
 The blockchain communities have also projected further state explosions in the near future~\cite{eth-state, state-bloat}.
 
 The growing state sizes create several issues for existing blockchain architectures.
@@ -173,7 +173,7 @@ Outside the period of synchrony, the protocol may experience a lack of progress,
 
 \paragraph{Blockchain Storage Consumption.}
 The rapidly expanding state sizes of prevalent permissionless blockchains are a well-established phenomenon.
-From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\autoref{fig:states-grow}).
+From 2019 to the present, the blockchain states of Bitcoin and Ethereum have grown from approximately 180 GB to 660 GB\footnote{\url{https://www.blockchain.com/explorer/charts/blocks-size}} and 1410 GB\footnote{\url{https://etherscan.io/chartsync/chaindefault}}, respectively (\cref{fig:states-grow}).
 While lacking open data on the permissioned settings side, it is reasonable to infer even much larger state sizes based on the significantly higher processing throughput.
 % Google reports 4, 20 and 70 TB data sizes respectively for personalized search, processed Google Analytics and Google Earth images data, dates back to 2006~\cite{chang2008bigtable}.
 
@@ -222,7 +222,7 @@ As the result, the early nodes can enjoy a much slower increasing or even nearly
 \end{tabularx}
 \end{table*}
 
-\paragraph{Blockchain Systems with Scalable Storage (\autoref{tab:compare}).}
+\paragraph{Blockchain Systems with Scalable Storage (\cref{tab:compare}).}
 Prior works have proposed various blockchains with low storage overhead~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,kokoris2018omniledger,dang2019towards,zamani2018rapidchain,david2022gearbox,amiri2021sharper,gupta2020resilientdb,wang2019monoxide}.
 They can be categorized into two main approaches: \emph{processing sharding} and \emph{stateless blockchain}.
 Next, we introduce both approaches in detail and discuss their limitations.
@@ -249,7 +249,7 @@ As the result, stateless blockchains incur constant storage overhead on the node
 Ethereum has adopted similar stateless designs~\cite{eip4844} in its rollup-centric roadmap~\cite{ethereum_scaling_docs,vbuterin2020rolluproadmap}.
 
 \paragraph{The Fundamental Trade-off Between Security and Scalability.}
-As shown in \autoref{tab:compare}, no prior system can ensure conventional security properties with scalable storage.
+As shown in \cref{tab:compare}, no prior system can ensure conventional security properties with scalable storage.
 Fully replicated systems are not scalable in storage consumption, as every node must store a full copy of the state regardless of the number of nodes.
 The works taking processing sharding approach generally claims to ensure safety and liveness properties, but each of them introduce various assumptions for ensuring them.
 The works relying on pre-determined fault-tolerant clusters~\cite{ruan2021blockchains,el2019blockchaindb,hong2024gridb,amiri2021sharper,hellings2021byshard} can only tolerate $\frac{1}{3}$ faulty nodes within each cluster.

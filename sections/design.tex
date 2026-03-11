@@ -2,7 +2,7 @@
 \label{sec:design}
 
 \sys is a concrete instance of the state-execution decoupled architecture.
-In this section, we give an overview of \sys in \autoref{sec:design:overview}, follow by design details in \autoref{sec:design:details}.
+In this section, we give an overview of \sys in \cref{sec:design:overview}, follow by design details in \cref{sec:design:details}.
 A full correctness proof can be found in the supplementary material.
 
 \subsection{Overview}
@@ -46,7 +46,7 @@ The design implies that the replication factor $r$ of each shard can be lower th
 \sys first applies randomized replication to provide better probabilistic availability guarantees of shard replicas.
 When the storage nodes suspect that all $r$ replicas of a shard have lost, they re-elect $r$ responsible nodes for the shard.
 These nodes reconstruct a shard copy from the erasure coded chunks, which are guaranteed to be available.
-The data flow of \fetch and \bump operations is illustrated in \autoref{fig:flow}.
+The data flow of \fetch and \bump operations is illustrated in \cref{fig:flow}.
 
 To ensure state safety, \sys organizes each shard into a binary Merkle tree.
 The tree is constructed during state checkpointing.
@@ -97,7 +97,7 @@ It returns $\forward(p)$ for any $\fetch_i$ or $\bump_i$ invocation with $i < p$
 \end{table}
 
 We now provide design details of \sys.
-\autoref{tab:messages} summarizes the protocol messages.
+\Cref{tab:messages} summarizes the protocol messages.
 The messages are categorized into two channels according to how they are delivered.
 The storage nodes RPC channel is unordered and unreliable point-to-point communication.
 % and the storage nodes respond to the requests to serve and update their stored data.
@@ -185,11 +185,11 @@ After checkpointing for round $c$, the storage nodes discard all stored data for
 The execution layer sequentially processes the ordered messages delivered by the atomic broadcast protocol.
 If the message is a client transaction, it executes the transaction and accesses the state by calling \fetch and \bump according to the transaction logic.
 Otherwise, it forwards the message to the SMS for processing.
-The SMS maintains the current checkpoint round, an update table and a cache (\autoref{sec:impl}) on the replica nodes.
+The SMS maintains the current checkpoint round, an update table and a cache (\cref{sec:impl}) on the replica nodes.
 On \bump operations, the SMS records the updated keys and their new values in the update table.
 On \fetch operations, the SMS first checks the update table for the requested key and returns the value directly if found.
 If not found, it checks the cache, and lastly resorts to sending \retrieve requests to the storage nodes on a cache miss.
-The \retrieve requests are batched to reduce communication overhead (\autoref{sec:impl}).
+The \retrieve requests are batched to reduce communication overhead (\cref{sec:impl}).
 After getting the responses, the SMS verifies the values and proofs against the shard commitment, updates the cache, and returns the values to the execution layer.
 
 The SMS suspects a liveness failure if the \retrieve requests are not (correctly) responded within a timeout.
@@ -203,7 +203,7 @@ Then, it sends \retrieves requests to the responsible storage nodes, retrieves t
 After that, it applies the relevant updates in the update table snapshot to the retrieved shards and computes the new shard commitments.
 Next, SMS sends \pushss messages with the new shards to all the storage nodes and waits for $2f+1$ acknowledgments.
 After the SMS stores all the shards for round $c$, it discards the snapshot of the update table, and sends \votec messages for round $c+1$ with the new shard commitments.
-\autoref{fig:checkpoint-message} shows the protocol diagram of state checkpointing.
+\Cref{fig:checkpoint-message} shows the protocol diagram of state checkpointing.
 
 On reconfiguration signals, the SMS reseeds the randomized placement scheme, determines the new responsible nodes for each shard, and sends the following \retrieve and \retrieves requests accordingly.
-The protocol diagram of reconfiguration is illustrated in \autoref{fig:reconfigure-message}.
+The protocol diagram of reconfiguration is illustrated in \cref{fig:reconfigure-message}.

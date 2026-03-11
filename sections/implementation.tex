@@ -20,7 +20,7 @@ So \sys batches: the execution layer processes blocks of transactions, concurren
 Thousands of transactions thus become ready after a single round trip, greatly improving throughput.
 Also, when the same key is accessed multiple times in a batch, SMS deduplicates retrievals to avoid redundant network and disk work.
 Batched fetching requires knowing keys ahead of execution (via static analysis or annotations, e.g., Ethereum access lists~\cite{heimbach2024dissecting}).
-The YCSB and UTXO applications used in our evaluation (\autoref{sec:eval}) have keys known a priori.
+The YCSB and UTXO applications used in our evaluation (\cref{sec:eval}) have keys known a priori.
 Read-after-write within a batch is preserved by maintaining an intermediate intra-batch partial state.
 Pipelining fetch and execution could further improve utilization for heavier workloads (e.g., EVM), but we omit it because fetching already dominates in our lightweight evaluations.
 
@@ -50,9 +50,9 @@ Replica and storage nodes are logically separate but may be co-located on the sa
 However, co-location can cause performance interference: \retrieve RPCs are latency-sensitive with small payloads, whereas checkpoint \retrieves are bulk transfers that require high throughput but are insensitive to latency.
 Deployments optimized for one may degrade the other.
 
-We therefore propose splitting each participant into \emph{online} and \emph{offline} machines connected by a trusted channel (\autoref{fig:online-offline}).
+We therefore propose splitting each participant into \emph{online} and \emph{offline} machines connected by a trusted channel (\cref{fig:online-offline}).
 The online machine hosts the replica node and primary copies, handling latency-sensitive \retrieve requests and consensus communication.
-As shown in \autoref{sec:eval}, \retrieve traffic remains small relative to consensus, so the online machine's network demands resemble those of a fully-replicated BFT node.
+As shown in \cref{sec:eval}, \retrieve traffic remains small relative to consensus, so the online machine's network demands resemble those of a fully-replicated BFT node.
 It requires moderate storage (only primary copies, potentially fitting in memory with aggressive caching) and low-latency network.
 The offline machine hosts remaining storage and handles bulk checkpoint transfers, prioritizing high-bandwidth network and large storage capacity.
 A typical deployment pairs a high-performance server (online) with a cost-effective storage server (offline).

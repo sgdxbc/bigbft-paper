@@ -72,7 +72,7 @@ In conclusion, the hybrid design answers all three key questions.
 \subsection{Garbage Collection}
 
 After a new checkpoint is created, the storage nodes can safely delete the data of the previous checkpoint.
-The last checkpointed version corresponds to the lowest alive version in \autoref{sec:approach}, i.e., at least $2f+1$ replica nodes have passed this version, or the checkpoint cannot be created yet.
+The last checkpointed version corresponds to the lowest alive version in \cref{sec:approach}, i.e., at least $2f+1$ replica nodes have passed this version, or the checkpoint cannot be created yet.
 If a replica node observes that a new checkpoint has been created (via $2f+1$ checkpoint votes for the next checkpoint) for the version later than its local execution version, it can conclude that it has fallen behind the lowest alive version and \forward to it.
 
 The liveness of SMS is preserved during garbage collection.

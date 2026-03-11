@@ -1,7 +1,7 @@
 \section{A State-Execution Decoupled Architecture}
 \label{sec:arch}
 
-Following our design principle in \autoref{sec:approach:case}, we propose a new state-execution decoupled blockchain architecture.
+Following our design principle in \cref{sec:approach:case}, we propose a new state-execution decoupled blockchain architecture.
 The architecture enables both strong security guarantees and storage scalability.
 In this work, we define storage scalability as follows:
 Given a certain world state size, the combined storage consumption across all nodes is \emph{independent of} the number of nodes.
@@ -20,7 +20,7 @@ The property implies that by adding more nodes to the system, the storage consum
     \label{fig:approach-compare}
 \end{figure}
 
-As shown in \autoref{fig:approach-compare}, a state-execution decoupled blockchain is logically partitioned into three layers: a consensus layer, an execution layer, and a state management layer.
+As shown in \cref{fig:approach-compare}, a state-execution decoupled blockchain is logically partitioned into three layers: a consensus layer, an execution layer, and a state management layer.
 The consensus layer and the execution layer follow the traditional design;
 the consensus layer establishes a total order of transactions, while the execution layer executes transactions in the agreed order.
 However, the execution layer is stateless.
@@ -114,7 +114,7 @@ Moreover, the latency overhead also reduces execution throughput, since the tran
 \paragraph{The size of the retrieved temporary state.}
 A natural concern with this design is that, in the worst case, the size of the retrieved temporary state could be as large as the entire state, for instance, if the transactions scan the entire state.
 We emphasize that this is a theoretical worst case and is unlikely to occur in practice.
-Firstly, as our design will demonstrate into \autoref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
+Firstly, as our design will demonstrate into \cref{sec:overview}, nodes retrieve individual key-value pairs from each other instead of transferring the whole state portion the remote nodes maintain.
 Thus, the peak size of the retrieved temporary state equals to the \emph{working set}, i.e., the total size of the accessed keys and values, of the executing transactions.
 Empirically, most transactions access only an extremely small fraction of the state.
 According to the data over 100 days in 2024 from Ethereum, on average each block reads ~1600 slots, about 0.0001\% of the total 151 million slots in the state~\cite{ProperDiskIO_GasPricing_LRUcache_2024}.
@@ -124,7 +124,7 @@ We follow this practice in our design, assuming trivial memory footprint for the
 
 \subsection{The Dual Node Architecture for State-execution Decoupling}
 
-Following the state-execution decoupling principle, we propose a dual node architecture where each participant hosts a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \autoref{fig:approach-compare}.
+Following the state-execution decoupling principle, we propose a dual node architecture where each participant hosts a \emph{replica node} and zero or more \emph{storage nodes}, depicted in \cref{fig:approach-compare}.
 The replica node is similar to a traditional BFT node: it contributes to consensus and executes all transactions.
 However, it does not maintain the execution state.
 \lijl{Shall we name ``execution state'' something else?}

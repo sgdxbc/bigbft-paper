@@ -38,7 +38,7 @@ We also evaluate performance across skewness factors $\alpha \in [0.0, 1.24]$.
 \end{figure}
 
 We prefill various numbers of nodes with the 100M key-value pairs YCSB state and measure the storage overhead using the \texttt{du} command.
-Results in \autoref{fig:nodes-storage} show that fully-replicated BFT stores 100 GiB per node regardless of cluster size, while \sys achieves storage scalability matching sharded BFT.
+Results in \cref{fig:nodes-storage} show that fully-replicated BFT stores 100 GiB per node regardless of cluster size, while \sys achieves storage scalability matching sharded BFT.
 At 100 nodes, \sys uses 9.82 GiB per node: 7 GiB from $r=7$ full shard copies and 3 GiB from $3\times$ redundant erasure-coded chunks, confirming that storage overhead decreases with cluster size.
 
 \subsection{Performance Under Different Network Conditions}
@@ -50,8 +50,8 @@ At 100 nodes, \sys uses 9.82 GiB per node: 7 GiB from $r=7$ full shard copies an
     \label{fig:tput-latency}
 \end{figure}
 
-We benchmark all three systems with 100 nodes under both LAN and WAN conditions, showing throughput and latency results in \autoref{fig:tput-latency}.
-\sys maintains consistent latency across LAN and WAN (\textasciitilde670ms and \textasciitilde5.44s respectively, matching fully-replicated BFT) because SMS adds only a single-trip overhead via primary pushing (\autoref{sec:impl}), which is negligible compared to the consensus latency dominated by Bullshark.
+We benchmark all three systems with 100 nodes under both LAN and WAN conditions, showing throughput and latency results in \cref{fig:tput-latency}.
+\sys maintains consistent latency across LAN and WAN (\textasciitilde670ms and \textasciitilde5.44s respectively, matching fully-replicated BFT) because SMS adds only a single-trip overhead via primary pushing (\cref{sec:impl}), which is negligible compared to the consensus latency dominated by Bullshark.
 
 On throughput, \sys outperforms fully-replicated BFT in both applications.
 For YCSB, cache hits dominate in both systems; misses incur network retrieval but save disk I/O, which is more expensive than remote access and lightweight verification.
@@ -69,8 +69,8 @@ Sharded BFT achieves highest throughput: $2.24\times$ for YCSB (limited by workl
 \end{figure}
 
 We compare the saturated YCSB throughput of \sys and fully-replicated BFT under different Zipfian skewness factors ranging from 0.0 (uniform) to 1.24 (highly skewed).
-Results in \autoref{fig:skew-tput} show that \sys experiences significant performance degradation at lower skewness: at uniform distribution, \sys achieves only 13.7\% of highly-skewed throughput, though still exceeding fully-replicated BFT (12.1\%), confirming comparable per-read overhead even when most \fetch operations require remote access.
-Disabling cache reduces throughput by 29.3\% (\sys) and 34.9\% (fully-replicated) at $\alpha=1.24$; batch deduplication in \fetch (\autoref{sec:impl}) minimizes cache-free performance loss.
+Results in \cref{fig:skew-tput} show that \sys experiences significant performance degradation at lower skewness: at uniform distribution, \sys achieves only 13.7\% of highly-skewed throughput, though still exceeding fully-replicated BFT (12.1\%), confirming comparable per-read overhead even when most \fetch operations require remote access.
+Disabling cache reduces throughput by 29.3\% (\sys) and 34.9\% (fully-replicated) at $\alpha=1.24$; batch deduplication in \fetch (\cref{sec:impl}) minimizes cache-free performance loss.
 
 \begin{figure}
     \center
@@ -80,7 +80,7 @@ Disabling cache reduces throughput by 29.3\% (\sys) and 34.9\% (fully-replicated
 \end{figure}
 
 We vary the number of nodes from 4 to 100 and measure the saturated throughput of all three systems for both applications.
-As shown in \autoref{fig:nodes-tput}, \sys and fully-replicated BFT scale consistently: while storage nodes must serve retrieval requests to more nodes as cluster size grows, more storage nodes share this load, keeping per-node overhead nearly constant.
+As shown in \cref{fig:nodes-tput}, \sys and fully-replicated BFT scale consistently: while storage nodes must serve retrieval requests to more nodes as cluster size grows, more storage nodes share this load, keeping per-node overhead nearly constant.
 Sharded BFT shows sublinear scaling, saturating at 60 nodes (6 shards) because consensus overhead persists, skewed YCSB creates load imbalance, and UTXO's cross-shard coordination dominates.
 
 \subsection{Checkpoint Latency}
@@ -93,7 +93,7 @@ Sharded BFT shows sublinear scaling, saturating at 60 nodes (6 shards) because c
 \end{figure}
 
 We measure the time taken to create a new checkpoint with zero-sized update table by running offline machines against the prefilled state.
-We vary both state size and node count, showing the breakdown in \autoref{fig:checkpoint}.
+We vary both state size and node count, showing the breakdown in \cref{fig:checkpoint}.
 With 100 nodes and 100 GiB state, checkpoint intervals reach 28 minutes, acceptable for practical blockchains.
 All stages scale linearly with state size: total time increases from 168s for 10 GiB to 1670s for 100 GiB, with scanning (10.5\%), retrieval (51.0\%), verification (8.8\%), and construction/encoding (29.6\%) maintaining consistent proportions.
 
@@ -114,7 +114,7 @@ We measure the proportions of network traffic contributed by each component of \
 We perform measurements with 4 to 100 nodes under YCSB workload at skewness factors 1.24 and 0.99, adopting a realistic 500 MiB update table size budget (meaning 20M and 2.2M operations per checkpoint period respectively).
 We measure egress network traffic of each node during 1/10 of the checkpoint period.
 
-Results in \autoref{fig:nodes-network} show that consensus and retrieval traffic remain constant per node as cluster size grows; checkpoint traffic increases as nodes store less state and retrieve more remote shards, but is bounded by the total state size.
+Results in \cref{fig:nodes-network} show that consensus and retrieval traffic remain constant per node as cluster size grows; checkpoint traffic increases as nodes store less state and retrieve more remote shards, but is bounded by the total state size.
 Retrieval adds modest overhead compared to fully-replicated BFT, which only incurs consensus traffic: 2.3\% at high skewness and 30.2\% at low skewness, both acceptable relative to consensus traffic.
 Checkpoint traffic comprises 24.9\% of total at $\alpha=1.24$ and 69.8\% at $\alpha=0.99$, with the absolute checkpoint traffic remaining the same across different skewness factors. This reflects that higher skewness enables more operations per update budget, increasing consensus and retrieval traffic proportionally while checkpoint cost stays constant.
 Overall, \sys achieves good network scalability with per-node traffic remaining nearly constant.

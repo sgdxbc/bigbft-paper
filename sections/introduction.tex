@@ -56,7 +56,7 @@ Last but not least, \sys adds only moderate 2.3\%-30.2\% network traffic for sta
 
 \if{0}
 Blockchain state size is undergoing considerable augmentation.
-Prevailing permissionless distributed ledgers~\cite{buterin2014next, bitcoin} present state size spanning hundreds to thousands of gigabytes (\autoref{fig:bc-state-size}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
+Prevailing permissionless distributed ledgers~\cite{buterin2014next, bitcoin} present state size spanning hundreds to thousands of gigabytes (\cref{fig:bc-state-size}), exposing considerable financial burden to nodes replicating the states and rendering on-chain data storage economically unviable~\cite{balduf2022dude}.
 Simultaneously, the implementation of extensive data applications on blockchain platforms is experiencing notable growth~\cite{qi2021bidl,lokhava2019fast,bodkhe2020blockchain,liu2018blockchain,xu2018making,kim2021two,jeong2020design,sun2020blockchain,li2019edurss,shen2019secure,salah2019blockchain,hirtan2018blockchain, sharma2018blockchain}, with state magnitudes potentially attaining terabyte or petabyte scales~\cite{laughlin2014information,rabindrajit2024high,pollard2018eicu,johnson2023mimic,bigtable}, imposing impractical storage requirements at each node if the state is fully replicated.
 \lijl{Is there any concrete evidence that these applications on blockchain actually require large state?}
 Can state size of a blockchain \emph{scales} with the system size, like traditional distributed databases?
@@ -70,7 +70,7 @@ Consequently, these approaches fail to uphold the conventional security assuranc
 %Other solutions necessitate pre-defined fault-tolerant clusters and can only manage $\frac{1}{3}$ Byzantine faults locally within each committee~\cite{ruan2021blockchains,amiri2021sharper,gupta2020resilientdb}.
 %Ultimately, no prior sharding method achieves storage scalability without impacting safety and liveness properties.
 
-The trade-off between security and scalability arises from the prevalent \emph{processing sharding} methodology employed by prior research, as depicted in \autoref{fig:approach-compare}.
+The trade-off between security and scalability arises from the prevalent \emph{processing sharding} methodology employed by prior research, as depicted in \cref{fig:approach-compare}.
 The entirety of processing, encompassing consensus and execution, is partitioned, with only a limited set of nodes (i.e., the committee) involved in transaction processing.
 This leads to diminished resilience against safety and liveness attacks.
 % Conversely, storage scalability is attained by partitioning the state, without necessitating the fragmentation of other components \lijl{what does this sentence mean?}.
@@ -139,7 +139,7 @@ What's worse, as the blockchain scaling out to more nodes, either scalability or
 
 
 \lijl{Before introducing the approach, should first provide insights which lead to this approach.}
-In this work, we propose a new approach that \emph{decomposes} BFT protocol into consensus layer that orders and processes the transactions and storage layer that manages the replicated states and possesses them to consensus layer for transaction processing (\autoref{fig:approach-compare}).
+In this work, we propose a new approach that \emph{decomposes} BFT protocol into consensus layer that orders and processes the transactions and storage layer that manages the replicated states and possesses them to consensus layer for transaction processing (\cref{fig:approach-compare}).
 Then, the consensus layer is not sharded and can be scaled up as a whole~\cite{gilad2017algorand,gueta2019sbft,yin2019hotstuff,danezis2022narwhal,spiegelman2022bullshark}, and the storage layer, which is not responsible for consistency, can be simply scaled up with sharding without affecting the security properties.
 \lijl{After reading the previous sentence, still not clear why storage can be scaled without impacting security. The key insight about scaling storage is not clearly conveyed.}
 % As in regular databases, the storage layer shards the state and each node preserves only a subset of the shards.

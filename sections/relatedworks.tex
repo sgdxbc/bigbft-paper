@@ -2,7 +2,7 @@
 \label{sec:rel}
 
 \paragraph{Reduce storage overhead in state machine replication.}
-As previously mentioned in \autoref{sec:bg}, horizontal scaling is a common practice in distributed storage and databases to handle large data volumes~\cite{gfs,bigtable,spanner}.
+As previously mentioned in \cref{sec:bg}, horizontal scaling is a common practice in distributed storage and databases to handle large data volumes~\cite{gfs,bigtable,spanner}.
 In these systems, data is partitioned into multiple shards which are individually replicated, similar to the sharded blockchains.
 
 Several prior works have explored reducing storage overhead in state machine replication with crash-fault tolerance.
@@ -11,7 +11,7 @@ Only the leader node stores full logs, while the followers maintain coded fragme
 Racos~\cite{zarnstorff2024racos} further introduces leaderless replication to resolve the bottleneck on the leader, which achieve storage scalability.
 The demand for Byzantine fault tolerance substantially complicates the challenge of reducing storage overhead.
 In these systems, usually only the proposing node executes the transactions, while other nodes store the coded fragments of the logs to ensure the state is recoverable after the proposer fails.
-Under Byzantine faults, the single execution result cannot be trusted, which brings the dilemma between security and storage scalability in \autoref{sec:bg}.
+Under Byzantine faults, the single execution result cannot be trusted, which brings the dilemma between security and storage scalability in \cref{sec:bg}.
 
 \paragraph{Storage scalable solutions for cryptocurrencies.}
 Vault~\cite{leung2018vault} proposes a sharded storage solution for account-based blockchains.
@@ -56,7 +56,7 @@ These works can improve the ordering (and execution for some works) scalability,
 % Notwithstanding these considerations, \sys can also be employed to decentralize rollups, which currently exhibit relative centralization.
 
 % \paragraph{Availability of historical transactions, i.e., blocks.}
-% In contrast to prior research maintaining partial states on nodes, as discussed in \autoref{sec:bg}, certain other studies propose availability solutions for historical transactions.
+% In contrast to prior research maintaining partial states on nodes, as discussed in \cref{sec:bg}, certain other studies propose availability solutions for historical transactions.
 % All committed transactions are preserved for an extended duration, and the state (either the current iteration or any prior one) can consistently be reconstituted by re-executing the transactions.
 
 % In public blockchains, \emph{archival nodes} voluntarily supply historical blocks for auditing or analytical purposes.

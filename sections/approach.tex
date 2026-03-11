@@ -20,7 +20,7 @@
 }
 \fi
 
-The discussion in \autoref{sec:bg:prior} shows that there is a tension between storage scalability and strong security properties in existing blockchain architectures.
+The discussion in \cref{sec:bg:prior} shows that there is a tension between storage scalability and strong security properties in existing blockchain architectures.
 Fully replicating world state on all blockchain nodes guarantees strong security, but the system storage capacity does not scale.
 Sharding can scale blockchain storage, but the approach compromises security guarantees.
 
@@ -104,7 +104,7 @@ On one hand, storage scalability cannot be achieved if the state is replicated t
 That means that for each transaction, the state it accesses can only be stored on a limited set of nodes whose number is independent of the total number of nodes.
 If only the nodes storing the accessed state can execute the transaction, the number of executing nodes is also limited.
 As the number of $f$ faulty nodes increases with the total number of nodes, the faulty nodes can eventually outnumber the executing nodes, making it impossible to achieve security guarantees (without seeking unconventional extensions to the security model).
-This fundamental theoretical limitation forces sharded and stateless blockchains to trade off security guarantees in various ways (\autoref{sec:bg}) in exchange for storage scalability.
+This fundamental theoretical limitation forces sharded and stateless blockchains to trade off security guarantees in various ways (\cref{sec:bg}) in exchange for storage scalability.
 \lijl{This is an important insight. We can make this part even stronger.}
 %\lijl{We can probably frame this into an informal impossibility result. That is, a system can choose at most one of the two properties. Then informally ``prove'' that if security is chosen, then storage scalability can't be achieved, and vice versa.}
 
@@ -134,6 +134,6 @@ By carefully designing the placement of state shards, we ensure that each shard 
 % If a node retrieves incorrect values, execution may diverge.
 % If retrieval fails to complete, execution is stalled.
 % Even if retrieval completes but is inefficient, execution will be delayed and throughput will decrease.
-% We will elaborate on these challenges and outline our solutions in \autoref{sec:overview}; before that, we first formalize the interfaces and security properties of state management.
+% We will elaborate on these challenges and outline our solutions in \cref{sec:overview}; before that, we first formalize the interfaces and security properties of state management.
 % \lijl{I think we can move these challenge discussions later.}
 \fi

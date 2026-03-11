@@ -1,6 +1,6 @@
 \section{Correctness Proof}
 
-% We now prove that the SMS design described above provides state availability guarantees as stated in \autoref{sec:arch}.
+% We now prove that the SMS design described above provides state availability guarantees as stated in \cref{sec:arch}.
 In this section, we prove that the state management layer can provide state availability and safety guarantees as stated in the paper.
 The state availability guarantees mean that every $\fetch_{i}(k)$ operation at version $i$ will eventually return on all correct replica nodes, and state safety means it will return with the correct value of key $k$ at version $i$ on all these nodes except at most $f$ of them where it returns \forward.
 The values of version $i$ are created with the $\bump_{i}(k_1 \mapsto v_1, k_2 \mapsto v_2, \ldots)$ operation, where the values of $k_1, k_2, \ldots$ are $v_1, v_2, \ldots$ respectively, and the values of other keys remain the same as version $i-1$.
