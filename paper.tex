@@ -1,7 +1,94 @@
-\input{_switches}
-\draftfalse
-\reviewfalse
-\spacetrue
-\apxtrue
-\arxivtrue
-\input{paper/usenix}
+\newif\ifacm
+\newif\ifarxiv
+\newif\ifreview
+\newif\ifdraft
+
+\acmtrue
+\arxivfalse
+\reviewtrue
+\drafttrue
+
+% use the base acmart.cls
+% use the sigconf proceeding template with 10 pt fonts
+% nonacm option removes ACM related text in the submission.
+\ifacm
+\ifreview
+\documentclass[sigconf,nonacm,10pt,anonymous]{acmart}
+\else
+\documentclass[sigconf,nonacm,10pt]{acmart}
+\fi
+\else
+\documentclass[letterpaper,twocolumn,10pt]{article}
+\usepackage{usenix-2020-09}
+\fi
+
+% enable page numbers
+\settopmatter{printfolios=true}
+
+\input{macros}
+\ifarxiv
+\newcommand{\sys}{Supermassive Blockchain\xspace}
+\title{\sys}
+\else
+\newcommand{\sys}{\textsc{BigBFT}\xspace}
+\title{\sys: Scaling Byzantine Fault Tolerance Without Compromised Security}
+\fi
+
+\ifreview
+\author{Paper \#1976}
+\else
+\ifacm
+\author{Guangda Sun}
+\affiliation{
+    \institution{National University of Singapore}
+    \country{}
+    \city{}
+}
+\author{Jialin Li}
+\affiliation{
+    \institution{National University of Singapore}
+    \country{}
+    \city{}
+}
+\else
+\author{
+{\rm Guangda Sun}\\
+National University of Singapore\\
+sung@comp.nus.edu.sg
+\and
+{\rm Jialin Li}\\
+National University of Singapore\\
+lijl@comp.nus.edu.sg
+}
+\fi
+\fi
+
+\ifacm
+% DOI
+\acmDOI{}
+% ISBN
+\acmISBN{}
+\fi
+
+\ifacm
+\else
+\titlespacing*{\paragraph}{0pt}{0pt}{1em}
+\fi
+
+\begin{document}
+\title{\sys}
+
+\input{abstract}
+\maketitle % should come after the abstract
+
+\input{sections/introduction}
+
+\ifacm
+% use the ACM bibliography style
+\bibliographystyle{ACM-Reference-Format}
+\else
+\bibliographystyle{plain}
+\fi
+\bibliography{paper}
+
+\end{document}

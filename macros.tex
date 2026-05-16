@@ -1,12 +1,6 @@
 % reusable configure across papers
 % paper-specific stuff goes into preamble.tex
 
-\ifacm
-\bibliographystyle{ACM-Reference-Format}
-\else
-\usepackage{usenix-2020-09}
-\bibliographystyle{plain}
-\fi
 \ifarxiv
 \usepackage{newpxtext}
 \fi
@@ -66,3 +60,22 @@
 \else
 \excludecomment{outline}
 \fi
+
+\newcommand{\eg}{e.g.\@\xspace}
+\newcommand{\ie}{i.e.\@\xspace}
+
+\newcommand{\yes}{\textcolor{green}{\ding{51}}}
+\newcommand{\no}{\textcolor{red}{\ding{55}}}
+
+\newcommand{\fetch}{\texttt{fetch}\xspace}
+\newcommand{\bump}{\texttt{post}\xspace}
+\newcommand{\forward}{\texttt{skip}\xspace}
+
+\newcommand{\votec}{\textsc{VoteCheckpoint}\xspace}
+\newcommand{\retrieve}{\textsc{Retrieve}\xspace}
+\newcommand{\retrieves}{\textsc{RetrieveShard}\xspace}
+\newcommand{\pushss}{\textsc{StoreShard}\xspace}
+\newcommand{\voter}{\textsc{VoteReconfig}\xspace}
+\newcommand{\getsc}{\textsc{RetrieveChunk}\xspace}
+
+\newcommand{\code}[1]{\texttt{#1}\xspace}
