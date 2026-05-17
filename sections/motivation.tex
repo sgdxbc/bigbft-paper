@@ -1,37 +1,38 @@
 \section{Motivation}
 \label{sec:review}
 
-The goal of this work is to design a BFT transactional store that can robustly scale up throughput with the number of nodes while maintaining low latency.
-In this section, we first define the problem, and then review the previous scaling approaches and their limitations.
+The goal of this work is to design a BFT transactional store that can robustly scale throughput with the number of nodes while maintaining low latency.
+In this section, we first define the problem and then review prior scaling approaches and their limitations.
 
 \subsection{Problem Definition}
 
-BFT transactional stores provide mutable shared key-value states across mutually untrusted parties.
-They support transactions that dynamically read and write multiple keys, where the accessed keys are not known until the transaction is executed.
-They ensure linearizability, i.e., serializable isolation level, meaning that the transactions appear to be executed in a sequential order that is consistent with the real-time ordering of the transactions to the clients.
-\sys provides a blockchain-style interface, where the clients submit transactions calling into on-chain smart contracts that encapsulate multiple read and write operations, and it favors transactions with predetermined access key sets performance-wise, while it also supports Basil-style interactive transactions by simply integrating multi-version values into the state.
+BFT transactional stores provide mutable shared key-value state across mutually untrusted parties.
+They support transactions that dynamically read and write multiple keys, where the accessed keys are not known until execution.
+They ensure linearizability, that is, serializable isolation, so transactions appear to execute sequentially in a way that is consistent with their real-time order from the clients' perspective.
+\sys provides a blockchain-style interface, where clients submit transactions that call on-chain smart contracts encapsulating multiple read and write operations.
+Performance-wise, it favors transactions with predetermined access key sets, while it also supports Basil-style interactive transactions by integrating multi-version values into the state.
 
 \sys can be scaled out by adding more node shards, where each shard is a fault-tolerant group of nodes that replicates a partition of the state data.
-Each shard can tolerate $f$ Byzantine faults over a total of $3f+1$ nodes.
-We omit the details of reconfiguration and state migration for simplicity, as they are straightforward based on the consensus protocol employed by \sys.
-\sys can tolerate arbitrary Byzantine clients, while only the correct clients commit transactions.
+Each shard can tolerate $f$ Byzantine faults among a total of $3f+1$ nodes.
+We omit the details of reconfiguration and state migration for simplicity, since they are straightforward given the consensus protocol employed by \sys.
+\sys can tolerate arbitrary Byzantine clients, while transactions are only guaranteed to be committed on correct clients.
 \sys can ensure linearizability in asynchronous networks, while its liveness depends on the synchrony assumptions of the underlying consensus protocol.
-When working with consensus protocols that guarantee liveness under asynchronous networks such as Bullshark~\cite{bullshark}, \sys can guarantee liveness under asynchronous networks as well.
+When \sys uses consensus protocols that guarantee liveness under asynchronous networks, such as Bullshark~\cite{bullshark}, it can guarantee liveness under asynchronous networks as well.
 
 \subsection{Previous Scalable BFT Store}
 
-In traditional distributed storage systems, the state data is partitioned, and the transactions that access different partitions are processed in parallel by different node shards~\cite{bigtable}.
-However, in blockchain systems, every node needs to participate in the state machine replication, maintaining the full state and processing all transactions in a consistent, sequential manner, even if the transactions are independent and can be processed concurrently.
+In traditional distributed storage systems, state data is partitioned, and transactions that access different partitions are processed in parallel by different node shards~\cite{bigtable}.
+However, in blockchain systems, every node must participate in state machine replication, maintain the full state, and process all transactions in a consistent sequential order, even when the transactions are independent and could be processed concurrently.
 
-To realize parallel transaction execution, sharded blockchains operate multiple consensus instances in parallel, where each instance is operated by different groups of nodes called committees and responsible for different state partitions.
-The transactions that access different partitions are processed in parallel by different committees, while cross-shard transactions are handled by dedicated distributed transaction protocols.
-As the number of shards scales up, cross-shard transactions become more common and dominate the performance, and the distributed transaction protocols introduce significant overhead and complexity.
+To realize parallel transaction execution, sharded blockchains run multiple consensus instances in parallel, where each instance is operated by a different group of nodes, called a committee, and is responsible for a different state partition.
+Transactions that access different partitions are processed in parallel by different committees, while cross-shard transactions are handled by dedicated distributed transaction protocols.
+As the number of shards increases, cross-shard transactions become more common and dominate performance, and the distributed transaction protocols introduce significant overhead and complexity.
 % Moreover, 
 
-Basil~\cite{suri2021basil} proposed to strengthen traditional distributed storage systems with Byzantine fault tolerance, without employing a consensus protocol to totally order the transactions.
-While Basil avoids sequentially processing all transactions according to an artificial total order, it involves complicated client-coordinated optimistic concurrency control protocols to resolve the dependencies of transactions and ensure serializable execution, while still suffering from various performance implications.
-Basil incurs $5f+1$ replication factor to tolerate Byzantine nodes from arbitrarily aborting transactions.
-Its optimal performance can only be achieved when there is no Byzantine node or Byzantine client, and the workload is not highly contended.
-It pays significant cryptographic overhead for multi-round node-client interactions, which cannot be as easily batched as the internal communication across nodes.
-Moreover, it is challenging for Basil to support sophisticated database primitives like range read with its client-driven transaction execution, and in its follow-up work~\cite{suri2025pesto} adapts server-side execution for this purpose.
-On the other hand, \sys can always execute arbitrary business logic on server side akin to the blockchains, making it easily supporting database operations.
+Basil~\cite{suri2021basil} proposed strengthening traditional distributed storage systems with Byzantine fault tolerance without using a consensus protocol to totally order transactions.
+Although Basil avoids sequentially processing all transactions according to an artificial total order, it relies on complicated client-coordinated optimistic concurrency control protocols to resolve transaction dependencies and ensure serializable execution, while still incurring various performance penalties.
+Basil requires a $5f+1$ replication factor to prevent Byzantine nodes from arbitrarily aborting transactions.
+Its optimal performance is achievable only when there is no Byzantine node or Byzantine client and the workload is not highly contended.
+It also pays significant cryptographic overhead for multi-round node-client interactions, which cannot be batched as easily as internal communication among nodes.
+Moreover, Basil finds it difficult to support sophisticated database primitives such as range reads with its client-driven transaction execution, and its follow-up work~\cite{suri2025pesto} adapts server-side execution for this purpose.
+In contrast, \sys can always execute arbitrary business logic on the server side, inherently as in blockchains, which makes it easier to support database operations.
