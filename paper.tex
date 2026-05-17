@@ -8,15 +8,11 @@
 \reviewtrue
 \drafttrue
 
+\ifacm
 % use the base acmart.cls
 % use the sigconf proceeding template with 10 pt fonts
 % nonacm option removes ACM related text in the submission.
-\ifacm
-\ifreview
-\documentclass[sigconf,nonacm,10pt,anonymous]{acmart}
-\else
 \documentclass[sigconf,nonacm,10pt]{acmart}
-\fi
 \else
 \documentclass[letterpaper,twocolumn,10pt]{article}
 \usepackage{usenix-2020-09}
@@ -35,7 +31,7 @@
 \fi
 
 \ifreview
-\author{Paper \#1976}
+\author{\small Paper \#62}
 \else
 \ifacm
 \author{Guangda Sun}
