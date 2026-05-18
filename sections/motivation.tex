@@ -14,7 +14,6 @@ Performance-wise, it favors transactions with predetermined access key sets, whi
 
 \sys can be scaled out by adding more node shards, where each shard is a fault-tolerant group of nodes that replicates a partition of the state data.
 Each shard can tolerate $f$ Byzantine faults among a total of $3f+1$ nodes.
-We omit the details of reconfiguration and state migration for simplicity, since they are straightforward given the consensus protocol employed by \sys.
 \sys can tolerate arbitrary Byzantine clients, while transactions are only guaranteed to be committed on correct clients.
 \sys can ensure linearizability in asynchronous networks, while its liveness depends on the synchrony assumptions of the underlying consensus protocol.
 When \sys uses consensus protocols that guarantee liveness under asynchronous networks, such as Bullshark~\cite{bullshark}, it can guarantee liveness under asynchronous networks as well.
