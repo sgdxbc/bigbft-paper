@@ -1,81 +1,82 @@
 \section{Design}
 \label{sec:overview}
 
-\sys is a scalable key-value store that shards the key space into multiple partitions, stores each partition on a separate node shard, and can tolerate Byzantine faults within each shard.
-\sys can be reconfigured dynamically to add or remove node shards.
-We omit the details of sharding scheme, reconfiguration and state migration for simplicity, as there are many existing solutions applicable given the consensus protocol employed by \sys.
-\sys provides interface similar to blockchains.
+\sys is a scalable key-value store that shards the key space into multiple partitions, stores each partition on a separate node shard, and tolerates Byzantine faults within each shard.
+\sys can be dynamically reconfigured to add or remove node shards.
+We omit the details of sharding scheme, reconfiguration, and state migration for simplicity, since many existing solutions are applicable given the consensus protocol employed by \sys.
+\sys provides an interface similar to blockchains.
 Clients submit transactions that call on-chain smart contracts, similar to stored procedures, executing which may read and write multiple keys.
 \sys guarantees ACID properties.
-All transactions submitted by correct clients will eventually be committed with atomic and serializable execution, and all reads return the values of the latest writes to the corresponding keys.
+All transactions submitted by correct clients will eventually be committed with atomic and serializable execution, and all reads return the values of the most recent writes to the corresponding keys.
 
 \subsection{Design Overview}
 
 \sys consists of three primary components: consensus, stateless transaction execution, and sharded state storage.
 Every node in \sys is multiplexed across all three components.
-The consensus component employs a BFT consensus protocol to accept clients submitting transactions and to order transactions globally.
-The consensus protocol in \sys is not sharded: nodes across all shards participate in the same consensus protocol.
-When there are shards joining or leaving \sys, the consensus protocol is reconfigured to include more or fewer nodes.
-When there are $C$ shards, each of them has $3f+1$ nodes, and at most $f$ of them can be Byzantine, the consensus protocol is configured to tolerate $Cf$ Byzantine faults among a total of $C(3f+1)$ nodes, which is feasible as common consensus protocols can tolerate $Cf$ Byzantine faults with at least $3Cf+1$ nodes.
-\sys can integrate any BFT consensus protocol as the consensus component, while the ones with scalable performance, such as DAG-based protocols~\cite{bullshark} and Autobahn~\cite{giridharan2024autobahn}, are preferred to avoid introducing scalability bottlenecks.
-When working with these protocols, the clients can submit transactions to any node of any shard and commit transactions after receiving $Cf+1$ matching confirmations from the nodes, where $C$ is the number of shards, ensuring at least one confirmation from a correct node.
+The consensus component employs a BFT consensus protocol to accept transactions from clients and to order them globally.
+The consensus protocol in \sys is not sharded: nodes across all shards participate in the same protocol.
+When shards join or leave \sys, the consensus protocol is reconfigured to include additional or fewer nodes.
+When there are $C$ shards, each with $3f+1$ nodes where at most $f$ are Byzantine, the consensus protocol is configured to tolerate $Cf$ Byzantine faults among a total of $C(3f+1)$ nodes, which is feasible because common consensus protocols can tolerate $Cf$ Byzantine faults with at least $3Cf+1$ nodes.
+\sys can integrate any BFT consensus protocol as the consensus component, while those with scalable performance, such as DAG-based protocols~\cite{bullshark} and Autobahn~\cite{giridharan2024autobahn}, are preferred to avoid introducing scalability bottlenecks.
+When using these protocols, clients can submit transactions to any node of any shard and commit transactions after receiving $Cf+1$ matching confirmations from the nodes, where $C$ is the number of shards, ensuring at least one confirmation from a correct node.
 
-The consensus component sequentially delivers blocks of transactions in a consistent order to the execution component, which executes transactions in the blocks and confirms to the clients after the writes of the transactions are durably stored in the state storage component.
-\sys adopts fully replicated execution: every node executes every transaction regardless of its shard, which is realized by stateless execution.
-During executing a block, a node fetches the read values from the state storage component and buffers the writes locally.
-While general transactions are supported, \sys favors transactions with read sets known in advance, which enables batched fetching of all transactions in the block, improving efficiency.
-Then, the node posts the writes back to the state storage component and confirms to the clients after the post is finished.
+The consensus component sequentially delivers blocks of transactions in a consistent order to the execution component, which executes the transactions and confirms to the clients after the writes are durably stored in the state storage component.
+\sys adopts fully replicated execution: every node executes every transaction regardless of its shard, achieved through stateless execution.
+When executing a block, a node fetches the read values from the state storage component and buffers the writes locally.
+Although general transactions are supported, \sys favors transactions with read sets known in advance, which enables batched fetching of all transactions in the block and improves efficiency.
+The node then posts the writes back to the state storage component and confirms to the clients after the post completes.
 
 \subsection{State Storage and Access}
 
 The state storage component exposes fetch and post interfaces to the execution component.
-As the node shards in Basil and sharded blockchains, in \sys, the state storage component is sharded, and every shard is responsible for a disjoint partition of the key space, and reads and writes are consistently directed to the corresponding shards via consistent hashing~\cite{karger1997consistent}.
-Each fetch and post operation is divided into multiple network requests based on the accessed keys, and the requests are sent to the corresponding shards in parallel.
-This is the key to enable concurrent state access in \sys.
+Like the node shards in Basil and sharded blockchains, in \sys the state storage component is sharded, and each shard is responsible for a disjoint partition of the key space.
+Reads and writes are consistently directed to the corresponding shards via consistent hashing~\cite{karger1997consistent}.
+Each fetch and post operation is divided into multiple network requests based on the accessed keys, and requests are sent to the corresponding shards in parallel.
+This parallelism is key to enabling concurrent state access in \sys.
 
-The state storage component handles fetch and post requests block per block.
+The state storage component handles fetch and post requests on a per-block basis.
 For fetch requests, it simply returns the current values of the requested keys.
-For the post requests, it waits for $2Cf+1$ matching requests from distinct nodes to ensure at least one of them is from a correct node, and then applies the writes to the state, acknowledges all requests, and starts to respond to the fetch requests for the following blocks.
-Thanks to the consensus component at the front, the state storage component in \sys is much simpler than Basil's shard replicas because it effectively only serves one client: the execution component of the majority of correct nodes.
-So, it is designed as a simple data plane which does not need to handle concurrent or faulty clients.
+For post requests, it waits for $2Cf+1$ matching requests from distinct nodes to ensure a quorum of correct nodes have posted, then applies the writes to the state, acknowledges all requests, and begins responding to fetch requests for the following blocks.
+Because the consensus component is at the front, the state storage component in \sys is much simpler than Basil's shard replicas, since it effectively serves only one client: the execution component of the majority of correct nodes.
+Therefore, it is designed as a simple data plane that does not need to handle concurrent or faulty clients.
 
-At the same time, to fetch values from a state storage shard, the execution component sends fetch requests to all nodes in the shard and waits for $f+1$ matching responses to ensure at least one of them is from a correct node, ensuring the integrity and freshness of the fetched values.
-To post values to a state storage shard, the execution component sends post requests to all nodes in the shard and waits for $2f+1$ matching acknowledgments, ensuring at least $f+1$ correct nodes have applied the writes and started to serve the fetch requests for the following blocks, which is required for the liveness of the subsequent fetches.
+In parallel, to fetch values from a state storage shard, the execution component sends fetch requests to all nodes in the shard and waits for $f+1$ matching responses to ensure at least one is from a correct node, thereby ensuring the integrity and freshness of the fetched values.
+To post values to a state storage shard, the execution component sends post requests to all nodes in the shard and waits for $2f+1$ matching acknowledgments, ensuring that at least $f+1$ correct nodes have applied the writes and are ready to serve fetch requests for the following blocks, which is necessary for the liveness of subsequent fetches.
 
 \subsection{Correctness and Liveness Proof}
 
-Now we sketch the correctness and liveness of \sys and defer the formal proof to the full version of the paper.
-The atomicity and durability of transactions are guaranteed by the state machine replication mechanism, so we primarily focus on the consistency, serializable isolation and liveness of \sys.
-The key insight is that the fetch and post operations served by the state storage component are always the same as if there is a full state copy on each node, as the case in normal BFT state machine replication, so the execution results are also the same to the normal BFT systems, which are known to guarantee the desired properties.
-Specifically, the fetch and post operations always finish, and the fetch operations always return the values of the keys presented in the latest posts containing the keys.
+We now sketch the correctness and liveness of \sys and defer the formal proof to the full version of the paper.
+The atomicity and durability of transactions are guaranteed by the state machine replication mechanism, so we focus primarily on consistency, serializable isolation, and liveness.
+The key insight is that the fetch and post operations served by the state storage component are always equivalent to having a full state copy on each node, as in normal BFT state machine replication, so the execution results are also equivalent to normal BFT systems, which are known to guarantee the desired properties.
+Specifically, fetch and post operations always complete, and fetch operations always return the values of keys as they appear in the most recent posts containing those keys.
 
-As we previously described, both the execution and state storage components waits for an $f+1$ and $2f+1$ quorum of matching messages respectively.
-This means that for each fetch request, the $f+1$ responding nodes must intersect with the $2f+1$ nodes that have acknowledged the post request where the fetched value originates by at least one correct node, which ensures the correctness of the fetched value.
-For liveness, the post request requires only $2f+1$ acknowledgments, so the $f$ Byzantine nodes cannot block it from finishing.
-Moreover, at least $f+1$ of those $2f+1$ acknowledgments must be from correct nodes, which will eventually respond to the subsequent fetch requests whose fetched values are among the post updates, ensuring the liveness of the fetch operations.
+As described earlier, both the execution and state storage components wait for $f+1$ and $2f+1$ quorums of matching messages, respectively.
+For each fetch request, the $f+1$ responding nodes must overlap with the $2f+1$ nodes that acknowledged the post request from which the fetched value originates, guaranteeing at least one correct node in the intersection and thus ensuring the correctness of the fetched value.
+For liveness, post requests require only $2f+1$ acknowledgments, so $f$ Byzantine nodes cannot prevent them from completing.
+Moreover, at least $f+1$ of those $2f+1$ acknowledgments must come from correct nodes, which will eventually respond to subsequent fetch requests for values in the posted updates, ensuring liveness of fetch operations.
 
 We omit the discussion on garbage collection in this short paper.
-The correct nodes that are slower than $2Cf+1$ other nodes may fetch for a block after the state storage has already overridden the fetch values with the subsequent post updates.
-In such case, the state storage component can respond with a certificate indicating that it is safe for these nodes to skip executing the block, as there must have been $Cf+1$ correct nodes executed the block and confirmed to the clients, ensuring the transactions committed.
+Correct nodes that are slower than $2Cf+1$ others may attempt to fetch a block after the state storage has already overwritten the fetch values with subsequent post updates.
+In this case, the state storage component can respond with a certificate indicating that these nodes can safely skip executing the block, since at least $Cf+1$ correct nodes must have executed the block and confirmed to the clients, ensuring the transactions committed.
 
 \subsection{Optimizations}
 
-The optimal performance of \sys is achieved by minimizing the state access overhead.
-\sys parallelizes the state access by concurrently fetching and posting values to multiple shards in batches for each block, and we introduce several further optimizations.
+Optimal performance of \sys is achieved by minimizing state access overhead.
+\sys parallelizes state access by concurrently fetching and posting values to multiple shards in batches for each block, and we introduce several additional optimizations.
 
 \paragraph{Caching.}
-The execution component keeps a local cache of recently accessed key-value pairs.
-In the scenario of workloads with highly skewed state access pattern, this cache can significantly reduce number of keys to fetch for each block.
+The execution component maintains a local cache of recently accessed key-value pairs.
+For workloads with highly skewed state access patterns, this cache can significantly reduce the number of keys to fetch for each block.
 
 \paragraph{Pipelining.}
-In the design as described above, only one of the execution and state storage components is active at a time: the execution component is idle while waiting for the post requests to be acknowledged, and the state storage component is idle while waiting for execution.
-To further improve the performance, we propose to pipeline the execution and state storage components, while the consensus component is already pipelined to both of them.
-While executing the current block, the execution component can concurrently post the writes of the previous block and fetch the values for the next block.
-At the same time, the state storage component serves fetch requests for the next block after the updates of the previous block is posted instead of the current one.
-With this change, the state storage component responds to fetch requests with a fixed one-block staleness, so the execution component must maintain intermediate states between consecutive blocks to ensure the correctness of execution.
+In the design described above, only one of the execution and state storage components is active at a time: the execution component is idle while waiting for post acknowledgments, and the state storage component is idle while waiting for execution.
+To further improve performance, we propose pipelining the execution and state storage components, while the consensus component is already pipelined to both.
+While executing the current block, the execution component can concurrently post the writes of the previous block and fetch values for the next block.
+At the same time, the state storage component serves fetch requests for the next block after the previous block's updates are posted instead of the current block's.
+With this change, the state storage component responds to fetch requests with a fixed one-block staleness, so the execution component must maintain intermediate states between consecutive blocks to ensure execution correctness.
 
 \paragraph{Trusted state access.}
-While logically separated, the three components are co-located on the same nodes, and the components deployed on the same node are within the same trusted domain.
+Although logically separated, the three components are co-located on the same nodes, and components deployed on the same node share the same trusted domain.
 We can leverage this trusted state storage component to reduce network requests.
 When the execution component needs to fetch values from its own shard, it can directly access the local state storage component without sending network requests or waiting for multiple matching responses.
-At the same time, when the state storage component receives post requests from the execution component on the same node, it can directly apply the writes without waiting for multiple matching requests.
+Similarly, when the state storage component receives post requests from the execution component on the same node, it can directly apply the writes without waiting for multiple matching requests.
