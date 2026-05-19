@@ -26,12 +26,13 @@ However, in blockchain systems, every node must participate in state machine rep
 To realize parallel transaction execution, sharded blockchains run multiple consensus instances in parallel, where each instance is operated by a different group of nodes, called a committee, and is responsible for a different state partition.
 Transactions that access different partitions are processed in parallel by different committees, while cross-shard transactions are handled by dedicated distributed transaction protocols.
 As the number of shards increases, cross-shard transactions become more common and dominate performance, and the distributed transaction protocols introduce significant overhead and complexity.
-% Moreover, 
+% Moreover,
 
 Basil~\cite{suri2021basil} proposed strengthening traditional distributed storage systems with Byzantine fault tolerance without using a consensus protocol to totally order transactions.
 Although Basil avoids sequentially processing all transactions according to an artificial total order, it relies on complicated client-coordinated optimistic concurrency control protocols to resolve transaction dependencies and ensure serializable execution, while still incurring various performance penalties.
 Basil requires a $5f+1$ replication factor to prevent Byzantine nodes from arbitrarily aborting transactions.
 Its optimal performance is achievable only when there is no Byzantine node or Byzantine client and the workload is not highly contended.
 It also pays significant cryptographic overhead for multi-round node-client interactions, which cannot be batched as easily as internal communication among nodes.
+\lijl{It would be much stronger if the paper can provide more evidences of these points.}
 Moreover, Basil finds it difficult to support sophisticated database primitives such as range reads with its client-driven transaction execution, and its follow-up work~\cite{suri2025pesto} adapts server-side execution for this purpose.
 In contrast, \sys can always execute arbitrary business logic on the server side, inherently as in blockchains, which makes it easier to support database operations.
