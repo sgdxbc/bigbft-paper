@@ -10,10 +10,21 @@ The state is a 100 GB key-value store with 100 million keys.
 In the baseline, each node stores the full state, while in \sys the state is sharded into 100 partitions, each stored on a node shard of 7 shards.
 The node shards are overlapped for better load balancing, and each shard can tolerate up to 2 Byzantine nodes.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{graphs/skew-tput}
+    \caption{Throughput of \sys and the baseline under different workload skews.}
+    \ifacm\Description{}\fi
+    \label{fig:skew-tput}
+\end{figure}
+
 In the evaluation, we run a read-only YCSB workload to stress \sys under a high network fetch load, which is the worst case for \sys.
-We also test different workload skews to understand the impact of caching.
-The results are shown in \XXX.
+We also test different workload skews to understand the impact of caching, ranging from uniform ($\alpha=0$) and highly skewed ($\alpha=1.24$).
+The results are shown in \cref{fig:skew-tput}.
 Unsurprisingly, \sys constantly outperforms the baseline in all scenarios with and without caching and under both uniform and skewed workloads, because \sys parallelizes state access and significantly reduces the number of overall disk access.
 In the baseline, every state access translates to 100 disk accesses across the 100 nodes, while in \sys only 7 nodes need to access the disk for it.
-Furthermore, caching improves the performance of both systems, and the improvement is more significant with skewed workloads.
-\sys can achieve the throughput of \XXX with caching under a skewed workload, \XXX times higher than the baseline.
+Furthermore, due to caching, the performance of both systems improves as the workload becomes more skewed.
+\sys can achieve the throughput of 350k transactions per second under a skewed workload, 1.14 times higher than the baseline.
+
+Unfortunately, the current implementation of \sys is not optimized and the performance scalability has not been fully realized, so the performance improvement over fully replicated baseline and previous works is not as significant as we expect.
+In the future, we will apply the optimizations described in \cref{sec:overview} and expect to see the performance of \sys to scale with the number of nodes and significantly outperform the other systems.
