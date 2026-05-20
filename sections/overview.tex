@@ -65,8 +65,10 @@ Optimal performance of \sys is achieved by minimizing state access overhead.
 \sys parallelizes state access by concurrently fetching and posting values to multiple shards in batches for each block, and we introduce several additional optimizations.
 
 \paragraph{Caching.}
-The execution component maintains a local cache of recently accessed key-value pairs.
-For workloads with highly skewed state access patterns, this cache can significantly reduce the number of keys to fetch for each block.
+When state access happens locally, caching is widely deployed in multiple tiers of the system.
+In \sys, while the state storage component can cache hot values locally, the execution component still pays the network overhead to access them.
+Thus, the execution component is designed to cache recently accessed key-value pairs locally.
+For workloads with highly skewed state access patterns, this cache can significantly reduce the number of keys to fetch for each block, completely bypassing network and achieving better performance.
 
 \paragraph{Pipelining.}
 In the design described above, only one of the execution and state storage components is active at a time: the execution component is idle while waiting for post acknowledgments, and the state storage component is idle while waiting for execution.

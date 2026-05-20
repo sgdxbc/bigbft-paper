@@ -1,0 +1,19 @@
+\section{Preliminary Results}
+\label{sec:eval}
+
+We implement a prototype of \sys in Rust, with Bullshark~\cite{bullshark} as the consensus component.
+Here we present preliminary results of \sys comparing to a fully replicated baseline BFT store.
+We plan to conduct more comprehensive evaluations in the full version of the paper, including comparisons with Basil and sharded blockchains, and measuring more performance metrics such as latency and scalability with more shards and nodes.
+
+In our preliminary evaluation, we deploy \sys and the baseline on 100 nodes.
+The state is a 100 GB key-value store with 100 million keys.
+In the baseline, each node stores the full state, while in \sys the state is sharded into 100 partitions, each stored on a node shard of 7 shards.
+The node shards are overlapped for better load balancing, and each shard can tolerate up to 2 Byzantine nodes.
+
+In the evaluation, we run a read-only YCSB workload to stress \sys under a high network fetch load, which is the worst case for \sys.
+We also test different workload skews to understand the impact of caching.
+The results are shown in \XXX.
+Unsurprisingly, \sys constantly outperforms the baseline in all scenarios with and without caching and under both uniform and skewed workloads, because \sys parallelizes state access and significantly reduces the number of overall disk access.
+In the baseline, every state access translates to 100 disk accesses across the 100 nodes, while in \sys only 7 nodes need to access the disk for it.
+Furthermore, caching improves the performance of both systems, and the improvement is more significant with skewed workloads.
+\sys can achieve the throughput of \XXX with caching under a skewed workload, \XXX times higher than the baseline.
