@@ -3,7 +3,7 @@
 
 Byzantine fault tolerance (BFT) systems provide mutable shared state across mutually untrusted parties.
 Their ability to tolerate Byzantine faults makes BFT systems a fundamental building block for numerous applications, such as distributed ledgers, supply chain management, and collaborative machine learning.
-The seminal approach in BFT systems is state machine replication, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
+The seminal approach in BFT systems is state machine replication~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
 As higher performance is demanded from BFT systems, this approach has faced a scalability challenge, because system performance is bounded by individual nodes that must sequentially process all operations.
 Recent work has attempted to address this challenge by sharding the state and operations, but this introduces cross-shard communication and coordination overhead and may undesirably compromise security or isolation guarantees.
 

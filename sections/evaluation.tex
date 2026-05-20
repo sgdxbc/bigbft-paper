@@ -1,7 +1,7 @@
 \section{Preliminary Results}
 \label{sec:eval}
 
-We implement a prototype of \sys in Rust, with Bullshark~\cite{bullshark} as the consensus component.
+We implement a prototype of \sys in Rust, with partial synchrony version Bullshark~\cite{spiegelman2022bullshark} as the consensus component and RocksDB~\cite{rocksdb} as storage.
 Here we present preliminary results of \sys comparing to a fully replicated baseline BFT store.
 We plan to conduct more comprehensive evaluations in the full version of the paper, including comparisons with Basil and sharded blockchains, and measuring more performance metrics such as latency and scalability with more shards and nodes.
 
