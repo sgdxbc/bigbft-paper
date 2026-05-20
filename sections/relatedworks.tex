@@ -1,0 +1,18 @@
+\section{Related Works}
+\label{sec:rel}
+
+\paragraph{Sharded blockchains.}
+BlockchainDB, ShaPer, ByShard and GriDB are sharded blockchains with a similar security model to \sys.
+They propose to deploy multiple consensus instances on different sets of nodes, each tolerating up to $f$ Byzantine faults.
+Other sharded blockchains, such as Omniledger, RapidChain, and Dang et al., adopt a different security model where the systems tolerate a certain fraction of Byzantine nodes across the entire system, and the node shards are formed via random sampling at runtime.
+As discussed in \cref{sec:review}, both categories of sharded blockchains suffer from performance degradation due to cross-shard transactions.
+Basil~\cite{suri2021basil} discussed more shortcomings of sharded blockchains in detail.
+
+\paragraph{BFT scalability.}
+Many works have proposed to scale BFT consensus protocols, including SBFT, HotStuff, Tusk, Bullshark, and Autobahn.
+Some of them also adopt sharding techniques, such as Elastico and OHIE.
+While these works significantly improve the scalability of BFT consensus, the transaction execution is still sequential and fully replicated, becoming the bottleneck of the system.
+
+\paragraph{Blockchain execution engines.}
+LVMT and Block-STM improve the performance of blockchain execution engines by optimize IO efficiency and parallelizing execution, respectively.
+They improve the performance of individual nodes and can be used together with \sys as scalably performant BFT systems.
