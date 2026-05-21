@@ -59,7 +59,7 @@ This scheme is identical to that of Basil and prior sharded blockchains, preserv
 However, in \sys, nodes from all shards participate in the \emph{same} consensus protocol, which orders all transactions before they are executed by \emph{all} nodes.
 \sys can employ any modern BFT consensus protocol to atomically broadcast transaction blocks.
 The \sys nodes then execute blocks similarly to Basil's clients: they first fetch state data from the corresponding shards, then execute transactions and buffer updates locally, and finally submit state updates.
-The nodes wait for $f+1$ matching state query responses to ensure the integrity and freshness of the fetched data, while the shards wait for $Cf+1$ matching updates before applying them to the state, where $C$ is the number of shards.
+The nodes wait for $f+1$ matching state query responses to ensure the integrity and freshness of the fetched data, while the shards wait for $sf+1$ matching updates before applying them to the state, where $s$ is the number of shards.
 \sys's design lies between Basil and sharded blockchains in terms of modularity.
 Compared with Basil's monolithic approach, \sys is more modular because it only modifies the state management layer of a blockchain to address the most critical scalability bottleneck; compared with sharded blockchains, \sys modifies the blockchain core directly, thereby avoiding the performance and expressiveness pitfalls of full sharding.
 

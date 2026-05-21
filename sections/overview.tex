@@ -16,9 +16,9 @@ Every node in \sys is multiplexed across all three components.
 The consensus component employs a BFT consensus protocol to accept transactions from clients and to order them globally.
 The consensus protocol in \sys is not sharded: nodes across all shards participate in the same protocol.
 When shards join or leave \sys, the consensus protocol is reconfigured to include additional or fewer nodes.
-When there are $C$ shards, each with $3f+1$ nodes where at most $f$ are Byzantine, the consensus protocol is configured to tolerate $Cf$ Byzantine faults among a total of $C(3f+1)$ nodes, which is feasible because common consensus protocols can tolerate $Cf$ Byzantine faults with at least $3Cf+1$ nodes.
+When there are $s$ shards, each with $3f+1$ nodes where at most $f$ are Byzantine, the consensus protocol is configured to tolerate $sf$ Byzantine faults among a total of $s(3f+1)$ nodes, which is feasible because common consensus protocols can tolerate $sf$ Byzantine faults with at least $3sf+1$ nodes.
 \sys can integrate any BFT consensus protocol as the consensus component, while those with scalable performance, such as DAG-based protocols~\cite{bullshark} and Autobahn~\cite{giridharan2024autobahn}, are preferred to avoid introducing scalability bottlenecks.
-When using these protocols, clients can submit transactions to any node of any shard and commit transactions after receiving $Cf+1$ matching confirmations from the nodes, where $C$ is the number of shards, ensuring at least one confirmation from a correct node.
+When using these protocols, clients can submit transactions to any node of any shard and commit transactions after receiving $sf+1$ matching confirmations from the nodes, ensuring at least one confirmation from a correct node.
 
 The consensus component sequentially delivers blocks of transactions in a consistent order to the execution component, which executes the transactions and confirms to the clients after the writes are durably stored in the state storage component.
 \sys adopts fully replicated execution: every node executes every transaction regardless of its shard, achieved through stateless execution.
@@ -36,7 +36,7 @@ This parallelism is key to enabling concurrent state access in \sys.
 
 The state storage component handles fetch and post requests on a per-block basis.
 For fetch requests, it simply returns the current values of the requested keys.
-For post requests, it waits for $2Cf+1$ matching requests from distinct nodes to ensure a quorum of correct nodes have posted, then applies the writes to the state, acknowledges all requests, and begins responding to fetch requests for the following blocks.
+For post requests, it waits for $2sf+1$ matching requests from distinct nodes to ensure a quorum of correct nodes have posted, then applies the writes to the state, acknowledges all requests, and begins responding to fetch requests for the following blocks.
 Because the consensus component is at the front, the state storage component in \sys is much simpler than Basil's shard replicas, since it effectively serves only one client: the execution component of the majority of correct nodes.
 Therefore, it is designed as a simple data plane that does not need to handle concurrent or faulty clients.
 
@@ -56,8 +56,8 @@ For liveness, post requests require only $2f+1$ acknowledgments, so $f$ Byzantin
 Moreover, at least $f+1$ of those $2f+1$ acknowledgments must come from correct nodes, which will eventually respond to subsequent fetch requests for values in the posted updates, ensuring liveness of fetch operations.
 
 We omit the discussion on garbage collection in this short paper.
-Correct nodes that are slower than $2Cf+1$ others may attempt to fetch a block after the state storage has already overwritten the fetch values with subsequent post updates.
-In this case, the state storage component can respond with a certificate indicating that these nodes can safely skip executing the block, since at least $Cf+1$ correct nodes must have executed the block and confirmed to the clients, ensuring the transactions committed.
+Correct nodes that are slower than $2sf+1$ others may attempt to fetch a block after the state storage has already overwritten the fetch values with subsequent post updates.
+In this case, the state storage component can respond with a certificate indicating that these nodes can safely skip executing the block, since at least $sf+1$ correct nodes must have executed the block and confirmed to the clients, ensuring the transactions committed.
 
 \subsection{Optimizations}
 
