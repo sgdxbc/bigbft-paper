@@ -61,8 +61,8 @@ In this case, the state storage component can respond with a certificate indicat
 
 \subsection{Optimizations}
 
-Optimal performance of \sys is achieved by minimizing state access overhead.
-\sys parallelizes state access by concurrently fetching and posting values to multiple shards in batches for each block, and we introduce several additional optimizations.
+% Optimal performance of \sys is achieved by minimizing state access overhead.
+% \sys parallelizes state access by concurrently fetching and posting values to multiple shards in batches for each block, and we introduce several additional optimizations.
 
 \paragraph{Caching.}
 When state access happens locally, caching is widely deployed in multiple tiers of the system.
@@ -79,6 +79,6 @@ With this change, the state storage component responds to fetch requests with a 
 
 \paragraph{Trusted state access.}
 Although logically separated, the three components are co-located on the same nodes, and components deployed on the same node share the same trusted domain.
-We can leverage this trusted state storage component to reduce network requests.
-When the execution component needs to fetch values from its own shard, it can directly access the local state storage component without sending network requests or waiting for multiple matching responses.
-Similarly, when the state storage component receives post requests from the execution component on the same node, it can directly apply the writes without waiting for multiple matching requests.
+We can leverage this trusted state storage component to remove the quorum collection from local shard.
+% When the execution component needs to fetch values from its own shard, it can directly access the local state storage component without sending network requests or waiting for multiple matching responses.
+% Similarly, when the state storage component receives post requests from the execution component on the same node, it can directly apply the writes without waiting for multiple matching requests.
