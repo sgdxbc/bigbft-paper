@@ -13,13 +13,13 @@
 % use the sigconf proceeding template with 10 pt fonts
 % nonacm option removes ACM related text in the submission.
 \documentclass[sigconf,nonacm,10pt]{acmart}
+% enable page numbers
+\settopmatter{printfolios=true}
 \else
 \documentclass[letterpaper,twocolumn,10pt]{article}
 \usepackage{usenix-2020-09}
 \fi
 
-% enable page numbers
-\settopmatter{printfolios=true}
 
 \input{macros}
 \ifarxiv
@@ -27,7 +27,7 @@
 \title{\sys}
 \else
 \newcommand{\sys}{\textsc{BigBFT}\xspace}
-\title{\sys: High Performance BFT System via State Sharding}
+\title{\sys: Scaling BFT without Compromising Fault Tolerance via State Sharding}
 \fi
 
 \ifreview
