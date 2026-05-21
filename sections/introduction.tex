@@ -2,20 +2,23 @@
 \label{sec:intro}
 
 Byzantine fault tolerance (BFT) systems~\cite{pbft,gueta2019sbft,hotstuff,bullshark,bullshark,giridharan2024autobahn,mysticeti,suri2021basil} provide mutable shared state across mutually untrusted parties.
-Their ability to tolerate Byzantine faults makes BFT systems a fundamental building block for numerous applications, such as distributed ledgers, supply chain management, and collaborative machine learning.
-The seminal approach in BFT systems is state machine replication~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
-As higher performance is demanded from BFT systems, this approach has faced a scalability challenge, because system performance is bounded by individual nodes that must sequentially process all operations.
-The goal of scaling BFT systems is to distribute the transaction processing load across the nodes, so the system performance can be improved by adding more nodes.
-Moreover, the system must be able to sustain high performance in the presence of Byzantine faults~\cite{bft-bft} and without relying on specific workload characteristics.
+The ability to tolerate Byzantine faults makes BFT systems a fundamental building block for applications with strong fault tolerance requirements, such as distributed ledgers, supply chain management, and collaborative machine learning.
+The seminal approach in BFT systems is state machine replication (RSM)~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
+%As higher performance is demanded from BFT systems, this approach has faced a scalability challenge, because system performance is bounded by individual nodes that must sequentially process all operations.
+%The goal of scaling BFT systems is to distribute the transaction processing load across the nodes, so the system performance can be improved by adding more nodes.
+%Moreover, the system must be able to sustain high performance in the presence of Byzantine faults~\cite{bft-bft} and without relying on specific workload characteristics.
+Eventually, the approach faces a scalability bottleneck, as the system performance is bounded by the processing capacity of a single node.
+To further scale performance, a BFT system needs to distribute load across participating nodes;
+at the same time, it must sustain high performance in the presence of Byzantine faults~\cite{bft-bft} and various workload conditions.
 
-Recent work has attempted to address this scalability challenge by sharding the state and operations~\cite{el2019blockchaindb, amiri2021sharper, hellings2021byshard, hong2024gridb}, but this introduces cross-shard communication and coordination overhead and may undesirably compromise security or isolation guarantees.
-To overcome the poor scalability of sequential processing, transactional BFT stores have proposed to concurrently process non-conflicting operations and serialize them via concurrency control instead of total-ordering consensus.
-Basil~\cite{suri2021basil} proposed a client-coordinated optimistic concurrency control protocol and achieved significantly higher throughput and lower latency than sequential processing.
-However, Basil suffers from high replication factors and cryptographic overhead, and its performance relies on unrealistic assumptions such as the absence of Byzantine behavior.
-A single Byzantine client can reliably induce more than 20\% performance degradation of the whole system, which is not acceptable for a BFT system~\cite{bft-bft}.
-Basil's undesirable and delicate performance, together with its complex protocol, both motivate us to reconsider the meaning of having ordered transactions.
-Can we still benefit from consistently ordered transactions even if executing them in parallel?
-\lijl{The logical flow of the last few sentences can be improved.} \sgd{Revised.}
+Recent work has attempted to address this scalability challenge by sharding the state and operations~\cite{el2019blockchaindb, amiri2021sharper, hellings2021byshard, hong2024gridb}.
+Sharding, however, introduces cross-shard communication and coordination overhead and weakens security or isolation guarantees.
+To further improve scalability, transactional BFT stores propose to concurrently process non-conflicting operations and serialize them via concurrency control instead of total-ordering consensus.
+Basil~\cite{suri2021basil} applies a client-coordinated optimistic concurrency control protocol and achieved significantly higher throughput and lower latency than sequential processing.
+However, Basil suffers from high replication factors ($5f + 1$) and cryptographic overhead, and its performance relies on unrealistic assumptions such as the absence of Byzantine behavior.
+A single Byzantine client can reliably degrade system performance by more than 20\%, which largely defeats the purpose of BFT~\cite{bft-bft}.
+%Basil's undesirable and delicate performance, together with its complex protocol, both motivate us to reconsider the meaning of having ordered transactions.
+%Can we still benefit from consistently ordered transactions even if executing them in parallel?
 
 \begin{figure}
     \centering
@@ -26,35 +29,39 @@ Can we still benefit from consistently ordered transactions even if executing th
     \label{fig:approach-compare}
 \end{figure}
 
-In this work, we propose a novel approach for scaling BFT systems by sharding the state but not the execution.
-We observe that consensus protocols have recently achieved significant gains in performance and scalability.
-The most advanced protocols can scale throughput with the number of nodes while maintaining low latency, showing that BFT systems can benefit from totally ordered operations without introducing a performance bottleneck.
+In this work, we propose a novel approach to scaling BFT systems by sharding the state but not the execution.
+We observe that recent protocols~\cite{narwhal,bullshark,mysticeti,giridharan2024autobahn} can linearly scale the throughput of BFT atomic broadcast with the number of nodes while maintaining low latency.
+This shows that totally ordering transactions is no longer the performance bottleneck.
 Moreover, previous work has shown that state access accounts for more than 80\% of total execution time~\cite{li2024lvmt}.
-Therefore, substantial performance gains are possible as long as state access is sharded and parallelized, even if consensus and execution are not.
-Based on these observations, we propose sharding the state data and balancing state access load across multiple node shards, while still using a consensus protocol as a deterministic concurrent scheduling mechanism.
-The totally ordered transactions will result in identical state access sequences across all nodes, enabling the opportunity of scaling performance by decoupling the state management from the transaction execution without introducing additional coordination overhead.
-\lijl{Can explicitly mention what are the benefits of total ordered consensus.} \sgd{Revised.}
+Together, we hypothesize that substantial performance gains are feasible when state access is sharded and parallelized, while consensus and execution are not.
+Based on these insights, we propose sharding the state data and balancing state access load across node shards, while relying on a BFT consensus protocol to totally order transactions globally.
+%deterministic concurrency scheduling.
+%The totally ordered transactions will result in identical state access sequences across all nodes, enabling the opportunity of scaling performance by decoupling the state management from the transaction execution without introducing additional coordination overhead.
+Our design enables better scalability by decoupling statement management from transaction execution, while introducing zero additional coordination overhead.
+Moreover, the scalability gain is not at the expense of weaker fault tolerance nor workload dependencies.
 
-As shown in \cref{fig:approach-compare}, this work proposes the opposite direction from Basil with respect to reducing the redundant coordination overhead of intra-committee consensus and inter-committee distributed transaction protocols in sharded blockchains.
-Basil removes the consensus protocol and relies on clients to coordinate distributed transactions, so its node shards must tolerate arbitrarily many Byzantine clients, which leads to performance and security shortcomings.
-In contrast, we show that BFT systems can also be scaled by removing distributed transaction protocols instead while preserving the consensus protocol and replicated state partitions.
-The consensus protocol can isolate the performance impact of Byzantine clients and avoid the cases where individual Byzantine nodes can mislead the clients or other node shards in Basil.
-The highlight of our approach is that the replicated state shards are concurrently accessed by all the nodes without the necessity of distributed transaction protocols.
-The state shards are accessed internally by the nodes instead of directly by the clients.
-Because a majority of nodes are correct and replicate the same state access sequence, they can be treated as a single \emph{logical} client submitting transactions per block execution, so the shards can remain a simple data plane that does not need to handle concurrent transactions or Byzantine clients.
+%As shown in \cref{fig:approach-compare}, this work proposes the opposite direction from Basil with respect to reducing the redundant coordination overhead of intra-committee consensus and inter-committee distributed transaction protocols in sharded blockchains.
+We illustrate the different scalability approaches in \cref{fig:approach-compare}.
+Basil eliminates global consensus and relies on clients to coordinate distributed transactions, so its node shards must tolerate arbitrarily many Byzantine clients, which leads to performance and security compromises.
+Instead, we show that BFT systems can be scaled by removing distributed transaction coordination while preserving the consensus protocol and replicated state partitions.
+Our approach provides better fault tolerance, as the global BFT consensus isolates the performance impact of Byzantine clients and servers.
+% avoid the cases where individual Byzantine nodes can mislead the clients or other node shards in Basil.
+Our main novelty is that the replicated state shards are concurrently accessed by all the servers without costly distributed transaction coordination.
+The state shards are only accessed internally by the servers.
+Because a majority of servers are correct and replicate the same state access sequence, they can be treated as a single \emph{logical} client submitting transactions per block execution.
+Consequently, the shards can remain a simple data plane without handling concurrent transactions or Byzantine clients.
+
 % At the same time, the nodes receive the same total order of transactions from the consensus protocol, so they can resolve dependencies, maintain intermediate states locally, and issue consistent state access requests to the shards independently without further coordination.
-\lijl{This paragraph would need some work.} \sgd{Revised.}
 
-Following this intuition, we design \sys, a robust, high-performance BFT transactional store that leverages total ordering and data sharding.
+Following this philosophy, we design \sys, a robust, high-performance BFT transactional store that leverages total ordering and data sharding.
 \sys replicates each state partition with dedicated node shards, each of which can tolerate $f$ Byzantine faults among a total of $3f+1$ nodes.
-This data partitioning scheme is identical to that of Basil and prior sharded blockchains, preserving the same state maintenance complexity.
+This scheme is identical to that of Basil and prior sharded blockchains, preserving the same state maintenance complexity.
 However, in \sys, nodes from all shards participate in the \emph{same} consensus protocol, which orders all transactions before they are executed by \emph{all} nodes.
 \sys can employ any modern BFT consensus protocol to atomically broadcast transaction blocks.
-The \sys nodes then execute blocks similarly to Basil's clients: they first fetch state data from the corresponding shards, then execute transactions and buffer updates locally, and finally post back the state updates.
-The nodes wait for $f+1$ matching fetching responses to ensure the integrity and freshness of the fetched data, while the shards wait for $Cf+1$ matching updates before applying them to the state, where $C$ is the number of shards.
+The \sys nodes then execute blocks similarly to Basil's clients: they first fetch state data from the corresponding shards, then execute transactions and buffer updates locally, and finally submit state updates.
+The nodes wait for $f+1$ matching state query responses to ensure the integrity and freshness of the fetched data, while the shards wait for $Cf+1$ matching updates before applying them to the state, where $C$ is the number of shards.
 \sys's design lies between Basil and sharded blockchains in terms of modularity.
-Compared with Basil's monolithic approach, \sys is more modular because it only modifies the state management layer of a blockchain to address the most critical scalability bottleneck; compared with sharded blockchains, \sys modifies the blockchain core directly instead of building on top of it, thereby avoiding the performance and expressiveness pitfalls of full sharding.
+Compared with Basil's monolithic approach, \sys is more modular because it only modifies the state management layer of a blockchain to address the most critical scalability bottleneck; compared with sharded blockchains, \sys modifies the blockchain core directly, thereby avoiding the performance and expressiveness pitfalls of full sharding.
 
-We present the full design of \sys in this short paper.
+We present the full design of \sys in this paper.
 We plan to implement \sys and evaluate its performance in comparison with Basil and sharded blockchains, and we expect \sys to achieve comparable performance to Basil in the ideal case and significantly outperform the other systems in the presence of Byzantine faults or skewed state accesses.
-\lijl{Should emphasize this last point earlier in the intro.} \sgd{Done.}
