@@ -8,9 +8,9 @@ In this section, we first define the problem and then review prior scaling appro
 
 BFT transactional stores provide mutable shared key-value state across mutually untrusted parties.
 They support transactions that dynamically read and write multiple keys, where the accessed keys are not known until execution.
-They ensure linearizability, that is, serializable isolation, so transactions appear to execute sequentially in a way that is consistent with their real-time order from the clients' perspective~\cite{linearizability}.
-\sys provides a blockchain-style interface, where clients submit transactions that call on-chain smart contracts encapsulating multiple read and write operations.
-Performance-wise, it favors transactions with predetermined access key sets, while it also supports Basil-style interactive transactions by integrating multi-version values into the state.
+Performance-wise, \sys favors transactions with predetermined access key sets.
+BFT stores ensure linearizability, that is, serializable isolation, so transactions appear to execute sequentially in a way that is consistent with their real-time order from the clients' perspective~\cite{linearizability}.
+\sys provides a blockchain-style interface, where clients submit transactions that call on-chain smart contracts encapsulating multiple read and write operations, while it also supports Basil-style client-executed transactions by integrating multi-version values into the state.
 
 \sys can be scaled out by adding more node shards, where each shard is a fault-tolerant group of nodes that replicates a partition of the state data.
 Each shard can tolerate $f$ Byzantine faults among a total of $3f+1$ nodes.
@@ -21,18 +21,24 @@ When \sys uses consensus protocols that guarantee liveness under asynchronous ne
 \subsection{Previous Scalable BFT Store}
 
 In traditional distributed storage systems, state data is partitioned, and transactions that access different partitions are processed in parallel by different node shards~\cite{bigtable,gfs,shvachko2010hadoop,weil2006ceph,spanner}.
-However, in blockchain systems, every node must participate in state machine replication, maintain the full state, and process all transactions in a consistent sequential order, even when the transactions are independent and could be processed concurrently.
+However, in blockchain systems, every node must participate in state machine replication, maintain the full state, and process all transactions in a consistent sequential order~\cite{rsm}, even when the transactions are independent and could be processed concurrently.
 
 To realize parallel transaction execution, sharded blockchains run multiple consensus instances in parallel, where each instance is operated by a different group of nodes, called a committee, and is responsible for a different state partition.
 Transactions that access different partitions are processed in parallel by different committees, while cross-shard transactions are handled by dedicated distributed transaction protocols.
-As the number of shards increases, cross-shard transactions become more common and dominate performance, and the distributed transaction protocols introduce significant overhead and complexity.
-% Moreover,
+While sharding can parallelize transaction processing across committees, each committee still processes transactions sequentially, and the number of concurrent transactions that can be processed is limited by the number of shards even when all transactions are independent.
+Moreover, as the number of shards increases, cross-shard transactions become more common and dominate performance, and the distributed transaction protocols introduce significant overhead and complexity.
 
-Basil~\cite{suri2021basil} proposed strengthening traditional distributed storage systems with Byzantine fault tolerance without using a consensus protocol to totally order transactions.
-Although Basil avoids sequentially processing all transactions according to an artificial total order, it relies on complicated client-coordinated optimistic concurrency control protocols to resolve transaction dependencies and ensure serializable execution, while still incurring various performance penalties.
+Basil~\cite{suri2021basil} proposed strengthening traditional distributed storage systems with Byzantine fault tolerance without using a consensus protocol to totally order transactions, thus theoretically allowing for unlimited parallelism in transaction processing as the traditional systems.
+However, it relies on complicated client-coordinated optimistic concurrency control protocols to resolve transaction dependencies and ensure serializable execution, while still incurring various performance penalties.
 Basil requires a $5f+1$ replication factor to prevent Byzantine nodes from arbitrarily aborting transactions.
-Its optimal performance is achievable only when there is no Byzantine node or Byzantine client and the workload is not highly contended.
-It also pays significant cryptographic overhead for multi-round node-client interactions, which cannot be batched as easily as internal communication among nodes.
-\lijl{It would be much stronger if the paper can provide more evidences of these points.}
-Moreover, Basil finds it difficult to support sophisticated database primitives such as range reads with its client-driven transaction execution, and its follow-up work~\cite{suri2025pesto} adapts server-side execution for this purpose.
+To scale out Basil with $f=1$, it needs at least 6 nodes compared to 4 nodes in \sys, increasing the cost by 50\%.
+Basil's throughput is also highly limited by its expensive cryptographic overhead.
+Every Basil node must individually sign a prepare message for each transaction with public key cryptography, which not only means 10s of thousands of signatures per second to sign for each node, but also assumes powerful clients that can verify these signatures.
+Basil offers batched reply optimization, but only up to 16 replies to avoid severe network amplification to clients and introduces additional accumulated authentication overhead.
+On the other hand, \sys does not need to sign client replies with public key cryptography, and all publicly verifiable messages in \sys operate at block level encapsulating arbitrary number of transactions and do not incur wasted network bandwidth.
+
+What's worse, Basil's suboptimal performance requires strong assumptions of the absence of Byzantine nodes and clients, and low contention workloads.
+It is impractical for a BFT system to assume there is no Byzantine behavior occurring~\cite{bft-bft}.
+\lijl{It would be much stronger if the paper can provide more evidences of these points.} \sgd{Revised.}
+Moreover, Basil finds it difficult to support sophisticated database primitives such as range reads with its client-driven transaction execution, and its follow-up work~\cite{suri2025pesto} adapts server-side execution for this purpose, a similar approach to \sys at a higher layer.
 In contrast, \sys can always execute arbitrary business logic on the server side, inherently as in blockchains, which makes it easier to support database operations.
