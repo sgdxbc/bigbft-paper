@@ -3,7 +3,7 @@
 
 Byzantine fault tolerance (BFT) systems~\cite{pbft,gueta2019sbft,hotstuff,bullshark,bullshark,giridharan2024autobahn,mysticeti,suri2021basil} provide mutable shared state across mutually untrusted parties.
 The ability to tolerate Byzantine faults makes BFT systems a fundamental building block for applications with strong fault tolerance requirements, such as distributed ledgers, supply chain management, and collaborative machine learning.
-The seminal approach in BFT systems is state machine replication (RSM)~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
+The seminal approach in BFT systems is the replicated state machine (RSM)~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
 %As higher performance is demanded from BFT systems, this approach has faced a scalability challenge, because system performance is bounded by individual nodes that must sequentially process all operations.
 %The goal of scaling BFT systems is to distribute the transaction processing load across the nodes, so the system performance can be improved by adding more nodes.
 %Moreover, the system must be able to sustain high performance in the presence of Byzantine faults~\cite{bft-bft} and without relying on specific workload characteristics.
@@ -52,7 +52,7 @@ Together, we hypothesize that substantial performance gains are feasible when st
 Based on these insights, we propose sharding the state data and balancing state access load across node shards, while relying on a BFT consensus protocol to totally order transactions globally.
 %deterministic concurrency scheduling.
 %The totally ordered transactions will result in identical state access sequences across all nodes, enabling the opportunity of scaling performance by decoupling the state management from the transaction execution without introducing additional coordination overhead.
-Our design enables better scalability by decoupling statement management from transaction execution, while introducing zero additional coordination overhead.
+Our design enables better scalability by decoupling state management from transaction execution, while introducing zero additional coordination overhead.
 Moreover, the scalability gain is not at the expense of weaker fault tolerance nor workload dependencies.
 
 %As shown in \cref{fig:approach-compare}, this work proposes the opposite direction from Basil with respect to reducing the redundant coordination overhead of intra-committee consensus and inter-committee distributed transaction protocols in sharded blockchains.
@@ -74,7 +74,7 @@ This scheme is identical to that of Basil and prior sharded blockchains, preserv
 However, in \sys, nodes from all shards participate in the \emph{same} consensus protocol, which orders all transactions before they are executed by \emph{all} nodes.
 \sys can employ any modern BFT consensus protocol to atomically broadcast transaction blocks.
 The \sys nodes then execute blocks similarly to Basil's clients: they first fetch state data from the corresponding shards, then execute transactions and buffer updates locally, and finally submit state updates.
-The nodes wait for $f+1$ matching state query responses to ensure the integrity and freshness of the fetched data, while the shards wait for $sf+1$ matching updates before applying them to the state, where $s$ is the number of shards.
+The nodes wait for $f+1$ matching state query responses to ensure the integrity and freshness of the fetched data, while the shards wait for $2sf+1$ matching updates before applying them to the state, where $s$ is the number of shards.
 \sys's design lies between Basil and sharded blockchains in terms of modularity.
 Compared with Basil's monolithic approach, \sys is more modular because it only modifies the state management layer of a blockchain to address the most critical scalability bottleneck; compared with sharded blockchains, \sys modifies the blockchain core directly, thereby avoiding the performance and expressiveness pitfalls of full sharding.
 

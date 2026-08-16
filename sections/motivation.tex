@@ -9,13 +9,13 @@ In this section, we first define the problem and then review prior scaling appro
 BFT transactional stores provide mutable shared key-value state across mutually untrusted parties.
 They support transactions that dynamically read and write multiple keys, where the accessed keys are not known until execution.
 Performance-wise, \sys favors transactions with predetermined access key sets.
-BFT stores ensure linearizability, that is, serializable isolation, so transactions appear to execute sequentially in a way that is consistent with their real-time order from the clients' perspective~\cite{linearizability}.
+BFT stores ensure strict serializability, so transactions appear to execute sequentially in a way that is consistent with their real-time order from the clients' perspective~\cite{linearizability}.
 \sys provides a blockchain-style interface, where clients submit transactions that call on-chain smart contracts encapsulating multiple read and write operations, while it also supports Basil-style client-executed transactions by integrating multi-version values into the state.
 
 \sys can be scaled out by adding more node shards, where each shard is a fault-tolerant group of nodes that replicates a partition of the state data.
 Each shard can tolerate $f$ Byzantine faults among a total of $3f+1$ nodes.
 \sys can tolerate arbitrary Byzantine clients, while transactions are only guaranteed to be committed on correct clients.
-\sys can ensure linearizability in asynchronous networks, while its liveness depends on the synchrony assumptions of the underlying consensus protocol.
+\sys can ensure strict serializability in asynchronous networks, while its liveness depends on the synchrony assumptions of the underlying consensus protocol.
 It can guarantee liveness under asynchronous networks with asynchronous consensus protocols such as Bullshark~\cite{bullshark}.
 
 \subsection{Previous Scalable BFT Store}
