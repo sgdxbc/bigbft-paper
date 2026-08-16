@@ -14,7 +14,13 @@ The node shards are overlapped for better load balancing, and each shard can tol
     \centering
     \includegraphics[width=0.75\linewidth]{graphs/skew-tput}
     \caption{Throughput of \sys and the baseline under different workload skews.}
-    \ifacm\Description{}\fi
+    \ifacm\Description{Grouped bar chart of throughput in operations per second
+    against workload skewness. At each of the four skewness values 0.0, 0.5,
+    0.99 and 1.24, a BigBFT bar is drawn next to a full replication bar.
+    BigBFT reaches 48k, 52k, 122k and 350k operations per second respectively,
+    while full replication reaches 37k, 41k, 101k and 307k. Both systems
+    improve as the workload becomes more skewed, and BigBFT is higher than
+    full replication at every skewness value.}\fi
     \label{fig:skew-tput}
 \end{figure}
 

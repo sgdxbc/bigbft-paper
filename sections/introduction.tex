@@ -25,7 +25,22 @@ A single Byzantine client can reliably degrade system performance by more than 2
     \includegraphics[width=0.95\linewidth]{figures/approach-compare}
     \caption{Comparison of different approaches to scaling BFT systems.
     The shaded areas are replicated.}
-    \ifacm\Description{}\fi
+    \ifacm\Description{Three stacked architecture diagrams, one per approach.
+    In Basil (top), a client connects directly to six independent nodes; each
+    node runs a concurrency control layer above a replicated state shard, and
+    the nodes are coloured in three pairs, one pair per state partition.
+    In a sharded blockchain (middle), a client connects to three committees;
+    each committee runs its own sharded consensus above a replicated execution
+    and concurrency control layer and two replicated state shards, and
+    horizontal arrows between the execution layers of neighbouring committees
+    denote cross-shard distributed transactions.
+    In BigBFT (bottom), a client connects to a single consensus layer that
+    spans all nodes; this feeds one replicated execution layer that reaches
+    all six replicated state shards directly, and no arrows run between
+    shards.
+    Labelled vertical arrows present the sharded blockchain as the common
+    starting point: removing consensus from it yields Basil, and removing
+    distributed transactions from it yields BigBFT.}\fi
     \label{fig:approach-compare}
 \end{figure}
 
