@@ -5,16 +5,16 @@
 
 \acmtrue
 \arxivfalse
-\reviewtrue
+\reviewfalse
 \draftfalse
 
 \ifacm
 % use the base acmart.cls
 % use the sigconf proceeding template with 10 pt fonts
 % nonacm option removes ACM related text in the submission.
-\documentclass[sigconf,nonacm,10pt]{acmart}
-% enable page numbers
-\settopmatter{printfolios=true}
+\documentclass[sigconf,10pt]{acmart}
+% camera-ready papers must not display page numbers
+\settopmatter{printfolios=false}
 \else
 \documentclass[letterpaper,twocolumn,10pt]{article}
 \usepackage{usenix-2020-09}
@@ -35,16 +35,18 @@
 \else
 \ifacm
 \author{Guangda Sun}
+\email{sung@comp.nus.edu.sg}
 \affiliation{
     \institution{National University of Singapore}
-    \country{}
-    \city{}
+    \city{Singapore}
+    \country{Singapore}
 }
 \author{Jialin Li}
+\email{lijl@comp.nus.edu.sg}
 \affiliation{
     \institution{National University of Singapore}
-    \country{}
-    \city{}
+    \city{Singapore}
+    \country{Singapore}
 }
 \else
 \author{
@@ -74,6 +76,27 @@ lijl@comp.nus.edu.sg
 \begin{document}
 
 \input{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10010520.10010575</concept_id>
+<concept_desc>Computer systems organization~Dependable and fault-tolerant systems and networks</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10002951.10003152.10003517.10003519</concept_id>
+<concept_desc>Information systems~Distributed storage</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Computer systems organization~Dependable and fault-tolerant systems and networks}
+\ccsdesc[300]{Information systems~Distributed storage}
+
+\keywords{Byzantine fault tolerance, state sharding, transactional storage, distributed systems}
+
 \maketitle % should come after the abstract
 
 \input{sections/introduction}

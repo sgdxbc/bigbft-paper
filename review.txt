@@ -1,0 +1,144 @@
+APSys '26 Paper #61 Reviews and Comments
+===========================================================================
+Paper #61 BigBFT: Scaling BFT without Compromising Fault Tolerance via
+State Sharding
+
+
+Review #61A
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+1. I know little to nothing about this area
+
+Presentation clarity
+--------------------
+2. Murky, but I understood some
+
+Paper summary
+-------------
+This paper proposes BigBFT, a BFT transactional store that scales by sharding state while keeping a single global consensus order. Transactions are ordered by one BFT consensus protocol, then servers fetch and post state from replicated shards in parallel. The design aims to avoid cross-shard coordination while preserving stronger fault tolerance.
+
+Comments for authors
+--------------------
+I am not in this area, but the motivation and intuition of this paper look solid to me. The idea of sharding the state but not the execution is interesting: it keeps the simple global ordering model of classic BFT systems, while trying to remove the full-state storage and access bottleneck. I also like that the paper positions the design between full sharding and Basil-style concurrent execution, since this makes the tradeoff easier to understand.
+
+I have a few clarification questions. First, how large is the overhead of fetching and posting state to shards for write-heavy workloads or multi-key transactions? The preliminary evaluation is read-only, so it is not yet clear to me how update propagation and post quorums affect latency. Second, how does BigBFT behave when a few hot keys dominate a workload and all accesses hit the same shard? Third, can the authors clarify the security/fault model when node shards overlap, especially how many total Byzantine nodes the whole deployment can tolerate?
+
+The paper is somewhat murky for me in the protocol details, but the high-level direction is promising. I would also appreciate a more direct comparison plan with Basil and sharded blockchains, including latency and scalability, not only throughput. Overall, I lean weak accept because the core insight seems useful, even though the current evaluation is still preliminary and need more evidence.
+
+
+
+Review #61B
+===========================================================================
+
+Overall merit
+-------------
+2. Weak reject
+
+Reviewer expertise
+------------------
+1. I know little to nothing about this area
+
+Presentation clarity
+--------------------
+2. Murky, but I understood some
+
+Paper summary
+-------------
+The paper presents BigBFT, a BFT transactional store. The main novelty of the
+paper is to avoid concurrency control challenges by keeping a single consensus
+protocol to globally order transactions. Node shards apply the relevant
+transactions in the global order.
+
+Comments for authors
+--------------------
+Thanks for your submission to APSys'26. Unfortunately, I am not an expert in BFT
+so my comments may not be very useful.
+
+My primary observation/concern is that BigBFT prescribes a completely opposite
+design than the works in non-BFT consensus (EPaxos, CURP): commutative
+operations can be applied in any order so let's try to not put them in a total
+order. It will be helpful to clarify in related works or discussion, why a total
+order is a good idea, especially when many read-writes may not conflict with one
+another. And will it be a good idea for the same reason in fail-stop consensus.
+Is it because this is not true in fail-stop consensus?:
+
+> previous work has shown that state access accounts for more than 80% of total
+execution time
+
+Unfortunately, I could not quite understand the correctness claims. It will be
+good to have formal proven specification in a more complete work. Similarly, the
+complete work shall compare performance against Basil, show impact of
+signatures, and measure performance with changing shard counts.
+
+
+
+Review #61C
+===========================================================================
+
+Overall merit
+-------------
+2. Weak reject
+
+Reviewer expertise
+------------------
+1. I know little to nothing about this area
+
+Presentation clarity
+--------------------
+3. Readily comprehensible
+
+Paper summary
+-------------
+This paper presents BigBFT, which shards the states rather than the execution of a BFT transactional
+store. The design is based on the observation that the execution is not the bottleneck, but the state processing is. Evaluations show that the throughput can be improved
+
+Comments for authors
+--------------------
+The paper proposes to shard states to different nodes to scale the Byzantine fault tolerance system.
+
+The ideas is simple but effective. Its design is based on the observation that  state access accounts more than 80% of the total time. The data is from previous literature. Could the data be general to different systems? What are the percentage of state access time in real systems? I like the simple and effective idea. I would suggest the authors collects more data to motivate the paper stronger.
+
+Also, since the idea is simple, are there any challenges in state sharding? It seems that the design section descibes the steps to implement the store. Those steps are natural in my view. Am I missing something?
+
+Last, the paper aims the scalability, but shows only the throughput in the evaluation. It would be better to show the scalability with different shards.
+
+
+
+Review #61D
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+2. I have passing familiarity with this area
+
+Presentation clarity
+--------------------
+3. Readily comprehensible
+
+Paper summary
+-------------
+BigBFT is a Byzantine fault tolerance system with state sharding and centralized consensus. The centralized consensus bears the load for running Byzantine fault tolerance and ACID protocols from the client, and also reduces the inter-node distributed transaction coordination.
+
+Comments for authors
+--------------------
+# Strength
+1. Low cost on the client side.
+2. No distributed transaction coordination cost.
+
+# Weakness
+1. Incomplete evaluation section.
+2. All the heavy lifting seems to be handled by Bullshark
+
+Dear authors, thank you for submitting to APSys'26. BigBFT is an interesting read!
+
+The paper's finding is interesting: decoupling and centralizing concurrency control from Byzantine fault-tolerance protocols in a distributed system greatly improves scalability. However, the paper's novelty seems limited. Bullshark as the consensus already handles concurrency and Byzantine fault tolerance itself. All that remains is to redistribute the linearized request and run Byzantine fault-tolerance protocols at the shard level. So centralized concurrency control is distributed within Bullshark. I believe the paper would be easier to understand if it introduced Bullshark and what it delivers first, then discussed the challenges of using Bullshark to build shared storage.
