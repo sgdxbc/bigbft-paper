@@ -17,8 +17,8 @@ To further improve scalability, transactional BFT stores propose to concurrently
 Basil~\cite{suri2021basil} applies a client-coordinated optimistic concurrency control protocol and achieved significantly higher throughput and lower latency than sequential processing.
 However, Basil suffers from high replication factors ($5f + 1$) and cryptographic overhead, and its performance relies on unrealistic assumptions such as the absence of Byzantine behavior.
 A single Byzantine client can reliably degrade system performance by more than 20\%, which largely defeats the purpose of BFT~\cite{bft-bft}.
-%Basil's undesirable and delicate performance, together with its complex protocol, both motivate us to reconsider the meaning of having ordered transactions.
-%Can we still benefit from consistently ordered transactions even if executing them in parallel?
+Basil's fragile performance, together with the complexity of its protocol, leads us to reconsider what ordering transactions is really worth.
+Can a system still benefit from a consistent total order while executing transactions in parallel?
 
 \begin{figure}
     \centering

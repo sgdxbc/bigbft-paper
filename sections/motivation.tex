@@ -21,7 +21,7 @@ It can guarantee liveness under asynchronous networks with asynchronous consensu
 \subsection{Previous Scalable BFT Store}
 
 In traditional distributed storage systems, state data is partitioned, and transactions that access different partitions are processed in parallel by different node shards~\cite{bigtable,gfs,shvachko2010hadoop,weil2006ceph,spanner}.
-% However, in blockchain systems, every node must participate in state machine replication, maintain the full state, and process all transactions in a consistent sequential order~\cite{rsm}, even when the transactions are independent and could be processed concurrently.
+However, in blockchain systems, every node must participate in state machine replication, maintain the full state, and process all transactions in a consistent sequential order~\cite{rsm}, even when the transactions are independent and could be processed concurrently.
 To similarly realize parallel transaction execution, sharded blockchains run multiple consensus instances in parallel, where each instance is operated by a different group of nodes, called a committee, and is responsible for a different state partition.
 Transactions that access different partitions are processed in parallel by different committees, while cross-shard transactions are handled by dedicated distributed transaction protocols.
 While sharding can parallelize transaction processing across committees, each committee still processes transactions sequentially, and the number of concurrent transactions that can be processed is limited by the number of shards even when all transactions are independent.
@@ -40,4 +40,4 @@ In addition to being suboptimal, Basil's performance also requires strong assump
 It is impractical for a BFT system to assume there is no Byzantine behavior occurring~\cite{bft-bft}.
 \lijl{It would be much stronger if the paper can provide more evidences of these points.} \sgd{Revised.}
 Moreover, Basil finds it difficult to support sophisticated database primitives such as range reads with its client-driven transaction execution, and its follow-up work~\cite{suri2025pesto} adapts server-side execution for this purpose, a similar approach to \sys at a higher layer.
-% In contrast, \sys can always execute arbitrary business logic on the server side, inherently as in blockchains, which makes it easier to support database operations.
+In contrast, \sys can always execute arbitrary business logic on the server side, inherently as in blockchains, which makes it easier to support database operations.
