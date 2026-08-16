@@ -7,8 +7,10 @@ We plan to conduct more comprehensive evaluations in the full version of the pap
 
 In our preliminary evaluation, we deploy \sys and the baseline on 100 nodes.
 The state is a 100 GB key-value store with 100 million keys.
-In the baseline, each node stores the full state, while in \sys the state is sharded into 100 partitions, each stored on a node shard of 7 nodes.
-The node shards are overlapped for better load balancing, and each shard can tolerate up to 2 Byzantine nodes.
+In the baseline, each node stores the full state, while in \sys the state is sharded into 100 partitions, each replicated by a node shard of 7 nodes that tolerates up to 2 Byzantine nodes.
+\sys assumes disjoint node shards, so deploying this configuration as intended would require 700 machines.
+Constrained by our testbed, we instead colocate the 100 shards on the same 100 nodes, with each node belonging to seven shards.
+This is not the intended deployment model, but it exercises the same state access paths and quorum sizes, so we expect it to be broadly performance-equivalent for the fault-free workloads measured here.
 
 \begin{figure}
     \centering
