@@ -1,7 +1,7 @@
 \section{Introduction}
 \label{sec:intro}
 
-Byzantine fault tolerance (BFT) systems~\cite{pbft,gueta2019sbft,hotstuff,bullshark,bullshark,giridharan2024autobahn,mysticeti,suri2021basil} provide mutable shared state across mutually untrusted parties.
+Byzantine fault tolerance (BFT) systems~\cite{pbft,gueta2019sbft,hotstuff,bullshark,giridharan2024autobahn,mysticeti,suri2021basil} provide mutable shared state across mutually untrusted parties.
 The ability to tolerate Byzantine faults makes BFT systems a fundamental building block for applications with strong fault tolerance requirements, such as distributed ledgers, supply chain management, and collaborative machine learning.
 The seminal approach in BFT systems is the replicated state machine (RSM)~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
 %As higher performance is demanded from BFT systems, this approach has faced a scalability challenge, because system performance is bounded by individual nodes that must sequentially process all operations.
