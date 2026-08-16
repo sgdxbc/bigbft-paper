@@ -4,5 +4,5 @@ Prior work has attempted to address this challenge by full sharding or by replac
 In this work, we propose \sys, a BFT transactional store that scales by sharding the state but not the execution.
 \sys keeps a single consensus protocol to order transactions globally, while multiple node shards replicate state partitions and process state access in parallel.
 In this design, the consensus protocol is leveraged to circumvent complicated concurrency control in prior works.
-Compared with Basil and sharded blockchains, \sys can achieve robustly high performance even in the presence of Byzantine faults.
+Unlike Basil and sharded blockchains, \sys scales without weakening fault tolerance or assuming the absence of Byzantine behavior.
 \end{abstract}
