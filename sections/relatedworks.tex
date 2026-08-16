@@ -14,12 +14,13 @@ Some of them also adopt sharding techniques, such as Elastico~\cite{luu2016secur
 While these works significantly improve the scalability of BFT consensus, the transaction execution is still sequential and fully replicated, becoming the bottleneck of the system.
 
 \paragraph{Ordering, commutativity, and determinism.}
-In fail-stop replication, EPaxos~\cite{epaxos} and CURP~\cite{curp} deliberately leave commutative operations unordered, since consensus dominates the cost there and bypassing it saves round trips.
-\sys takes the opposite position, because both sides of that tradeoff invert under Byzantine faults.
+EPaxos~\cite{epaxos} and CURP~\cite{curp} deliberately leave commutative operations unordered, and in fail-stop replication this pays off, since consensus dominates the cost and bypassing it saves round trips.
+Basil takes the same step into the Byzantine setting: it is the upward branch of \cref{fig:approach-compare}, trading the global order for client-coordinated concurrency control at the price of the replication factor and cryptographic overhead discussed in \cref{sec:review}.
+\sys deliberately takes the downward branch instead, because both sides of the tradeoff invert under Byzantine faults.
 Ordering has become cheap: DAG-based BFT protocols~\cite{narwhal,bullshark,mysticeti,giridharan2024autobahn} sustain a total order whose throughput grows with the number of nodes.
-Forgoing it, in contrast, has become expensive, as concurrency control must then remain correct against arbitrarily misbehaving clients, which is what drives Basil to a $5f+1$ replication factor, per-transaction signatures, and performance that degrades once Byzantine behavior appears.
+Forgoing it has become expensive, since concurrency control must then stay correct against arbitrarily misbehaving clients rather than merely crashed ones.
 We therefore treat a total order not as an obstacle to parallelism but as an enabler of it, in the spirit of deterministic databases~\cite{calvin,aria}, which fix a transaction order up front so that partitions can execute against it independently and still converge.
-\sys uses BFT consensus as precisely such a deterministic concurrency control policy: every correct node derives the identical state access sequence from the ordered blocks, so the state shards can be accessed concurrently with no coordination and no risk of divergence.
+\sys uses BFT consensus as precisely such a deterministic concurrency control policy, which is what lets the bottom row of \cref{fig:approach-compare} have every server access every state shard concurrently with no coordination: all correct nodes derive the identical state access sequence from the ordered blocks, so no shard can diverge.
 
 \paragraph{Blockchain execution engines.}
 LVMT~\cite{li2024lvmt}, COLE~\cite{zhang2024cole}, Block-STM~\cite{gelashvili2022blockstm} and ParallelEVM~\cite{lin2025parallelevm} improve the performance of blockchain execution engines by optimize IO efficiency and parallelizing execution.
