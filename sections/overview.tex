@@ -17,7 +17,8 @@ The consensus component employs a BFT consensus protocol to accept transactions 
 The consensus protocol in \sys is not sharded: nodes across all shards participate in the same protocol.
 When shards join or leave \sys, the consensus protocol is reconfigured to include additional or fewer nodes.
 When there are $s$ shards, each with a disjoint set of $3f+1$ nodes where at most $f$ are Byzantine, the consensus protocol is configured to tolerate $sf$ Byzantine faults among a total of $s(3f+1)$ nodes, which is feasible because common consensus protocols can tolerate $sf$ Byzantine faults with at least $3sf+1$ nodes.
-\sys can integrate any BFT consensus protocol as the consensus component, while those with scalable performance, such as DAG-based protocols~\cite{bullshark} and Autobahn~\cite{giridharan2024autobahn}, are preferred to avoid introducing scalability bottlenecks.
+\sys can integrate any BFT consensus protocol as the consensus component;
+those with scalable performance, such as DAG-based protocols~\cite{bullshark} and Autobahn~\cite{giridharan2024autobahn}, are preferred to avoid introducing scalability bottlenecks.
 When using these protocols, clients can submit transactions to any node of any shard and commit transactions after receiving $sf+1$ matching confirmations from the nodes, ensuring at least one confirmation from a correct node.
 
 The consensus component sequentially delivers blocks of transactions in a consistent order to the execution component, which executes the transactions and confirms to the clients after the writes are durably stored in the state storage component.

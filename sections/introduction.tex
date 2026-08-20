@@ -54,7 +54,7 @@ Based on these insights, we propose sharding the state data and balancing state 
 %deterministic concurrency scheduling.
 %The totally ordered transactions will result in identical state access sequences across all nodes, enabling the opportunity of scaling performance by decoupling the state management from the transaction execution without introducing additional coordination overhead.
 Our design enables better scalability by decoupling state management from transaction execution, while introducing zero additional coordination overhead.
-By retaining totally ordered execution, the approach also avoids the fault tolerance and workload dependency compromises in previous scaling solutions.
+By retaining totally ordered execution, the approach avoids the fault tolerance and workload dependency compromises in previous solutions.
 %Moreover, the scalability gain is not at the expense of weaker fault tolerance nor workload dependencies.
 
 %As shown in \cref{fig:approach-compare}, this work proposes the opposite direction from Basil with respect to reducing the redundant coordination overhead of intra-committee consensus and inter-committee distributed transaction protocols in sharded blockchains.
