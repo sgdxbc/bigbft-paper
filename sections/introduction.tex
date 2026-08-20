@@ -1,24 +1,25 @@
 \section{Introduction}
 \label{sec:intro}
 
-Byzantine fault tolerance (BFT) systems~\cite{pbft,gueta2019sbft,hotstuff,bullshark,giridharan2024autobahn,mysticeti,suri2021basil} provide mutable shared state across mutually untrusted parties.
+Byzantine fault tolerance (BFT) systems~\cite{pbft,gueta2019sbft,hotstuff,bullshark,giridharan2024autobahn,mysticeti,suri2021basil} provide consistent shared state across mutually untrusted parties.
 The ability to tolerate Byzantine faults makes BFT systems a fundamental building block for applications with strong fault tolerance requirements, such as distributed ledgers, supply chain management, and collaborative machine learning.
 The seminal approach in BFT systems is the replicated state machine (RSM)~\cite{rsm}, which maintains a total order of all operations through a consensus protocol~\cite{pbft} and applies them deterministically to the shared state.
 %As higher performance is demanded from BFT systems, this approach has faced a scalability challenge, because system performance is bounded by individual nodes that must sequentially process all operations.
 %The goal of scaling BFT systems is to distribute the transaction processing load across the nodes, so the system performance can be improved by adding more nodes.
 %Moreover, the system must be able to sustain high performance in the presence of Byzantine faults~\cite{bft-bft} and without relying on specific workload characteristics.
-Eventually, the approach faces a scalability bottleneck, as the system performance is bounded by the processing capacity of a single node.
+However, the RSM approach faces a scalability bottleneck, as the system performance is bounded by the processing capacity of a single node.
 To further scale performance, a BFT system needs to distribute load across participating nodes;
 at the same time, it must sustain high performance in the presence of Byzantine faults~\cite{bft-bft} and various workload conditions.
 
 Recent work has attempted to address this scalability challenge by sharding the state and operations~\cite{el2019blockchaindb, amiri2021sharper, hellings2021byshard, hong2024gridb}.
 Sharding, however, introduces cross-shard communication and coordination overhead and weakens security or isolation guarantees.
-To further improve scalability, transactional BFT stores propose to concurrently process non-conflicting operations and serialize them via concurrency control instead of total-ordering consensus.
-Basil~\cite{suri2021basil} applies a client-coordinated optimistic concurrency control protocol and achieved significantly higher throughput and lower latency than sequential processing.
+To further improve scalability, transactional BFT stores propose to concurrently process non-conflicting operations and serialize them via concurrency control instead of totally ordered replication.
+Basil~\cite{suri2021basil} applies a client-coordinated optimistic concurrency control protocol and achieved significantly higher throughput ceiling and lower latency than sequential processing.
 However, Basil suffers from high replication factors ($5f + 1$) and cryptographic overhead, and its performance relies on unrealistic assumptions such as the absence of Byzantine behavior.
 A single Byzantine client can reliably degrade system performance by more than 20\%, which largely defeats the purpose of BFT~\cite{bft-bft}.
-Basil's fragile performance, together with the complexity of its protocol, leads us to reconsider what ordering transactions is really worth.
+Basil's fragile performance, together with the complexity of its protocol, leads us to revisit the traditional RSM approach:
 Can a system still benefit from a consistent total order while executing transactions in parallel?
+%reconsider what ordering transactions is really worth.
 
 \begin{figure}
     \centering
@@ -53,10 +54,11 @@ Based on these insights, we propose sharding the state data and balancing state 
 %deterministic concurrency scheduling.
 %The totally ordered transactions will result in identical state access sequences across all nodes, enabling the opportunity of scaling performance by decoupling the state management from the transaction execution without introducing additional coordination overhead.
 Our design enables better scalability by decoupling state management from transaction execution, while introducing zero additional coordination overhead.
-Moreover, the scalability gain is not at the expense of weaker fault tolerance nor workload dependencies.
+By retaining totally ordered execution, the approach also avoids the fault tolerance and workload dependency compromises in previous scaling solutions.
+%Moreover, the scalability gain is not at the expense of weaker fault tolerance nor workload dependencies.
 
 %As shown in \cref{fig:approach-compare}, this work proposes the opposite direction from Basil with respect to reducing the redundant coordination overhead of intra-committee consensus and inter-committee distributed transaction protocols in sharded blockchains.
-We illustrate the different scalability approaches in \cref{fig:approach-compare}.
+We illustrate the different scaling approaches in \cref{fig:approach-compare}.
 Basil eliminates global consensus and relies on clients to coordinate distributed transactions, so its node shards must tolerate arbitrarily many Byzantine clients, which leads to performance and security compromises.
 Instead, we show that BFT systems can be scaled by removing distributed transaction coordination while preserving the consensus protocol and replicated state partitions.
 Our approach provides better fault tolerance, as the global BFT consensus isolates the performance impact of Byzantine clients and servers.
